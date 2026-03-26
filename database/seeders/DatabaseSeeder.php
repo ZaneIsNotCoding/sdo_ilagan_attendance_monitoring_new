@@ -89,6 +89,24 @@ class DatabaseSeeder extends Seeder
 
         $user2->assignRole($admin);
 
+        $employee3 = Employee::create([
+            'station_id' => 2,
+            'first_name' => 'Arnie',
+            'middle_name' => 'L.', // change if needed
+            'last_name' => 'Paril',
+            'position' => 'Administrative Officer 5',
+            'department' => 'ICT',
+            'work_type' => 'Full',
+        ]);
+
+        $user3 = User::create([
+            'email' => 'arnie@gmail.com',
+            'password' => Hash::make('123'),
+            'employee_id' => $employee3->id,
+        ]);
+
+        $user3->assignRole($admin);
+
         Employee::factory(5)->create([
             'station_id' => $defaultStation->id,
         ]);
