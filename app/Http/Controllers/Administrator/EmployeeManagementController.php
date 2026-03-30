@@ -8,20 +8,16 @@ use App\Models\Administrator\Employee;
 use App\Models\Station;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class EmployeeManagementController extends Controller
 {
-    /**
-     * Display a listing of employees and registered biometrics.
-     */
+
     public function index()
     {
         $user = auth()->user();
-
-        // ✅ Get logged-in user's station_id
         $stationId = $user->employee->station_id;
-
-        // ✅ Filter employees by station
         $employees = Employee::where('station_id', $stationId)->get();
 
         $employeesWithFingers = Employee::withCount('biometric')
@@ -32,7 +28,6 @@ class EmployeeManagementController extends Controller
                 return $emp;
             });
 
-        // Registered and unregistered
         $registeredEmployees = $employeesWithFingers
             ->filter(fn($e) => $e->biometric_count > 0)
             ->values();
@@ -41,7 +36,6 @@ class EmployeeManagementController extends Controller
             ->filter(fn($e) => $e->biometric_count === 0)
             ->values();
 
-        // Optional: only show stations if super admin (optional)
         $stations = Station::select('id', 'name')->get();
 
         return Inertia::render('Admin/EmployeeManagement/EmployeeManagement', [
@@ -50,6 +44,8 @@ class EmployeeManagementController extends Controller
             'registeredList' => $registeredEmployees,
             'unregisteredList' => $unregisteredEmployees,
             'stations' => $stations,
+            'userStation' => $user->employee->station->name,
+            'userStationId' => $stationId,
         ]);
     }
 
@@ -70,8 +66,21 @@ class EmployeeManagementController extends Controller
         return redirect()->back()->with('success', 'Employee added successfully 🎉');
     }
 
+
+
     public function update(Request $request, $id)
     {
+
+        $request->validate([
+            'password' => 'required',
+        ]);
+
+        if (!Hash::check($request->password, auth()->user()->password)) {
+            throw ValidationException::withMessages([
+                'password' => 'Wrong password. Please try again.',
+            ]);
+        }
+
         $employee = Employee::findOrFail($id);
 
         $validated = $request->validate([
@@ -82,11 +91,11 @@ class EmployeeManagementController extends Controller
             'department' => 'required|string|max:255',
             'work_type' => 'required|string|max:255',
             'active_status' => 'required|boolean',
-            'station_id' => 'required|exists:stations,id', 
+            'station_id' => 'required|exists:stations,id',
         ]);
 
         $employee->update($validated);
 
-        return redirect()->back()->with('success', 'Employee updated successfully 🎉');
+        return back()->with('success', 'Employee updated successfully 🎉');
     }
 }

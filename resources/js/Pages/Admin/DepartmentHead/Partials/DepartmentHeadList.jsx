@@ -1,6 +1,3 @@
-import ClearFilterButton from "@/Components/ClearFiltersButton";
-import FilterToggle from "@/Components/FilterToggle";
-import SearchInput from "@/Components/SearchInput";
 import StatusSwitchCell from "@/Components/StatusSwitchCell";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +24,7 @@ import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
 
 const ITEMS_PER_PAGE = 10;
 
-const HeadList = ({ dept_heads, queryParams: rawParams }) => {
+const DepartmentHeadList = ({ dept_heads, queryParams: rawParams }) => {
     const queryParams = rawParams || {};
     const [currentPage, setCurrentPage] = useState(1);
     const totalPages = Math.ceil(dept_heads.length / ITEMS_PER_PAGE);
@@ -48,33 +45,23 @@ const HeadList = ({ dept_heads, queryParams: rawParams }) => {
         setCurrentPage(page);
     };
 
-    const handleRemove = (id) => {
-        router.delete(route("departmenthead.destroy", id));
-    };
-
     return (
         <div>
-            <div className="flex justify-between items-center mb-3 gap-6">
-                <h2 className="text-lg font-bold flex-shrink-0">
-                    Department Head List
-                </h2>
+            <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-bold">
+                        Department Head List
+                    </h2>
 
-                <div className="flex items-center gap-2">
-                    <FilterToggle
-                        queryParams={queryParams}
-                        visibleFilters={["status", "department"]}
-                        url={"departmenthead.index"}
-                    />
-
-                    <SearchInput
-                        url={"departmenthead.index"}
-                        queryParams={queryParams}
-                        label={"Search Department Head"}
-                    />
-
-                    <ClearFilterButton routeName={"departmenthead.index"} />
+                    <Button
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={() => {
+                            // 👉 you can open modal or redirect here
+                            router.get(route("departmenthead.create"));
+                        }}
+                    >
+                        + Add
+                    </Button>
                 </div>
-            </div>
             <Table>
                 <TableHeader>
                     <TableRow className="bg-blue-900 hover:bg-blue-800">
@@ -89,12 +76,6 @@ const HeadList = ({ dept_heads, queryParams: rawParams }) => {
                         </TableHead>
                         <TableHead className="text-center text-white">
                             Department
-                        </TableHead>
-                        <TableHead className="text-center text-white">
-                            Work Type
-                        </TableHead>
-                        <TableHead className="text-center text-white">
-                            Head Status
                         </TableHead>
                         <TableHead className="text-center text-white">
                             Actions
@@ -187,4 +168,4 @@ const HeadList = ({ dept_heads, queryParams: rawParams }) => {
     );
 };
 
-export default HeadList;
+export default DepartmentHeadList;

@@ -159,7 +159,7 @@ export function AppSidebar({ active, user, ...props }) {
                                                             : "!text-white"
                                                     }`}
                                                 />
-                                                Department Heads
+                                                School Admin & Department Heads
                                             </Link>
                                         </SidebarMenuSubButton>
                                     </SidebarMenuSubItem>

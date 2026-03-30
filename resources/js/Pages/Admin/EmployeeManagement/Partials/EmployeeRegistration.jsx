@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import FloatingInput from "@/components/floating-input";
 import { User, Briefcase, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,16 +33,24 @@ const department_choices = [
 
 const work_type_choices = ["Full", "Fixed", "Work From Home"];
 
-const EmployeeRegistration = ({ stations }) => {
-    const [form, setForm] = useState({
-        first_name: "",
-        middle_name: "",
-        last_name: "",
-        position: "",
-        department: "",
-        work_type: "",
-        station_id: "",
-    });
+const EmployeeRegistration = ({ userStationId })  => {
+        const [form, setForm] = useState({
+            first_name: "",
+            middle_name: "",
+            last_name: "",
+            position: "",
+            department: "",
+            work_type: "",
+            station_id: "",
+        });
+
+    useEffect(() => {
+        setForm((prev) => ({
+            ...prev,
+            station_id: userStationId,
+            department: userStationId !== 1 ? "Not Applicable" : "",
+        }));
+    }, [userStationId]);
 
     const handleFormChange = (e) => {
         const { name, value } = e.target;
@@ -64,9 +72,9 @@ const EmployeeRegistration = ({ stations }) => {
                     middle_name: "",
                     last_name: "",
                     position: "",
-                    department: "",
+                    department: userStationId !== 1 ? "Not Applicable" : "",
                     work_type: "",
-                    station_id: "",
+                    station_id: userStationId,
                 });
 
                 toast.success("Employee added successfully 🎉", {
@@ -110,7 +118,9 @@ const EmployeeRegistration = ({ stations }) => {
                         readOnly
                         onChange={() => {}}
                     />
-                    <div className="absolute right-2 top-0 h-full flex items-center">
+                    <div className={`absolute right-2 top-0 h-full flex items-center ${
+                        Number(userStationId) !== 1 ? "pointer-events-none opacity-50" : ""
+                    }`}>
                         <CustomDropdownCheckbox
                             label="Select Department"
                             items={department_choices}
@@ -120,6 +130,7 @@ const EmployeeRegistration = ({ stations }) => {
                             }
                             buttonVariant="white"
                             iconOnly
+                            disabled={userStationId !== 1}
                         />
                     </div>
                 </div>

@@ -14,7 +14,6 @@ class DepartmentHead extends Model
     protected $fillable = [
         'department',
         'employee_id',
-        'status'
     ];
 
     public function head()
