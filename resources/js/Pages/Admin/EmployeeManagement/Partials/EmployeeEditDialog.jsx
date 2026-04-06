@@ -8,12 +8,14 @@
         DialogFooter,
         DialogClose,
     } from "@/components/ui/dialog";
+    import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
     import { Button } from "@/components/ui/button";
     import FloatingInput from "@/components/floating-input";
     import { CheckCircle, Briefcase, Building2, User } from "lucide-react";
+    import { Badge } from "@/components/ui/badge";
+    import { ShieldAlert } from "lucide-react";
     import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
     import { CustomDropdownCheckbox } from "@/components/dropdown-menu-main";
-    import { router } from "@inertiajs/react";
     import { toast } from "sonner";
 
     const EmployeeEditDialog = ({
@@ -23,11 +25,15 @@
         setEditOpen,
         department_choices,
         stations,
+        userStationId,
     }) => {
         const [confirmOpen, setConfirmOpen] = React.useState(false);
-
-        // ✅ SAFE FALLBACK (prevents crash + fixes click issues)
         const safeForm = editForm || {};
+        const canEditDepartment = userStationId=== 1;
+
+        console.log("SAFE FORM:", safeForm);
+
+        const isHead = safeForm?.is_department_head;
 
         return (
             <Dialog open={editOpen} onOpenChange={setEditOpen}>
@@ -137,22 +143,59 @@
                                 readOnly
                             />
 
+                            {/* HoverCard ONLY when employee is head */}
+                            {safeForm?.is_department_head && (
+                                <div className="absolute right-2 top-0 h-full flex items-center">
+                                    <HoverCard>
+                                        <HoverCardTrigger asChild>
+                                            <div className="cursor-pointer">
+                                                <Badge className="bg-red-100 text-red-700 border border-red-300 flex items-center gap-1">
+                                                    <ShieldAlert className="w-3.5 h-3.5" /> 
+                                                </Badge>
+                                            </div>
+                                        </HoverCardTrigger>
+
+                                        <HoverCardContent className="text-xs px-3 py-2 rounded-lg shadow-md border bg-white w-fit">
+                                            <span className="flex flex-col gap-1 text-red-600 font-medium">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                                    Department Head Active
+                                                </div>
+
+                                                <p className="text-gray-600 font-normal">
+                                                    This employee is currently Department Head of{" "}
+                                                    <span className="font-semibold text-black">
+                                                        {safeForm.department}
+                                                    </span>
+                                                </p>
+
+                                                <p className="text-red-500 font-semibold">
+                                                    Remove as head first before changing department.
+                                                </p>
+                                            </span>
+                                        </HoverCardContent>
+                                    </HoverCard>
+                                </div>
+                            )}
+
+                            {/* Dropdown */}
                             <div className="absolute right-2 top-0 h-full flex items-center">
-                                <CustomDropdownCheckbox
-                                    label="Select Department"
-                                    items={department_choices}
-                                    onChange={(val) =>
-                                        setEditForm((prev) => ({
-                                            ...prev,
-                                            department: val,
-                                        }))
-                                    }
-                                    buttonVariant="white"
-                                    iconOnly
-                                />
+                                {canEditDepartment && !safeForm?.is_department_head && (
+                                    <CustomDropdownCheckbox
+                                        label="Select Department"
+                                        items={department_choices}
+                                        onChange={(val) =>
+                                            setEditForm((prev) => ({
+                                                ...prev,
+                                                department: val,
+                                            }))
+                                        }
+                                        buttonVariant="white"
+                                        iconOnly
+                                    />
+                                )}
                             </div>
                         </div>
-
                         {/* Work Type */}
                         <div className="relative w-full">
                             <FloatingInput

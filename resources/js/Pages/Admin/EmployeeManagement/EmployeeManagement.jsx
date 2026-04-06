@@ -313,17 +313,7 @@ const EmployeeManagement = ({
     const [editForm, setEditForm] = useState(null);
 
     const handleEdit = (employee) => {
-        setEditForm({
-            id: employee.id,
-            first_name: employee.first_name,
-            middle_name: employee.middle_name,
-            last_name: employee.last_name,
-            position: employee.position,
-            station_id: employee.station_id,
-            department: employee.department,
-            work_type: employee.work_type,
-            active_status: employee.active_status,
-        });
+        setEditForm(employee);
         setEditOpen(true);
     };
 
@@ -593,6 +583,7 @@ const EmployeeManagement = ({
                     setEditOpen={setEditOpen}
                     department_choices={department_choices}
                     stations={stations}
+                    userStationId={userStationId}
                 />
             </main>
         </AuthenticatedLayout>

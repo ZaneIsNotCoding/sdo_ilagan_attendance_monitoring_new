@@ -35,7 +35,7 @@ class Employee extends Model
         'national_reference_card_no',
     ];
 
-    protected $appends = ['full_name'];
+    protected $appends = ['full_name', 'is_department_head'];
 
     protected static function newFactory()
     {
@@ -74,12 +74,16 @@ class Employee extends Model
     {
         return $this->belongsTo(Station::class);
     }
-    public function head()
-    {
-        return $this->belongsTo(DepartmentHead::class);
-    }
     public function user()
     {
         return $this->hasOne(User::class);
+    }
+    public function departmentHead()
+    {
+        return $this->hasOne(DepartmentHead::class, 'employee_id');
+    }
+    public function getIsDepartmentHeadAttribute()
+    {
+        return $this->departmentHead()->exists();
     }
 }

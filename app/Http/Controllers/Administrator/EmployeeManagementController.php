@@ -18,13 +18,19 @@ class EmployeeManagementController extends Controller
     {
         $user = auth()->user();
         $stationId = $user->employee->station_id;
-        $employees = Employee::where('station_id', $stationId)->get();
+        $employees = Employee::with('departmentHead')
+            ->get()
+            ->map(function ($emp) {
+                $emp->is_department_head = $emp->departmentHead()->exists();
+                return $emp;
+            });
 
-        $employeesWithFingers = Employee::withCount('biometric')
+        $employeesWithFingers = Employee::withCount(['biometric', 'departmentHead'])
             ->where('station_id', $stationId)
             ->get()
             ->transform(function ($emp) {
                 $emp->available_fingers = 3 - $emp->biometric_count;
+                $emp->is_department_head = $emp->department_head_count > 0;
                 return $emp;
             });
 

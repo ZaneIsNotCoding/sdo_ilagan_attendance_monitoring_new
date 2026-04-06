@@ -1,13 +1,4 @@
-import StatusSwitchCell from "@/Components/StatusSwitchCell";
 import { Button } from "@/components/ui/button";
-import {
-    Pagination,
-    PaginationContent,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-} from "@/components/ui/pagination";
 import {
     Table,
     TableBody,
@@ -16,29 +7,30 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
-import AddDepartmentHead from "./AddDepartmentHeadForm";
 
 const ITEMS_PER_PAGE = 10;
 
-const DepartmentHeadList = ({ dept_heads, queryParams: rawParams, employees,  assignedDepartments }) => {
-    const queryParams = rawParams || {};
-    const [openAdd, setOpenAdd] = useState(false);
+const SchoolAdminList = ({ school_admins = [] }) => {
     const [currentPage, setCurrentPage] = useState(1);
-    const totalPages = Math.ceil(dept_heads.length / ITEMS_PER_PAGE);
-    const paginatedEmployees = dept_heads.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE,
-    );
-    const [heads, setHeads] = useState(dept_heads);
+    const [admins, setAdmins] = useState(school_admins);
 
-    const handleStatusUpdated = (id, status) => {
-        setHeads((prev) =>
-            prev.map((item) => (item.id === id ? { ...item, status } : item)),
-        );
-    };
+    const totalPages = Math.ceil(admins.length / ITEMS_PER_PAGE);
+
+    const paginatedAdmins = admins.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
     const handlePageChange = (page) => {
         if (page < 1 || page > totalPages) return;
@@ -47,29 +39,23 @@ const DepartmentHeadList = ({ dept_heads, queryParams: rawParams, employees,  as
 
     return (
         <div>
-            <AddDepartmentHead
-                open={openAdd}
-                setOpen={setOpenAdd}
-                employees={employees}
-                assignedDepartments={assignedDepartments}
-            />
+            {/* Header */}
             <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-bold">
-                        Department Head List
-                    </h2>
+                <h2 className="text-lg font-bold">
+                    School Admin List
+                </h2>
 
-                    <Button
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                    onClick={() => setOpenAdd(true)}
-                >
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                     + Add
                 </Button>
-                </div>
+            </div>
+
+            {/* Table */}
             <Table>
                 <TableHeader>
                     <TableRow className="bg-blue-900 hover:bg-blue-800">
                         <TableHead className="text-center text-white">
-                            Employee Name
+                            Name
                         </TableHead>
                         <TableHead className="text-center text-white">
                             Position
@@ -84,19 +70,21 @@ const DepartmentHeadList = ({ dept_heads, queryParams: rawParams, employees,  as
                 </TableHeader>
 
                 <TableBody>
-                    {paginatedEmployees.map((emp) => (
-                        <TableRow key={emp.id} className="hover:bg-gray-100">
+                    {paginatedAdmins.map((admin) => (
+                        <TableRow key={admin.id} className="hover:bg-gray-100">
                             <TableCell className="text-center">
-                                <div className="flex justify-center items-center gap-2">
-                                    {emp.head.full_name}
-                                </div>
+                                {admin.full_name ||
+                                    `${admin.first_name} ${admin.last_name}`}
                             </TableCell>
+
                             <TableCell className="text-center">
-                                {emp.head.position}
+                                {admin.position || "School Admin"}
                             </TableCell>
+
                             <TableCell className="text-center">
-                                {emp.head?.department}
+                                {admin.department || "-"}
                             </TableCell>
+
                             <TableCell className="flex justify-center gap-2">
                                 <ConfirmPasswordDialog
                                     trigger={
@@ -108,14 +96,17 @@ const DepartmentHeadList = ({ dept_heads, queryParams: rawParams, employees,  as
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     }
-                                    title="Delete Department Head"
-                                    description="You are about to permanently remove this department head assignment."
-                                    itemLabel="Department Head"
-                                    itemName={`${emp.head?.last_name}, ${emp.head?.first_name}`}
-                                    note="Deleting this record may affect department assignment history and related references."
+                                    title="Delete School Admin"
+                                    description="You are about to remove this school admin."
+                                    itemLabel="School Admin"
+                                    itemName={
+                                        admin.full_name ||
+                                        `${admin.last_name}, ${admin.first_name}`
+                                    }
+                                    note="This action may affect system permissions."
                                     action={route(
-                                        "departmenthead.destroy",
-                                        emp.id,
+                                        "schooladmin.destroy",
+                                        admin.id
                                     )}
                                     method="delete"
                                     confirmText="Yes, Delete"
@@ -127,6 +118,7 @@ const DepartmentHeadList = ({ dept_heads, queryParams: rawParams, employees,  as
                     ))}
                 </TableBody>
             </Table>
+
             {/* Pagination */}
             {totalPages > 1 && (
                 <Pagination className="my-2 justify-end">
@@ -156,4 +148,4 @@ const DepartmentHeadList = ({ dept_heads, queryParams: rawParams, employees,  as
     );
 };
 
-export default DepartmentHeadList;
+export default SchoolAdminList;

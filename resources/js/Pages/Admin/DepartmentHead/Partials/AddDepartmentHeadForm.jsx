@@ -110,4 +110,4 @@ const AddDepartmentHeadForm = ({
     );
 };
 
-export default AddDepartmentHeadForm;
+export default AddDepartmentHeadForm;   

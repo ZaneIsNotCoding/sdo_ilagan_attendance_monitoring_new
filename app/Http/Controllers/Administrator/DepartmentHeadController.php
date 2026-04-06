@@ -20,7 +20,9 @@ class DepartmentHeadController extends Controller
             'head:id,first_name,middle_name,last_name,position,department,work_type'
         ])
         ->when(request('department'), function ($q, $department) {
-            $q->where('department', $department);
+            $q->whereHas('head', function ($query) use ($department) {
+                $query->where('department', $department);
+            });
         })
         ->when(request('search'), function ($q, $search) {
             $q->whereHas('head', function ($query) use ($search) {
@@ -43,7 +45,7 @@ class DepartmentHeadController extends Controller
             'department'
         )->get();
 
-        $assignedDepartments = $dept_heads->pluck('department')->toArray();
+        $assignedDepartments = $dept_heads->pluck('head.department')->toArray();
 
         return Inertia::render('Admin/DepartmentHead/SchoolandDepartmentHead', [
             'dept_heads' => $dept_heads,
@@ -53,14 +55,18 @@ class DepartmentHeadController extends Controller
         ]);
     }
 
-  public function store(Request $request)
+    public function store(Request $request)
     {
         $request->validate([
-            'department' => 'required|string',
             'employee_id' => 'required|exists:employees,id',
         ]);
 
-        $exists = DepartmentHead::where('department', $request->department)->first();
+        $employee = Employee::findOrFail($request->employee_id);
+
+        // 🔥 Check if this department already has a head
+        $exists = DepartmentHead::whereHas('head', function ($q) use ($employee) {
+            $q->where('department', $employee->department);
+        })->exists();
 
         if ($exists) {
             return back()->withErrors([
@@ -69,8 +75,7 @@ class DepartmentHeadController extends Controller
         }
 
         DepartmentHead::create([
-            'department' => $request->department,
-            'employee_id' => $request->employee_id,
+            'employee_id' => $employee->id,
         ]);
 
         return back()->with('success', 'Department head added successfully!');
