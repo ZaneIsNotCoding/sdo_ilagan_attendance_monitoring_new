@@ -13,33 +13,19 @@ import {
     AlertDialogCancel,
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { CustomDropdownCheckbox } from "@/components/dropdown-menu-main";
+import { CustomDropdownCheckbox, CustomDropdownCheckboxObject } from "@/components/dropdown-menu-main";
 import { router } from "@inertiajs/react";
 import { toast } from "sonner";
 
-const department_choices = [
-    "CID",
-    "SGOD",
-    "HRMO",
-    "ADMINISTRATIVE UNIT",
-    "CASH UNIT",
-    "BUDGET UNIT",
-    "ACCOUNTING UNIT",
-    "RECORDS UNIT",
-    "SDS OFFICE",
-    "ICT UNIT",
-    "SUPPLY UNIT",
-];
-
 const work_type_choices = ["Full", "Fixed", "Work From Home"];
 
-const EmployeeRegistration = ({ userStationId })  => {
+const EmployeeRegistration = ({ userStationId, departments })  => {
         const [form, setForm] = useState({
             first_name: "",
             middle_name: "",
             last_name: "",
             position: "",
-            department: "",
+            department_id: "",
             work_type: "",
             station_id: "",
         });
@@ -72,7 +58,7 @@ const EmployeeRegistration = ({ userStationId })  => {
                     middle_name: "",
                     last_name: "",
                     position: "",
-                    department: userStationId !== 1 ? "Not Applicable" : "",
+                    department_id: userStationId !== 1 ? "Not Applicable" : "",
                     work_type: "",
                     station_id: userStationId,
                 });
@@ -114,19 +100,21 @@ const EmployeeRegistration = ({ userStationId })  => {
                     <FloatingInput
                         label="Department"
                         icon={Building2}
-                        value={form.department || ""}
+                        value={departments?.find(d => d.id === form.department_id)?.name || ""}
                         readOnly
                         onChange={() => {}}
                     />
                     <div className={`absolute right-2 top-0 h-full flex items-center ${
                         Number(userStationId) !== 1 ? "pointer-events-none opacity-50" : ""
                     }`}>
-                        <CustomDropdownCheckbox
+                        <CustomDropdownCheckboxObject
                             label="Select Department"
-                            items={department_choices}
-                            selected={""}
+                            items={departments}
                             onChange={(val) =>
-                                setForm({ ...form, department: val })
+                                setForm((prev) => ({
+                                    ...prev,
+                                    department_id: val,
+                                }))
                             }
                             buttonVariant="white"
                             iconOnly
@@ -197,9 +185,9 @@ const EmployeeRegistration = ({ userStationId })  => {
                                 !form.middle_name ||
                                 !form.last_name ||
                                 !form.position ||
-                                !form.department ||
+                                !form.department_id ||
                                 !form.work_type ||
-                                !form.station_id // ✅ required
+                                !form.station_id
                             }
                             className="w-full"
                         >

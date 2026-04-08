@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Fingerprint } from "lucide-react";
@@ -36,6 +36,7 @@ import EmployeeEditDialog from "./Partials/EmployeeEditDialog";
 
 const EmployeeManagement = ({
     employeesList,
+    departments,
     registeredList,
     unregisteredList,
     stations,
@@ -43,6 +44,26 @@ const EmployeeManagement = ({
     userStationId,
     ...props
 }) => {
+    const sortedDepartments = [...departments].sort((a, b) => {
+        const aName = a.name.trim().toLowerCase();
+        const bName = b.name.trim().toLowerCase();
+
+        const aIsNA = aName === "not applicable";
+        const bIsNA = bName === "not applicable";
+
+        // Not Applicable always first
+        if (aIsNA) return -1;
+        if (bIsNA) return 1;
+
+        // normal A-Z
+        return a.name.localeCompare(b.name);
+    });
+
+    const departmentOptions = [
+        { id: "all", name: "All Departments" },
+        ...sortedDepartments,
+    ];
+    console.log("Depts" , {departments});
     const [search, setSearch] = useState("");
 
     const [employees, setEmployees] = useState(employeesList || []);
@@ -64,13 +85,8 @@ const EmployeeManagement = ({
     const [testStatus, setTestStatus] = useState("idle");
     const [testSource, setTestSource] = useState(null);
 
-    const [selectedDepartment, setSelectedDepartment] =
-        useState("All Departments");
-    const departments = [
-        "All Departments",
-        ...new Set(employees.map((e) => e.department)),
-    ];
-
+    
+    const [selectedDepartment, setSelectedDepartment] = useState("all");
     const [statusFilter, setStatusFilter] = useState("Active");
     const statusOptions = ["Active", "Inactive"];
 
@@ -317,19 +333,6 @@ const EmployeeManagement = ({
         setEditOpen(true);
     };
 
-    const department_choices = [
-        "CID",
-        "SGOD",
-        "HRMO",
-        "ADMINISTRATIVE UNIT",
-        "CASH UNIT",
-        "BUDGET UNIT",
-        "ACCOUNTING UNIT",
-        "RECORDS UNIT",
-        "SDS OFFICE",
-        "ICT UNIT",
-        "SUPPLY UNIT",
-    ];
 
     const filteredEmployees = employees.filter((emp) => {
         const matchesSearch =
@@ -337,14 +340,14 @@ const EmployeeManagement = ({
             emp.last_name.toLowerCase().includes(search.toLowerCase()) ||
             (emp.position &&
                 emp.position.toLowerCase().includes(search.toLowerCase())) ||
-            (emp.department &&
-                emp.department.toLowerCase().includes(search.toLowerCase()));
+            (emp.department?.name &&
+                emp.department.name.toLowerCase().includes(search.toLowerCase()));
 
         // Department filter
         const matchesDepartment =
-            selectedDepartment === "All Departments"
+            selectedDepartment === "all"    
                 ? true
-                : emp.department === selectedDepartment;
+                : emp.department_id === Number(selectedDepartment);
 
         // Status filter
         const matchesStatus =
@@ -362,7 +365,10 @@ const EmployeeManagement = ({
             <Head title="AMS" />
             <main>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <EmployeeRegistration stations={stations} userStation={userStation}userStationId={userStationId}/>
+                    <EmployeeRegistration 
+                        userStationId={userStationId}
+                        departments={departments}
+                    />
                     <div className="bg-gradient-to-br from-blue-100 to-white shadow-lg rounded-2xl p-6 border border-gray-100 flex flex-col">
                         <h2 className="text-l font-bold text-gray-800 mb-1 flex items-center gap-2">
                             <Fingerprint className="w-6 h-6 text-blue-600" />
@@ -581,7 +587,7 @@ const EmployeeManagement = ({
                     setEditForm={setEditForm}
                     editOpen={editOpen}
                     setEditOpen={setEditOpen}
-                    department_choices={department_choices}
+                    departments={departments}
                     stations={stations}
                     userStationId={userStationId}
                 />

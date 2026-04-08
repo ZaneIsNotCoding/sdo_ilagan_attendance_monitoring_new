@@ -6,7 +6,7 @@ use App\Models\Administrator\Employee;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class DepartmentHeadAndSchoolAdmin extends Model
+class DepartmentHead extends Model
 {
     use HasFactory;
 

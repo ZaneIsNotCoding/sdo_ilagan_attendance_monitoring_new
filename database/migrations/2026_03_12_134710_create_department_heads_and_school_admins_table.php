@@ -18,7 +18,7 @@ return new class extends Migration
         $table->enum('type', ['department_head', 'school_admin']);
         $table->timestamps();
 
-        $table->unique(['employee_id', 'type']); // 🔥 better
+        $table->unique(['employee_id', 'type']);
     });
     }
 

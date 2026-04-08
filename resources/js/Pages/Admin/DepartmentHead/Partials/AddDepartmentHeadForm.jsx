@@ -1,39 +1,48 @@
 import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DEPARTMENT_OPTIONS, normalizeDepartment } from "@/constants";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { router } from "@inertiajs/react";
 
 const AddDepartmentHeadForm = ({
     open,
     setOpen,
     employees = [],
+    departments = [],
     assignedDepartments = [],
 }) => {
     const [selectedDept, setSelectedDept] = useState("");
     const [selectedEmployee, setSelectedEmployee] = useState("");
 
-    const availableDepartments = Object.entries(DEPARTMENT_OPTIONS).filter(
-        ([key]) => !assignedDepartments.includes(key)
+    // 🚫 remove already assigned departments
+    const availableDepartments = departments.filter(
+        (dept) => !assignedDepartments.includes(dept.id)
     );
 
+    // 👇 employees under selected department
     const filteredEmployees = employees.filter(
-        (emp) => normalizeDepartment(emp.department) === selectedDept
+        (emp) => emp.department_id == selectedDept
     );
 
-    // 💥 SUBMIT
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        router.post(route("departmenthead.store"), {
-            employee_id: selectedEmployee,
-            type: "department_head",
-        }, {
-            onSuccess: () => {
-                setOpen(false);
-                setSelectedDept("");
-                setSelectedEmployee("");
+        router.post(
+            route("departmenthead.store"),
+            {
+                employee_id: selectedEmployee,
+            },
+            {
+                onSuccess: () => {
+                    setOpen(false);
+                    setSelectedDept("");
+                    setSelectedEmployee("");
+                },
             }
-        });
+        );
     };
 
     return (
@@ -44,7 +53,6 @@ const AddDepartmentHeadForm = ({
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-
                     {/* Department */}
                     <div>
                         <label className="block mb-1 font-medium">
@@ -56,14 +64,14 @@ const AddDepartmentHeadForm = ({
                             value={selectedDept}
                             onChange={(e) => {
                                 setSelectedDept(e.target.value);
-                                setSelectedEmployee(""); // reset employee
+                                setSelectedEmployee("");
                             }}
                         >
                             <option value="">Select Department</option>
 
-                            {availableDepartments.map(([key, label]) => (
-                                <option key={key} value={key}>
-                                    {label}
+                            {availableDepartments.map((dept) => (
+                                <option key={dept.id} value={dept.id}>
+                                    {dept.name}
                                 </option>
                             ))}
                         </select>
@@ -78,7 +86,9 @@ const AddDepartmentHeadForm = ({
                         <select
                             className="w-full border rounded p-2"
                             value={selectedEmployee}
-                            onChange={(e) => setSelectedEmployee(e.target.value)}
+                            onChange={(e) =>
+                                setSelectedEmployee(e.target.value)
+                            }
                             disabled={!selectedDept}
                         >
                             <option value="">
@@ -95,7 +105,7 @@ const AddDepartmentHeadForm = ({
                         </select>
                     </div>
 
-                    {/* 💥 ADD BUTTON */}
+                    {/* Submit */}
                     <button
                         type="submit"
                         className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
@@ -103,11 +113,10 @@ const AddDepartmentHeadForm = ({
                     >
                         Add Department Head
                     </button>
-
                 </form>
             </DialogContent>
         </Dialog>
     );
 };
 
-export default AddDepartmentHeadForm;   
+export default AddDepartmentHeadForm;

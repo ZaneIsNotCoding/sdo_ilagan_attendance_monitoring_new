@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Administrator;
 
-
 use App\Http\Controllers\Controller;
 use App\Models\Administrator\Employee;
 use App\Models\Station;
+use App\Models\Department;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Hash;
@@ -17,6 +17,7 @@ class EmployeeManagementController extends Controller
     {
         $user = auth()->user();
         $stationId = $user->employee->station_id;
+        $departments = Department::select('id', 'name')->get();
 
         $employees = Employee::with('roles')
             ->get()
@@ -28,8 +29,7 @@ class EmployeeManagementController extends Controller
                 return $emp;
             });
 
-        // 🔥 station filtered + counts
-        $employeesWithFingers = Employee::with(['biometric', 'roles'])
+        $employeesWithFingers = Employee::with(['biometric', 'roles', 'department'])
             ->withCount(['biometric'])
             ->where('station_id', $stationId)
             ->get()
@@ -56,6 +56,7 @@ class EmployeeManagementController extends Controller
 
         return Inertia::render('Admin/EmployeeManagement/EmployeeManagement', [
             'allEmployees' => $employees,
+            'departments' => $departments,
             'employeesList' => $employeesWithFingers,
             'registeredList' => $registeredEmployees,
             'unregisteredList' => $unregisteredEmployees,
@@ -72,7 +73,7 @@ class EmployeeManagementController extends Controller
             'middle_name' => 'nullable|string|max:255',
             'last_name' => 'required|string|max:255',
             'position' => 'required|string|max:255',
-            'department' => 'required|string|max:255',
+            'department_id' => 'required|exists:departments,id',
             'work_type' => 'required|string|max:255',
             'station_id' => 'required|exists:stations,id', 
         ]);
@@ -81,8 +82,6 @@ class EmployeeManagementController extends Controller
 
         return redirect()->back()->with('success', 'Employee added successfully 🎉');
     }
-
-
 
     public function update(Request $request, $id)
     {
@@ -104,7 +103,7 @@ class EmployeeManagementController extends Controller
             'middle_name' => 'nullable|string|max:255',
             'last_name' => 'required|string|max:255',
             'position' => 'required|string|max:255',
-            'department' => 'required|string|max:255',
+            'department_id' => 'required|exists:departments,id',
             'work_type' => 'required|string|max:255',
             'active_status' => 'required|boolean',
             'station_id' => 'required|exists:stations,id',

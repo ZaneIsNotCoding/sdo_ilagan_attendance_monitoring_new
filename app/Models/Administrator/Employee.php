@@ -2,7 +2,8 @@
 
 namespace App\Models\Administrator;
 
-use App\Models\DepartmentHeadAndSchoolAdmin;
+use App\Models\DepartmentHead;
+use App\Models\Department;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\HumanResource\TardyConvertion;
@@ -22,7 +23,7 @@ class Employee extends Model
         'middle_name',
         'last_name',
         'position',
-        'department',
+        'department_id',
         'work_type',
         'active_status',
         'station_id',
@@ -75,6 +76,11 @@ class Employee extends Model
     {
         return $this->hasMany(VacationLeave::class);
     }
+    
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
 
     public function station()
     {
@@ -92,7 +98,7 @@ class Employee extends Model
 
     public function roles()
     {
-        return $this->hasMany(DepartmentHeadAndSchoolAdmin::class, 'employee_id');
+        return $this->hasMany(DepartmentHead::class, 'employee_id');
     }
 
     public function isDepartmentHead()

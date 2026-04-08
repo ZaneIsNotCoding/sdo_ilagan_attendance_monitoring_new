@@ -17,7 +17,7 @@
                 $table->string('middle_name')->nullable();
                 $table->string('last_name');
                 $table->string('position');
-                $table->string('department');
+                $table->foreignId('department_id')->nullable()->constrained('departments')->cascadeOnUpdate()->restrictOnDelete();
                 $table->string('work_type');
                 $table->boolean('active_status')->default(true);
                 $table->foreignId('station_id')->constrained('stations')->cascadeOnUpdate()->restrictOnDelete();

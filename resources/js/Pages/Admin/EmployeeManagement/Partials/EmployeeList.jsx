@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { CustomDropdownCheckbox } from "@/components/dropdown-menu-main";
+import { CustomDropdownCheckbox, CustomDropdownCheckboxObject } from "@/components/dropdown-menu-main";
 import {
     Table,
     TableBody,
@@ -87,10 +87,14 @@ const EmployeeList = ({
                         buttonVariant="blue"
                     />
 
-                    <CustomDropdownCheckbox
+                    <CustomDropdownCheckboxObject
                         label="Select Department"
                         items={departments}
                         selected={selectedDepartment}
+                        buttonLabel={
+                                departments.find((d) => d.id === selectedDepartment)?.name ||
+                                "All Departments"
+                            }
                         onChange={(val) => {
                             setSelectedDepartment(val);
                             setCurrentPage(1);
@@ -171,7 +175,7 @@ const EmployeeList = ({
                                 {emp.position}
                             </TableCell>
                             <TableCell className="text-center">
-                                {emp.department}
+                                {emp.department?.name || "-"}
                             </TableCell>
                             <TableCell className="text-center">
                                 {emp.work_type || "-"}

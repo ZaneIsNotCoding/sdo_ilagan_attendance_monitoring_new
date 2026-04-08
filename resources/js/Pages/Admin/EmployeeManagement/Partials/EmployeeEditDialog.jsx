@@ -15,7 +15,7 @@
     import { Badge } from "@/components/ui/badge";
     import { ShieldAlert } from "lucide-react";
     import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
-    import { CustomDropdownCheckbox } from "@/components/dropdown-menu-main";
+    import { CustomDropdownCheckbox, CustomDropdownCheckboxObject} from "@/components/dropdown-menu-main";
     import { toast } from "sonner";
 
     const EmployeeEditDialog = ({
@@ -23,7 +23,7 @@
         setEditForm,
         editOpen,
         setEditOpen,
-        department_choices,
+        departments,
         stations,
         userStationId,
     }) => {
@@ -139,7 +139,7 @@
                             <FloatingInput
                                 label="Department"
                                 icon={Building2}
-                                value={safeForm.department || ""}
+                                value={departments?.find(d => d.id === safeForm.department_id)?.name || ""}
                                 readOnly
                             />
 
@@ -181,17 +181,16 @@
                             {/* Dropdown */}
                             <div className="absolute right-2 top-0 h-full flex items-center">
                                 {canEditDepartment && !safeForm?.is_department_head && (
-                                    <CustomDropdownCheckbox
+                                    <CustomDropdownCheckboxObject
                                         label="Select Department"
-                                        items={department_choices}
+                                        items={departments}
                                         onChange={(val) =>
                                             setEditForm((prev) => ({
                                                 ...prev,
-                                                department: val,
+                                                department_id: val, // ✅ store ID
                                             }))
                                         }
                                         buttonVariant="white"
-                                        iconOnly
                                     />
                                 )}
                             </div>

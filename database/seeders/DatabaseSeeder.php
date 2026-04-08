@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\DepartmentHead;
 use App\Models\User;
 use App\Models\Station;
+use App\Models\Department;
 use App\Models\Administrator\Employee;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -13,40 +13,45 @@ use Database\Seeders\Convertion;
 use Database\Seeders\MonthlySeeder;
 use Database\Seeders\LeaveCardSeeder;
 use Database\Seeders\StationSeeder;
+use Database\Seeders\DepartmentSeeder;
 use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // ✅ Base seeders
+        // ✅ Base seeders FIRST
         $this->call([
             Convertion::class,
             StationSeeder::class,
+            DepartmentSeeder::class, // 👈 MUST BE FIRST
         ]);
 
         // ✅ Roles
         $adminRole = Role::firstOrCreate(['name' => 'admin']);
         $staffRole = Role::firstOrCreate(['name' => 'staff']);
 
-        // ✅ Get all stations
+        // ✅ Get departments
+        $departments = Department::all();
+
+        // ✅ Get stations
         $stations = Station::all();
 
         foreach ($stations as $station) {
 
-            // 🔥 Department rule
+            // 🔥 Station 1 = ADMIN, others = NOT APPLICABLE
             $department = $station->id == 1
-                ? 'ADMINISTRATIVE UNIT'
-                : 'Not Applicable';
+                ? $departments->where('name', 'ADMINISTRATIVE UNIT')->first()
+                : $departments->where('name', 'Not Applicable')->first();
 
-            // 🔥 1 ADMIN PER STATION (with user)
+            // 🔥 ADMIN employee
             $adminEmployee = Employee::create([
                 'station_id' => $station->id,
                 'first_name' => fake()->firstName(),
                 'middle_name' => fake()->lastName(),
                 'last_name' => fake()->lastName(),
                 'position' => 'Administrator',
-                'department' => $department,
+                'department_id' => $department->id,
                 'work_type' => 'Full',
             ]);
 
@@ -58,14 +63,14 @@ class DatabaseSeeder extends Seeder
 
             $adminUser->assignRole($adminRole);
 
-            // 🔥 2 EMPLOYEES PER STATION (NO USER)
+            // 🔥 Employees
             Employee::factory(1)->create([
                 'station_id' => $station->id,
-                'department' => $department,
+                'department_id' => $department->id,
             ]);
         }
 
-        // ✅ Other seeders
+        // ✅ Other seeders LAST
         $this->call([
             MonthlySeeder::class,
             LeaveCardSeeder::class,
