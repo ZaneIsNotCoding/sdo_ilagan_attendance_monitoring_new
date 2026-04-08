@@ -19,6 +19,7 @@ import {
     FileUser,
     Plane,
     MapPinned,
+    Network,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -236,6 +237,28 @@ export function AppSidebar({ active, user, ...props }) {
                                                     }`}
                                                 />
                                                 Tardiness Summary
+                                            </Link>
+                                        </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+                                    <SidebarMenuSubItem>
+                                        <SidebarMenuSubButton
+                                            asChild
+                                            isActive={url.startsWith(
+                                                "/position",
+                                            )}
+                                        >
+                                            <Link
+                                                href={route("position.index")}
+                                                className="flex items-center gap-2 text-xs text-white hover:bg-blue-900 hover:text-blue-100"
+                                            >
+                                                <Network
+                                                    className={`h-4 w-4 ${
+                                                        active === "/position"
+                                                            ? "!text-black"
+                                                            : "!text-white"
+                                                    }`}
+                                                />
+                                                List of Positions
                                             </Link>
                                         </SidebarMenuSubButton>
                                     </SidebarMenuSubItem>

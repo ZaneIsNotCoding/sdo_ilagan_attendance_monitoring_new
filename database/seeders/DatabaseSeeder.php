@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\DepartmentHead;
+use App\Models\Position;
 use App\Models\User;
 use App\Models\Station;
 use App\Models\Administrator\Employee;
@@ -69,6 +70,8 @@ class DatabaseSeeder extends Seeder
         $this->call([
             MonthlySeeder::class,
             LeaveCardSeeder::class,
+
         ]);
+        Position::factory()->count(20)->create();
     }
 }
