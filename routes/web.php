@@ -18,6 +18,7 @@ use App\Http\Controllers\HumanResource\{
 };
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeLeaveController;
+use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Auth;
@@ -118,6 +119,8 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/travel-order', function () {
         return Inertia::render('Employee/TravelOrder/TravelOrderPage');
     })->name('travelorder');
+
+    Route::resource('position', PositionController::class);
 });
 
 
