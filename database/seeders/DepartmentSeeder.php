@@ -10,7 +10,6 @@ class DepartmentSeeder extends Seeder
     public function run(): void
     {
         $department_choices = [
-            "Not Applicable",
             "CID",
             "SGOD",
             "HRMO",

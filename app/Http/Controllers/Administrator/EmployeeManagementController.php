@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Administrator;
 
 use App\Http\Controllers\Controller;
 use App\Models\Administrator\Employee;
-use App\Models\Station;
+use App\Models\Administrator\Station;
 use App\Models\Department;
 use Illuminate\Http\Request;
 use Inertia\Inertia;

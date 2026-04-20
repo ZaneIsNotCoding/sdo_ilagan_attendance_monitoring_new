@@ -21,12 +21,13 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
 import AddDepartmentModal from "./AddDepartmentModal";
 import EditDepartment from "./EditDepartment";
+import DeleteDepartmentModal from "./DeleteDepartmentModal";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 const ITEMS_PER_PAGE = 5;
 
-const DepartmentList = ({ departments = [], dept_heads }) => {
+const DepartmentList = ({ departments = [], dept_heads, onAssignNow }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const [openDepartmentAddmodal, setopenDepartmentAddmodal] = useState(false);
     const [openEditDepartment, setOpenEditDepartment] = useState(false);
@@ -95,7 +96,7 @@ const DepartmentList = ({ departments = [], dept_heads }) => {
         datasets: [
             {
                 data: [assignedCount, missingDepartments.length],
-                backgroundColor: ["#3b82f6", "#e5e7eb"],
+                backgroundColor: ["#1d4ed8", "#d1d5db"],
                 borderWidth: 0,
             },
         ],
@@ -128,7 +129,7 @@ const DepartmentList = ({ departments = [], dept_heads }) => {
     return (
         <div className="flex gap-5">
             {/* LEFT SIDE: TABLE ONLY */}
-            <div className="w-[55%] rounded-xl p-4 border-2 shadow-lg ">
+            <div className="w-[60%] rounded-xl p-4 border-2 shadow-lg ">
                 <div className="flex justify-between items-center mb-4">
                     <div>
                         <h2 className="text-lg font-bold">Department List</h2>
@@ -168,7 +169,7 @@ const DepartmentList = ({ departments = [], dept_heads }) => {
                                     <TableRow key={dept.id}>
                                         <TableCell className="p-3">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-200">
+                                                <div className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-300">
                                                     <Building2 className="w-4 h-4 text-blue-600" />
                                                 </div>
                                                 <span>{dept.name}</span>
@@ -177,7 +178,6 @@ const DepartmentList = ({ departments = [], dept_heads }) => {
 
                                         <TableCell className="p-3 text-center">
                                             <div className="flex justify-center gap-5">
-                                                {/* EDIT */}
                                                 <Button
                                                     onClick={() => {
                                                         setSelectedDepartment(
@@ -201,9 +201,14 @@ const DepartmentList = ({ departments = [], dept_heads }) => {
                                                     }
                                                 />
 
-                                                <Button className="w-8 h-8 flex items-center justify-center rounded-full bg-red-200 text-red-600 hover:bg-red-600 hover:text-white transition">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
+                                                <DeleteDepartmentModal
+                                                    department={dept}
+                                                    trigger={
+                                                        <Button className="w-8 h-8 flex items-center justify-center rounded-full bg-red-200 text-red-600 hover:bg-red-600 hover:text-white transition">
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    }
+                                                />
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -271,17 +276,17 @@ const DepartmentList = ({ departments = [], dept_heads }) => {
                 </div>
             </div>
 
-            <div className="w-[45%] flex flex-col gap-4">
+            <div className="w-[40%] flex flex-col gap-4">
                 {/* 🔷 TOP ROW */}
-                <div className="grid grid-cols-1 lg:grid-cols-[50%_50%]">
+                <div>
                     {/* COVERAGE CARD */}
-                    <div className="p-5 rounded-2xl bg-white border shadow-sm">
-                        <div className="text-base mb-6 font-bold">
+                    <div className="p-5 rounded-2xl shadow-sm bg-gradient-to-br from-blue-50 to-blue-100">
+                        <div className="text-base mb-2 font-bold text-gray-800">
                             Department Head Coverage
                         </div>
-                        <div className="flex items-center gap-5">
+                        <div className="flex items-center gap-8">
                             {/* DONUT */}
-                            <div className="relative w-32">
+                            <div className="relative w-44 ms-2">
                                 <div className="w-full h-full">
                                     <Doughnut
                                         data={
@@ -304,17 +309,17 @@ const DepartmentList = ({ departments = [], dept_heads }) => {
 
                                 {/* CENTER TEXT */}
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-sm font-semibold text-gray-700">
+                                    <span className="text-sm font-semibold text-gray-900">
                                         {coverage}%
                                     </span>
                                 </div>
                             </div>
 
                             {/* LEGEND */}
-                            <div className="text-sm space-y-2">
+                            <div className="text-sm space-y-3">
                                 <div className="flex items-center gap-2">
-                                    <span className="w-2.5 h-2.5 bg-blue-500 rounded-full"></span>
-                                    <span className="text-gray-600">
+                                    <span className="w-3 h-3 bg-blue-700"></span>
+                                    <span className="text-gray-700">
                                         Assigned
                                     </span>
                                     <span className="font-semibold text-gray-800">
@@ -323,8 +328,8 @@ const DepartmentList = ({ departments = [], dept_heads }) => {
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                    <span className="w-2.5 h-2.5 bg-gray-300 rounded-full"></span>
-                                    <span className="text-gray-600">
+                                    <span className="w-3 h-3 bg-gray-300"></span>
+                                    <span className="text-gray-700">
                                         Missing
                                     </span>
                                     <span className="font-semibold text-gray-800">
@@ -332,7 +337,7 @@ const DepartmentList = ({ departments = [], dept_heads }) => {
                                     </span>
                                 </div>
 
-                                <p className="text-xs text-gray-400 pt-1">
+                                <p className="text-xs text-gray-600 pt-1">
                                     {assignedCount} of {departments.length}{" "}
                                     departments covered
                                 </p>
@@ -342,9 +347,9 @@ const DepartmentList = ({ departments = [], dept_heads }) => {
                 </div>
 
                 {/* 🔴 MISSING DEPARTMENTS */}
-                <div className="p-6 rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 to-red-100 shadow-sm">
+                <div className="p-5 flex flex-col rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 to-red-100 shadow-sm min-h-[240px] h-auto">
                     {/* HEADER */}
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2">
                         <div className="p-2 bg-red-100 rounded-lg">
                             <AlertTriangle className="text-red-500 w-4 h-4" />
                         </div>
@@ -354,26 +359,46 @@ const DepartmentList = ({ departments = [], dept_heads }) => {
                         </h3>
                     </div>
 
-                    <p className="text-sm text-red-500 mb-4">
+                    <p className="text-sm text-red-500 mb-2">
                         These departments don’t have assigned heads yet.
                     </p>
 
-                    {/* PILLS */}
-                    <div className="flex flex-wrap gap-2 mb-5">
-                        {missingDepartments.map((dept) => (
-                            <span
-                                key={dept.id}
-                                className="px-3 py-1 text-xs font-medium bg-white border border-red-200 text-red-600 rounded-full shadow-sm"
-                            >
-                                {dept.name}
-                            </span>
-                        ))}
+                    {/* CONTENT AREA */}
+                    <div
+                        className={`flex flex-wrap gap-2 mb-3 ${
+                            missingDepartments.length === 0
+                                ? "flex-1 items-center justify-center"
+                                : ""
+                        }`}
+                    >
+                        {missingDepartments.length === 0 && (
+                            <div className="text-sm text-red-600 text-center">
+                                No missing departments 🎉
+                            </div>
+                        )}
+
+                        {missingDepartments.length > 0 &&
+                            missingDepartments.slice(0, 10).map((dept) => (
+                                <span
+                                    key={dept.id}
+                                    className="px-3 py-1 text-xs font-medium bg-white border border-red-200 text-red-600 rounded-full shadow-sm"
+                                >
+                                    {dept.name}
+                                </span>
+                            ))}
                     </div>
 
                     {/* BUTTON */}
-                    <button className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition shadow-sm">
-                        Assign Now
-                    </button>
+                    <div
+                        onClick={onAssignNow}
+                        className="mt-auto flex justify-end"
+                    >
+                        {missingDepartments.length > 0 && (
+                            <Button className="text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition shadow-sm">
+                                Assign Now
+                            </Button>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

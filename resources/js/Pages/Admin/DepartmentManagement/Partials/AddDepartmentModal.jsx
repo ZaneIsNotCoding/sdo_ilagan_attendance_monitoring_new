@@ -17,7 +17,7 @@ const AddDepartmentModal = ({ open, setOpen }) => {
         if (!name.trim()) return;
 
         router.post(
-            route("departments.storeDepartment"),
+            route("department.storeDepartment"),
             {
                 name: name,
             },

@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Administrator;
 
 use App\Models\Administrator\Employee;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class DepartmentHead extends Model
+class DepartmentHeadandSchoolAdmin extends Model
 {
     use HasFactory;
 

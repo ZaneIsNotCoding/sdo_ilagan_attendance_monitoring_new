@@ -11,13 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { SquarePen, Trash2, Plus } from "lucide-react";
 import {
-    HoverCard,
-    HoverCardContent,
-    HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import { Badge } from "@/components/ui/badge";
-import { BadgeCheckIcon, AlertCircleIcon } from "lucide-react";
-import {
     Pagination,
     PaginationContent,
     PaginationLink,
@@ -69,9 +62,7 @@ const PositionList = ({
                 <h2 className="text-lg font-bold">Position List</h2>
             </div>
 
-            {/* Filters + Actions */}
             <div className="flex flex-col gap-3 mb-4 lg:flex-row lg:items-center lg:justify-between">
-                {/* Left: Filters */}
                 <div className="flex flex-wrap items-center gap-2">
                     <FilterToggle
                         queryParams={queryParams}

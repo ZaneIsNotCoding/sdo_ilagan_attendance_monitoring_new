@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Station;
+use App\Models\Administrator\Station;
 use Illuminate\Database\Seeder;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Log;

@@ -150,7 +150,7 @@ const EmployeeList = ({
                                     <TableCell className="p-3">
                                         <div className="flex gap-3 min-w-0">
                                             {/* Avatar */}
-                                            <div className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
+                                            <div className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-full bg-blue-300 text-blue-600 flex items-center justify-center text-xs font-bold">
                                                 {emp.full_name
                                                     .split(" ")
                                                     .map((n) => n[0])
@@ -210,11 +210,11 @@ const EmployeeList = ({
                                     {/* DEPARTMENT */}
                                     <TableCell className="p-3">
                                         <div className="flex items-center gap-2 min-w-0">
-                                            <div className="w-7 h-7 min-w-[28px] flex items-center justify-center rounded-full bg-gray-200">
+                                            <div className="w-7 h-7 min-w-[28px] flex items-center justify-center rounded-full bg-gray-300">
                                                 <Building2 className="w-4 h-4 text-blue-600" />
                                             </div>
 
-                                            <span className="px-3 py-1 text-sm bg-gray-100 rounded truncate">
+                                            <span className="px-3 py-1 text-sm rounded truncate">
                                                 {emp.department?.name || "-"}
                                             </span>
                                         </div>

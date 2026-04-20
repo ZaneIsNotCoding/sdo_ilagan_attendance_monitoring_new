@@ -1,37 +1,27 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 import { toast } from "sonner";
 
 export default function useToastResponse() {
-    const flash = usePage().props.flash;
-    const shown = useRef(false);
+    const { flash } = usePage().props;
 
     useEffect(() => {
-        if (!flash) return;
-
-        if (flash.success && !shown.current) {
+        if (flash?.success) {
             toast.success(flash.success, {
+                id: Date.now(), // ✅ allow stacking
                 description: "Operation successful!",
-                duration: 3000,
+                duration: 5000,
                 closeButton: true,
             });
-
-            shown.current = true;
         }
 
-        if (flash.error && !shown.current) {
+        if (flash?.error) {
             toast.error(flash.error, {
+                id: Date.now(),
                 description: "Operation failed!",
-                duration: 3000,
+                duration: 5000,
                 closeButton: true,
             });
-
-            shown.current = true;
         }
-
-        // reset AFTER route change
-        return () => {
-            shown.current = false;
-        };
-    }, [flash?.success, flash?.error]);
+    }, [flash]); // ✅ key fix
 }

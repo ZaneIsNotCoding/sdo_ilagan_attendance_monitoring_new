@@ -3,29 +3,46 @@ import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import DepartmentHeadList from "./Partials/DepartmentHeadList";
 import DepartmentList from "./Partials/DepartmentList";
+import { Building2 } from "lucide-react";
 
-const DepartmentHead = ({
+const DepartmentManagement = ({
     dept_heads = [],
     employees = [],
-    assignedDepartments = [],
     departments = [],
 }) => {
+    const sectionRef = useRef(null);
+
     return (
-        <AuthenticatedLayout header="School Admin and Department Head Management">
-            <Head title="AMS" />
+        <AuthenticatedLayout
+            header={
+                <div className="flex items-center gap-5">
+                    <Building2 className="w-5 h-5 text-blue-600" />
+                    <span>Department Management</span>
+                </div>
+            }
+        >
+            <Head title="Department Management" />
 
             <main>
                 <div className="mb-5">
                     <DepartmentList
                         dept_heads={dept_heads}
                         departments={departments}
+                        onAssignNow={() => {
+                            sectionRef.current?.scrollIntoView({
+                                behavior: "smooth",
+                                block: "start",
+                            });
+                        }}
                     />
                 </div>
-                <div className="rounded-xl p-4 border-2  shadow-lg">
+                <div
+                    ref={sectionRef}
+                    className="rounded-xl p-4 border-2 shadow-lg"
+                >
                     <DepartmentHeadList
                         dept_heads={dept_heads}
                         employees={employees}
-                        assignedDepartments={assignedDepartments}
                         departments={departments}
                     />
                 </div>
@@ -34,4 +51,4 @@ const DepartmentHead = ({
     );
 };
 
-export default DepartmentHead;
+export default DepartmentManagement;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Fingerprint } from "lucide-react";
+import { Fingerprint, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     AlertDialog,
@@ -63,7 +63,7 @@ const EmployeeManagement = ({
         { id: "all", name: "All Departments" },
         ...sortedDepartments,
     ];
-    console.log("Depts" , {departments});
+    console.log("Depts", { departments });
     const [search, setSearch] = useState("");
 
     const [employees, setEmployees] = useState(employeesList || []);
@@ -85,7 +85,6 @@ const EmployeeManagement = ({
     const [testStatus, setTestStatus] = useState("idle");
     const [testSource, setTestSource] = useState(null);
 
-    
     const [selectedDepartment, setSelectedDepartment] = useState("all");
     const [statusFilter, setStatusFilter] = useState("Active");
     const statusOptions = ["Active", "Inactive"];
@@ -333,7 +332,6 @@ const EmployeeManagement = ({
         setEditOpen(true);
     };
 
-
     const filteredEmployees = employees.filter((emp) => {
         const matchesSearch =
             emp.first_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -341,11 +339,13 @@ const EmployeeManagement = ({
             (emp.position &&
                 emp.position.toLowerCase().includes(search.toLowerCase())) ||
             (emp.department?.name &&
-                emp.department.name.toLowerCase().includes(search.toLowerCase()));
+                emp.department.name
+                    .toLowerCase()
+                    .includes(search.toLowerCase()));
 
         // Department filter
         const matchesDepartment =
-            selectedDepartment === "all"    
+            selectedDepartment === "all"
                 ? true
                 : emp.department_id === Number(selectedDepartment);
 
@@ -361,11 +361,18 @@ const EmployeeManagement = ({
     });
 
     return (
-        <AuthenticatedLayout header="Employee Management">
-            <Head title="AMS" />
+        <AuthenticatedLayout
+            header={
+                <div className="flex items-center gap-5">
+                    <UserCog className="w-5 h-5 text-blue-600" />
+                    <span>Employee Management</span>
+                </div>
+            }
+        >
+            <Head title="Employee Management" />
             <main>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <EmployeeRegistration 
+                    <EmployeeRegistration
                         userStationId={userStationId}
                         departments={departments}
                     />
@@ -375,7 +382,7 @@ const EmployeeManagement = ({
                             Employee Fingerprint Registration
                         </h2>
 
-                        <div className="flex flex-col items-center gap-4">
+                        <div className="flex flex-col items-center gap-2">
                             <Popover open={open} onOpenChange={setOpen}>
                                 <PopoverTrigger asChild>
                                     <Button

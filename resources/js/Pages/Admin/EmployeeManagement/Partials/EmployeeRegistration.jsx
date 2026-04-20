@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import FloatingInput from "@/components/floating-input";
-import { User, Briefcase, Building2 } from "lucide-react";
+import { UserPlus, User, Briefcase, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     AlertDialog,
@@ -13,22 +13,25 @@ import {
     AlertDialogCancel,
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { CustomDropdownCheckbox, CustomDropdownCheckboxObject } from "@/components/dropdown-menu-main";
+import {
+    CustomDropdownCheckbox,
+    CustomDropdownCheckboxObject,
+} from "@/components/dropdown-menu-main";
 import { router } from "@inertiajs/react";
 import { toast } from "sonner";
 
 const work_type_choices = ["Full", "Fixed", "Work From Home"];
 
-const EmployeeRegistration = ({ userStationId, departments })  => {
-        const [form, setForm] = useState({
-            first_name: "",
-            middle_name: "",
-            last_name: "",
-            position: "",
-            department_id: "",
-            work_type: "",
-            station_id: "",
-        });
+const EmployeeRegistration = ({ userStationId, departments }) => {
+    const [form, setForm] = useState({
+        first_name: "",
+        middle_name: "",
+        last_name: "",
+        position: "",
+        department_id: "",
+        work_type: "",
+        station_id: "",
+    });
 
     useEffect(() => {
         setForm((prev) => ({
@@ -80,8 +83,10 @@ const EmployeeRegistration = ({ userStationId, departments })  => {
 
     return (
         <div className="bg-gradient-to-br from-blue-100 to-white shadow-lg rounded-2xl p-6 border border-gray-100 md:col-span-2 flex flex-col">
-            <h2 className="text-l font-bold text-gray-800 mb-6 flex items-center gap-3">
-                <User className="w-6 h-6 text-blue-600" />
+            <h2 className="text-l font-bold text-gray-800 mb-4 flex items-center gap-3">
+                <span className="p-2 rounded-full bg-blue-600 text-white flex items-center justify-center">
+                    <UserPlus className="w-3.5 h-3.5" />
+                </span>
                 Employee Registration
             </h2>
 
@@ -100,13 +105,21 @@ const EmployeeRegistration = ({ userStationId, departments })  => {
                     <FloatingInput
                         label="Department"
                         icon={Building2}
-                        value={departments?.find(d => d.id === form.department_id)?.name || ""}
+                        value={
+                            departments?.find(
+                                (d) => d.id === form.department_id,
+                            )?.name || ""
+                        }
                         readOnly
                         onChange={() => {}}
                     />
-                    <div className={`absolute right-2 top-0 h-full flex items-center ${
-                        Number(userStationId) !== 1 ? "pointer-events-none opacity-50" : ""
-                    }`}>
+                    <div
+                        className={`absolute right-2 top-0 h-full flex items-center ${
+                            Number(userStationId) !== 1
+                                ? "pointer-events-none opacity-50"
+                                : ""
+                        }`}
+                    >
                         <CustomDropdownCheckboxObject
                             label="Select Department"
                             items={departments}

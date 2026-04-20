@@ -2,7 +2,7 @@
 
 namespace App\Models\Administrator;
 
-use App\Models\DepartmentHead;
+use App\Models\Administrator\DepartmentHeadandSchoolAdmin;
 use App\Models\Department;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +11,7 @@ use App\Models\Biometric;
 use App\Models\User;
 use App\Models\HumanResource\SickLeave;
 use App\Models\HumanResource\VacationLeave;
-use App\Models\Station;
+use App\Models\Administrator\Station;
 use Database\Factories\EmployeeFactory;
 
 class Employee extends Model
@@ -98,7 +98,7 @@ class Employee extends Model
 
     public function roles()
     {
-        return $this->hasMany(DepartmentHead::class, 'employee_id');
+        return $this->hasMany(DepartmentHeadandSchoolAdmin::class, 'employee_id');
     }
 
     public function isDepartmentHead()

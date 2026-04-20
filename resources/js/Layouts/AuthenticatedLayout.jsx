@@ -5,6 +5,7 @@ import { usePage } from "@inertiajs/react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
+import useToastResponse from "@/hooks/useToastResponse";
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -19,6 +20,7 @@ import { Toaster } from "sonner";
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth?.user;
     const active = route().current();
+    useToastResponse();
 
     // Always normalize to array
     const breadcrumbItems = Array.isArray(header) ? header : [header];
@@ -73,12 +75,7 @@ export default function AuthenticatedLayout({ header, children }) {
                     <main className="overflow-auto flex-1 p-3">
                         <div className="p-3">
                             {children}
-                            <Toaster
-                                richColors
-                                position="top-right"
-                                closeButton
-                                duration={4000}
-                            />
+                            <Toaster richColors position="top-right" />
                         </div>
                     </main>
                 </div>

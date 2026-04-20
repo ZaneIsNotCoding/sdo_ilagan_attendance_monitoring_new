@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::create('department_heads_and_school_admins', function (Blueprint $table) {
         $table->id();
         $table->foreignId('employee_id')->constrained()->cascadeOnDelete();
-        $table->enum('type', ['department_head', 'school_admin']);
+        $table->enum('type', ['department_head', 'school_admin', 'sdo_hr', 'sdo_admin']);
         $table->timestamps();
 
         $table->unique(['employee_id', 'type']);

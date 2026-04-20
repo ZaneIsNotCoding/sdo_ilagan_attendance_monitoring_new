@@ -15,8 +15,9 @@ import {
     LogOut,
     User,
     MapPin,
-    FileUser,
+    LandPlot,
     Plane,
+    Building2,
     MapPinned,
     Network,
 } from "lucide-react";
@@ -135,7 +136,7 @@ export function AppSidebar({ active, user, ...props }) {
                                                 )}
                                                 className="flex items-center gap-2 text-xs text-white hover:bg-blue-900 hover:text-blue-100"
                                             >
-                                                <CalendarDays
+                                                <UserCog
                                                     className={`h-4 w-4 ${
                                                         active ===
                                                         "employeemanagement"
@@ -152,22 +153,51 @@ export function AppSidebar({ active, user, ...props }) {
                                         <SidebarMenuSubButton
                                             asChild
                                             isActive={
-                                                active === "departmenthead"
+                                                active ===
+                                                "departmentmanagement"
                                             }
                                         >
                                             <Link
-                                                href={route("departmenthead")}
-                                                className="flex items-center gap-2 py-5 text-xs text-white hover:bg-blue-900 hover:text-blue-100"
+                                                href={route(
+                                                    "departmentmanagement",
+                                                )}
+                                                className="flex items-center gap-2 text-xs text-white hover:bg-blue-900 hover:text-blue-100"
                                             >
-                                                <FileUser
+                                                <Building2
                                                     className={`h-4 w-4 ${
                                                         active ===
-                                                        "departmenthead"
+                                                        "departmentmanagement"
                                                             ? "!text-black"
                                                             : "!text-white"
                                                     }`}
                                                 />
-                                                School Admin & Department Heads
+                                                Department Management
+                                            </Link>
+                                        </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+
+                                    <SidebarMenuSubItem>
+                                        <SidebarMenuSubButton
+                                            asChild
+                                            isActive={
+                                                active === "stationmanagement"
+                                            }
+                                        >
+                                            <Link
+                                                href={route(
+                                                    "stationmanagement",
+                                                )}
+                                                className="flex items-center gap-2 text-xs text-white hover:bg-blue-900 hover:text-blue-100"
+                                            >
+                                                <LandPlot
+                                                    className={`h-4 w-4 ${
+                                                        active ===
+                                                        "stationmanagement"
+                                                            ? "!text-black"
+                                                            : "!text-white"
+                                                    }`}
+                                                />
+                                                Station Management
                                             </Link>
                                         </SidebarMenuSubButton>
                                     </SidebarMenuSubItem>
