@@ -8,7 +8,10 @@ import localeData from "dayjs/plugin/localeData";
 import AttendanceTable from "./Partials/AttendanceTable";
 import NoAttendanceTable from "./Partials/NoAttendanceTable";
 import EmployeeLeaveTable from "./Partials/EmployeeLeaveTable";
-import { CustomDropdownCheckbox } from "@/components/dropdown-menu-main";
+import {
+    CustomDropdownCheckbox,
+    CustomDropdownCheckboxObject,
+} from "@/components/dropdown-menu-main";
 import { toast } from "sonner";
 import { usePage } from "@inertiajs/react";
 import {
@@ -27,10 +30,10 @@ const AttendanceManagement = ({
     employees,
     attendance_lookup,
     employee_leaves,
+    departments,
 }) => {
     // --- Filter states ---
-    const [selectedDepartment, setSelectedDepartment] =
-        useState("All Departments");
+    const [selectedDepartment, setSelectedDepartment] = useState("all");
     const [selectedYear, setSelectedYear] = useState(dayjs().format("YYYY"));
     const [selectedMonth, setSelectedMonth] = useState(dayjs().format("MMMM"));
     const [selectedDay, setSelectedDay] = useState(dayjs().format("DD"));
@@ -41,26 +44,21 @@ const AttendanceManagement = ({
     const [leavePage, setLeavePage] = useState(1);
     const recordsPerPage = 7;
 
-    const departments = useMemo(
-        () => [
-            "All Departments",
-            ...Array.from(
-                new Set(employees.map((e) => e.department).filter(Boolean))
-            ),
-        ],
-        [employees]
-    );
+    const departmentOptions = [
+        { id: "all", name: "All Departments" },
+        ...departments,
+    ];
 
     const years = useMemo(
         () =>
             Array.from(
                 new Set(
                     incomplete_attendances.map((a) =>
-                        dayjs(a.date).format("YYYY")
-                    )
-                )
+                        dayjs(a.date).format("YYYY"),
+                    ),
+                ),
             ).sort(),
-        [incomplete_attendances]
+        [incomplete_attendances],
     );
 
     const months = useMemo(() => dayjs.months(), []);
@@ -70,10 +68,10 @@ const AttendanceManagement = ({
         if (monthIndex < 0 || !selectedYear) return [];
         const totalDays = dayjs(
             `${selectedYear}-${monthIndex + 1}-01`,
-            "YYYY-M-DD"
+            "YYYY-M-DD",
         ).daysInMonth();
         return Array.from({ length: totalDays }, (_, i) =>
-            String(i + 1).padStart(2, "0")
+            String(i + 1).padStart(2, "0"),
         );
     }, [monthIndex, selectedYear]);
 
@@ -86,8 +84,8 @@ const AttendanceManagement = ({
         () =>
             incomplete_attendances.filter((att) => {
                 const matchesDept =
-                    selectedDepartment === "All Departments" ||
-                    att.employee?.department === selectedDepartment;
+                    selectedDepartment === "all" ||
+                    att.employee?.department_id === selectedDepartment;
                 const matchesYear =
                     dayjs(att.date).format("YYYY") === selectedYear;
                 const matchesMonth =
@@ -101,25 +99,25 @@ const AttendanceManagement = ({
             selectedYear,
             selectedMonth,
             selectedDay,
-        ]
+        ],
     );
 
     const totalAttendancePages = Math.ceil(
-        filteredRecords.length / recordsPerPage
+        filteredRecords.length / recordsPerPage,
     );
     const paginatedRecords = filteredRecords.slice(
         (attendancePage - 1) * recordsPerPage,
-        attendancePage * recordsPerPage
+        attendancePage * recordsPerPage,
     );
 
     // --- Employees without attendance ---
     const selectedMonthNumber = dayjs(
         `${selectedYear}-${selectedMonth}-01`,
-        "YYYY-MMMM-DD"
+        "YYYY-MMMM-DD",
     ).format("MM");
     const selectedDateKey = `${selectedYear}-${selectedMonthNumber}-${selectedDay.padStart(
         2,
-        "0"
+        "0",
     )}`;
 
     const leaveLookup = useMemo(() => {
@@ -143,8 +141,8 @@ const AttendanceManagement = ({
                 !attendance_lookup[lookupKey] &&
                 !isWeekend &&
                 !hasLeave &&
-                (selectedDepartment === "All Departments" ||
-                    emp.department === selectedDepartment)
+                (selectedDepartment === "all" ||
+                    emp.department_id === selectedDepartment)
             );
         });
     }, [
@@ -164,8 +162,8 @@ const AttendanceManagement = ({
 
                 if (
                     (leaveType || !hasAttendance) &&
-                    (selectedDepartment === "All Departments" ||
-                        emp.department === selectedDepartment)
+                    (selectedDepartment === "all" ||
+                        emp.department_id === selectedDepartment)
                 ) {
                     return {
                         ...emp,
@@ -186,20 +184,20 @@ const AttendanceManagement = ({
 
     // --- Paginations ---
     const totalNoAttendancePages = Math.ceil(
-        employeesWithoutAttendance.length / recordsPerPage
+        employeesWithoutAttendance.length / recordsPerPage,
     );
     const paginatedEmployeesWithoutAttendance =
         employeesWithoutAttendance.slice(
             (noAttendancePage - 1) * recordsPerPage,
-            noAttendancePage * recordsPerPage
+            noAttendancePage * recordsPerPage,
         );
 
     const totalLeavePages = Math.ceil(
-        employeesWithLeave.length / recordsPerPage
+        employeesWithLeave.length / recordsPerPage,
     );
     const paginatedEmployeesForLeave = employeesWithLeave.slice(
         (leavePage - 1) * recordsPerPage,
-        leavePage * recordsPerPage
+        leavePage * recordsPerPage,
     );
 
     const { flash } = usePage().props || {};
@@ -213,12 +211,19 @@ const AttendanceManagement = ({
             <main className="p-6 space-y-4">
                 {/* Filters */}
                 <div className="flex items-center justify-between gap-4 mb-4">
-                    <CustomDropdownCheckbox
-                        label="Department"
+                    <CustomDropdownCheckboxObject
+                        label="Select Department"
                         items={departments}
                         selected={selectedDepartment}
-                        onChange={setSelectedDepartment}
+                        buttonLabel={
+                            departments.find((d) => d.id === selectedDepartment)
+                                ?.name || "All Departments"
+                        }
+                        onChange={(val) => {
+                            setSelectedDepartment(val);
+                        }}
                         buttonVariant="green"
+                        className="w-[215px]"
                     />
                     <div className="flex gap-4">
                         <CustomDropdownCheckbox
@@ -275,7 +280,7 @@ const AttendanceManagement = ({
                                                 {i + 1}
                                             </PaginationLink>
                                         </PaginationItem>
-                                    )
+                                    ),
                                 )}
                             </PaginationContent>
                             <PaginationNext
@@ -323,7 +328,7 @@ const AttendanceManagement = ({
                                                 {i + 1}
                                             </PaginationLink>
                                         </PaginationItem>
-                                    )
+                                    ),
                                 )}
                             </PaginationContent>
                             <PaginationNext
@@ -367,7 +372,7 @@ const AttendanceManagement = ({
                                                 {i + 1}
                                             </PaginationLink>
                                         </PaginationItem>
-                                    )
+                                    ),
                                 )}
                             </PaginationContent>
                             <PaginationNext

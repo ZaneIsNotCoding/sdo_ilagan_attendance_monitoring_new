@@ -30,31 +30,42 @@ class DailyTimeRecordController extends Controller
      */
     public function index()
     {
-        // Fetch fixed/flexi attendances that haven't been processed yet
-        $fixedAttendances = Attendance::whereHas('employee', function ($q) {
-            $q->whereIn('work_type', ['fixed', 'work from home']);
-        })
+        $user = auth()->user();
+        $stationId = optional($user->employee)->station_id;
+
+        if (!$stationId) {
+            abort(403, 'Station not assigned to this user.');
+        }
+
+        // ✅ Fixed / Work From Home Attendances (station + active)
+        $fixedAttendances = Attendance::whereHas('employee', function ($q) use ($stationId) {
+                $q->where('station_id', $stationId)
+                ->whereIn('work_type', ['fixed', 'work from home'])
+                ->where('active_status', 1);
+            })
             ->doesntHave('tardinessRecord')
             ->with([
                 'am:id,attendance_id,am_time_in,am_time_out',
                 'pm:id,attendance_id,pm_time_in,pm_time_out',
-                'employee:id,work_type'
+                'employee:id,work_type,station_id,active_status'
             ])
             ->get();
 
-        // Fetch full attendances that haven't been processed yet
-        $fullAttendances = Attendance::whereHas('employee', function ($q) {
-            $q->where('work_type', 'full');
-        })
+        // ✅ Full Attendances (station + active)
+        $fullAttendances = Attendance::whereHas('employee', function ($q) use ($stationId) {
+                $q->where('station_id', $stationId)
+                ->where('work_type', 'full')
+                ->where('active_status', 1);
+            })
             ->doesntHave('tardinessRecord')
             ->with([
                 'am:id,attendance_id,am_time_in,am_time_out',
                 'pm:id,attendance_id,pm_time_in,pm_time_out',
-                'employee:id,work_type'
+                'employee:id,work_type,station_id,active_status'
             ])
             ->get();
 
-        // Compute tardiness
+        // ✅ Compute tardiness
         if ($fixedAttendances->isNotEmpty()) {
             $this->fixedService->computeForAttendances($fixedAttendances);
         }
@@ -63,8 +74,11 @@ class DailyTimeRecordController extends Controller
             $this->fullService->computeForAttendances($fullAttendances);
         }
 
-        // Fetch all employees (frontend handles filtering)
-        $time_record = Employee::orderBy('last_name')->get();
+        // ✅ Employees (filtered)
+        $time_record = Employee::where('station_id', $stationId)
+            ->where('active_status', 1)
+            ->orderBy('last_name')
+            ->get();
 
         return Inertia::render('Admin/DailyTimeRecord/DailyTimeRecord', [
             'time_record' => $time_record,

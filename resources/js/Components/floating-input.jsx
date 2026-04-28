@@ -6,6 +6,7 @@ export default function FloatingInput({
     name,
     value,
     onChange,
+    readOnly = false,
 }) {
     return (
         <div className="relative w-full">
@@ -21,6 +22,7 @@ export default function FloatingInput({
                     name={name}
                     value={value}
                     onChange={onChange}
+                    readOnly={readOnly}
                     placeholder=" "
                     className="peer border-0 shadow-none bg-transparent text-sm text-gray-700
                         placeholder-transparent focus-visible:ring-0 h-7"

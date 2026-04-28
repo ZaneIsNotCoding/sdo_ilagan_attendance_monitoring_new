@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Administrator\Employee;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -12,11 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('department_heads', function (Blueprint $table) {
+       Schema::create('departments', function (Blueprint $table) {
             $table->id();
-            $table->string("department", 255);
-            $table->foreignId('employee_id')->constrained()->cascadeOnDelete();
-            $table->string('status', 45);
+            $table->string('name')->unique();
             $table->timestamps();
         });
     }
@@ -26,6 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('department_heads');
+        Schema::dropIfExists('departments');
     }
 };

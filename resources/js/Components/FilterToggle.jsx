@@ -8,7 +8,12 @@ import {
     SelectContent,
     SelectItem,
 } from "@/components/ui/select";
-import { HEAD_STATUS_OPTIONS, DEPARTMENT_OPTIONS } from "@/constants";
+import {
+    HEAD_STATUS_OPTIONS,
+    DEPARTMENT_OPTIONS,
+    POSITION_CATEGORY_OPTIONS,
+    POSITION_LEVEL_OPTIONS,
+} from "@/constants";
 
 const FilterToggle = ({ queryParams, visibleFilters = [], url }) => {
     const isVisible = (key) => visibleFilters.includes(key);
@@ -66,6 +71,47 @@ const FilterToggle = ({ queryParams, visibleFilters = [], url }) => {
                     <SelectContent>
                         <SelectItem value="All">All</SelectItem>
                         {Object.entries(DEPARTMENT_OPTIONS).map(
+                            ([value, label]) => (
+                                <SelectItem key={value} value={value}>
+                                    {label}
+                                </SelectItem>
+                            ),
+                        )}
+                    </SelectContent>
+                </Select>
+            )}
+            {isVisible("category") && (
+                <Select
+                    onValueChange={(v) => searchFieldName("category", v)}
+                    value={queryParams.category ?? "All"}
+                >
+                    <SelectTrigger className="w-[150px] flex items-center">
+                        <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="All">All</SelectItem>
+                        {Object.entries(POSITION_CATEGORY_OPTIONS).map(
+                            ([value, label]) => (
+                                <SelectItem key={value} value={value}>
+                                    {label}
+                                </SelectItem>
+                            ),
+                        )}
+                    </SelectContent>
+                </Select>
+            )}
+
+            {isVisible("level") && (
+                <Select
+                    onValueChange={(v) => searchFieldName("level", v)}
+                    value={queryParams.level ?? "All"}
+                >
+                    <SelectTrigger className="w-[130px] flex items-center">
+                        <SelectValue placeholder="Level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="All">All</SelectItem>
+                        {Object.entries(POSITION_LEVEL_OPTIONS).map(
                             ([value, label]) => (
                                 <SelectItem key={value} value={value}>
                                     {label}

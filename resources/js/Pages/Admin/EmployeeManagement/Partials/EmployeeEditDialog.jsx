@@ -8,11 +8,27 @@ import {
     DialogFooter,
     DialogClose,
 } from "@/components/ui/dialog";
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import { Button } from "@/components/ui/button";
 import FloatingInput from "@/components/floating-input";
-import { CheckCircle, Briefcase, Building2, User } from "lucide-react";
-import { CustomDropdownCheckbox } from "@/components/dropdown-menu-main";
-import { router } from "@inertiajs/react";
+import {
+    CheckCircle,
+    Briefcase,
+    Building2,
+    User,
+    FileSpreadsheetIcon,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ShieldAlert } from "lucide-react";
+import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
+import {
+    CustomDropdownCheckbox,
+    CustomDropdownCheckboxObject,
+} from "@/components/dropdown-menu-main";
 import { toast } from "sonner";
 
 const EmployeeEditDialog = ({
@@ -20,9 +36,17 @@ const EmployeeEditDialog = ({
     setEditForm,
     editOpen,
     setEditOpen,
-    department_choices,
+    departments,
+    stations,
+    userStationId,
 }) => {
-    if (!editForm) return null;
+    const [confirmOpen, setConfirmOpen] = React.useState(false);
+    const safeForm = editForm || {};
+    const canEditDepartment = userStationId === 1;
+
+    console.log("SAFE FORM:", safeForm);
+
+    const isHead = safeForm?.is_department_head;
 
     return (
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
@@ -38,88 +62,177 @@ const EmployeeEditDialog = ({
                     <FloatingInput
                         label="First Name"
                         icon={User}
-                        value={editForm.first_name}
+                        value={safeForm.first_name || ""}
                         onChange={(e) =>
-                            setEditForm({
-                                ...editForm,
+                            setEditForm((prev) => ({
+                                ...prev,
                                 first_name: e.target.value,
-                            })
-                        }
-                    />
-                    <FloatingInput
-                        label="Middle Name"
-                        icon={User}
-                        value={editForm.middle_name}
-                        onChange={(e) =>
-                            setEditForm({
-                                ...editForm,
-                                middle_name: e.target.value,
-                            })
-                        }
-                    />
-                    <FloatingInput
-                        label="Last Name"
-                        icon={User}
-                        value={editForm.last_name}
-                        onChange={(e) =>
-                            setEditForm({
-                                ...editForm,
-                                last_name: e.target.value,
-                            })
-                        }
-                    />
-                    <FloatingInput
-                        label="Position"
-                        icon={Briefcase}
-                        value={editForm.position}
-                        onChange={(e) =>
-                            setEditForm({
-                                ...editForm,
-                                position: e.target.value,
-                            })
+                            }))
                         }
                     />
 
-                    {/* Department Dropdown */}
+                    <FloatingInput
+                        label="Middle Name"
+                        icon={User}
+                        value={safeForm.middle_name || ""}
+                        onChange={(e) =>
+                            setEditForm((prev) => ({
+                                ...prev,
+                                middle_name: e.target.value,
+                            }))
+                        }
+                    />
+
+                    <FloatingInput
+                        label="Last Name"
+                        icon={User}
+                        value={safeForm.last_name || ""}
+                        onChange={(e) =>
+                            setEditForm((prev) => ({
+                                ...prev,
+                                last_name: e.target.value,
+                            }))
+                        }
+                    />
+
+                    {/* Station */}
                     <div className="relative w-full">
                         <FloatingInput
-                            label="Department"
+                            label="Station"
                             icon={Building2}
-                            value={editForm.department || ""}
+                            value={
+                                stations?.find(
+                                    (s) => s.id === safeForm.station_id,
+                                )?.name || ""
+                            }
                             readOnly
-                            onChange={() => {}}
                         />
+
                         <div className="absolute right-2 top-0 h-full flex items-center">
                             <CustomDropdownCheckbox
-                                label="Select Department"
-                                items={department_choices}
-                                onChange={(val) =>
-                                    setEditForm({
-                                        ...editForm,
-                                        department: val,
-                                    })
+                                label="Select Station"
+                                items={stations?.map((s) => s.name) || []}
+                                value={
+                                    stations?.find(
+                                        (s) =>
+                                            s.id ===
+                                            Number(safeForm.station_id),
+                                    )?.name
                                 }
+                                onChange={(val) => {
+                                    const selectedStation = stations?.find(
+                                        (s) => s.name === val,
+                                    );
+
+                                    setEditForm((prev) => ({
+                                        ...prev,
+                                        station_id: selectedStation?.id || "",
+                                    }));
+                                }}
                                 buttonVariant="white"
                                 iconOnly
                             />
                         </div>
                     </div>
 
+                    <FloatingInput
+                        label="Position"
+                        icon={Briefcase}
+                        value={safeForm.position || ""}
+                        onChange={(e) =>
+                            setEditForm((prev) => ({
+                                ...prev,
+                                position: e.target.value,
+                            }))
+                        }
+                    />
+
+                    {/* Department */}
+                    <div className="relative w-full">
+                        <FloatingInput
+                            label="Department"
+                            icon={Building2}
+                            value={
+                                departments?.find(
+                                    (d) => d.id === safeForm.department_id,
+                                )?.name || ""
+                            }
+                            readOnly
+                        />
+
+                        {/* HoverCard ONLY when employee is head */}
+                        {safeForm?.is_department_head && (
+                            <div className="absolute right-2 top-0 h-full flex items-center">
+                                <HoverCard>
+                                    <HoverCardTrigger asChild>
+                                        <div className="cursor-pointer">
+                                            <Badge className="bg-red-100 text-red-700 border border-red-300 flex items-center gap-1">
+                                                <ShieldAlert className="w-3.5 h-3.5" />
+                                            </Badge>
+                                        </div>
+                                    </HoverCardTrigger>
+
+                                    <HoverCardContent className="text-xs px-3 py-2 rounded-lg shadow-md border bg-white w-fit">
+                                        <span className="flex flex-col gap-1 text-red-600 font-medium">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                                Department Head Active
+                                            </div>
+
+                                            <p className="text-gray-600 font-normal">
+                                                This employee is currently
+                                                Department Head of{" "}
+                                                <span className="font-semibold text-black">
+                                                    {safeForm.department}
+                                                </span>
+                                            </p>
+
+                                            <p className="text-red-500 font-semibold">
+                                                Remove as head first before
+                                                changing department.
+                                            </p>
+                                        </span>
+                                    </HoverCardContent>
+                                </HoverCard>
+                            </div>
+                        )}
+
+                        {/* Dropdown */}
+                        <div className="absolute right-2 top-0 h-full flex items-center">
+                            {canEditDepartment &&
+                                !safeForm?.is_department_head && (
+                                    <CustomDropdownCheckboxObject
+                                        label="Select Department"
+                                        items={departments}
+                                        onChange={(val) =>
+                                            setEditForm((prev) => ({
+                                                ...prev,
+                                                department_id: val, // ✅ store ID
+                                            }))
+                                        }
+                                        buttonVariant="white"
+                                    />
+                                )}
+                        </div>
+                    </div>
                     {/* Work Type */}
                     <div className="relative w-full">
                         <FloatingInput
                             label="Work Type"
                             icon={Briefcase}
-                            value={editForm.work_type || ""}
+                            value={safeForm.work_type || ""}
                             readOnly
-                            onChange={() => {}}
                         />
+
                         <div className="absolute right-2 top-0 h-full flex items-center">
                             <CustomDropdownCheckbox
                                 label="Select Work Type"
                                 items={["Full", "Fixed", "Work From Home"]}
                                 onChange={(val) =>
-                                    setEditForm({ ...editForm, work_type: val })
+                                    setEditForm((prev) => ({
+                                        ...prev,
+                                        work_type: val,
+                                    }))
                                 }
                                 buttonVariant="white"
                                 iconOnly
@@ -133,20 +246,20 @@ const EmployeeEditDialog = ({
                             label="Status"
                             icon={CheckCircle}
                             value={
-                                editForm.active_status ? "Active" : "Inactive"
+                                safeForm.active_status ? "Active" : "Inactive"
                             }
                             readOnly
-                            onChange={() => {}}
                         />
+
                         <div className="absolute right-2 top-0 h-full flex items-center">
                             <CustomDropdownCheckbox
                                 label="Select Status"
                                 items={["Active", "Inactive"]}
                                 onChange={(val) =>
-                                    setEditForm({
-                                        ...editForm,
+                                    setEditForm((prev) => ({
+                                        ...prev,
                                         active_status: val === "Active" ? 1 : 0,
-                                    })
+                                    }))
                                 }
                                 buttonVariant="white"
                                 iconOnly
@@ -156,29 +269,29 @@ const EmployeeEditDialog = ({
                 </div>
 
                 <DialogFooter>
-                    <DialogClose className="ml-2">
+                    <DialogClose asChild>
                         <Button variant="outline">Cancel</Button>
                     </DialogClose>
-                    <Button
-                        variant="blue"
-                        onClick={() => {
-                            router.put(
-                                route("employees.update", editForm.id),
-                                editForm,
-                                {
-                                    preserveScroll: true,
-                                    onSuccess: () => {
-                                        setEditOpen(false);
-                                        toast.success(
-                                            "Employee updated successfully 🎉"
-                                        );
-                                    },
-                                }
-                            );
-                        }}
-                    >
-                        Save Changes
-                    </Button>
+
+                    {safeForm?.id && (
+                        <ConfirmPasswordDialog
+                            trigger={
+                                <Button variant="blue">Save Changes</Button>
+                            }
+                            action={route("employees.update", safeForm.id)}
+                            method="put"
+                            data={safeForm}
+                            onSuccess={() => setEditOpen(false)}
+                            onError={() => {}}
+                            confirmText="Confirm Update"
+                            processingText="Updating..."
+                            danger={FileSpreadsheetIcon}
+                            title="Confirm Employee Update"
+                            description="You are about to update this employee's information."
+                            itemLabel="Employee"
+                            itemName={`${safeForm.first_name || ""} ${safeForm.last_name || ""}`.trim()}
+                        />
+                    )}
                 </DialogFooter>
             </DialogContent>
         </Dialog>

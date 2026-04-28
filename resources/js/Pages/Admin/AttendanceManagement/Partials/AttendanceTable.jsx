@@ -38,7 +38,7 @@ const AttendanceTable = ({ records }) => {
                                 {att.employee?.last_name}
                             </TableCell>
                             <TableCell>
-                                {att.employee?.department || "-"}
+                                {att.employee?.department?.name || "-"}
                             </TableCell>
                             <TableCell>
                                 {dayjs(att.date).format("DD MMMM")}

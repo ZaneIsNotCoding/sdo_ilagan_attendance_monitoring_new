@@ -1,25 +1,27 @@
 import { useEffect } from "react";
 import { usePage } from "@inertiajs/react";
-import { toast } from "sonner"; // or your toast library
+import { toast } from "sonner";
 
 export default function useToastResponse() {
-    const { success, error } = usePage().props;
+    const { flash } = usePage().props;
 
     useEffect(() => {
-        if (success) {
-            toast.success(success, {
+        if (flash?.success) {
+            toast.success(flash.success, {
+                id: Date.now(), // ✅ allow stacking
                 description: "Operation successful!",
-                duration: 3000,
+                duration: 5000,
                 closeButton: true,
             });
         }
 
-        if (error) {
-            toast.error(error, {
+        if (flash?.error) {
+            toast.error(flash.error, {
+                id: Date.now(),
                 description: "Operation failed!",
-                duration: 3000,
+                duration: 5000,
                 closeButton: true,
             });
         }
-    }, [success, error]);
+    }, [flash]); // ✅ key fix
 }

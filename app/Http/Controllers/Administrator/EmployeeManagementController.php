@@ -2,36 +2,67 @@
 
 namespace App\Http\Controllers\Administrator;
 
-
 use App\Http\Controllers\Controller;
 use App\Models\Administrator\Employee;
+use App\Models\Administrator\Station;
+use App\Models\Department;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class EmployeeManagementController extends Controller
 {
-    /**
-     * Display a listing of employees and registered biometrics.
-     */
     public function index()
     {
-        $employees = Employee::all();
+        $user = auth()->user();
+        $stationId = $user->employee->station_id;
+        $departments = Department::select('id', 'name')->get();
 
-        $employeesWithFingers = Employee::withCount('biometric')->get()
-            ->transform(function ($emp) {
-                $emp->available_fingers = 3 - $emp->biometric_count;
+        $employees = Employee::with('roles')
+            ->get()
+            ->map(function ($emp) {
+                $emp->is_department_head = $emp->roles
+                    ->where('type', 'department_head')
+                    ->isNotEmpty();
+
                 return $emp;
             });
 
-        // Registered and unregistered
-        $registeredEmployees = $employeesWithFingers->filter(fn($e) => $e->biometric_count > 0)->values();
-        $unregisteredEmployees = $employeesWithFingers->filter(fn($e) => $e->biometric_count === 0)->values();
+        $employeesWithFingers = Employee::with(['biometric', 'roles', 'department'])
+            ->withCount(['biometric'])
+            ->where('station_id', $stationId)
+            ->get()
+            ->transform(function ($emp) {
+
+                $emp->available_fingers = 3 - $emp->biometric_count;
+
+                $emp->is_department_head = $emp->roles
+                    ->where('type', 'department_head')
+                    ->isNotEmpty();
+
+                return $emp;
+            });
+
+        $registeredEmployees = $employeesWithFingers
+            ->filter(fn($e) => $e->biometric_count > 0)
+            ->values();
+
+        $unregisteredEmployees = $employeesWithFingers
+            ->filter(fn($e) => $e->biometric_count === 0)
+            ->values();
+
+        $stations = Station::select('id', 'name')->get();
 
         return Inertia::render('Admin/EmployeeManagement/EmployeeManagement', [
             'allEmployees' => $employees,
+            'departments' => $departments,
             'employeesList' => $employeesWithFingers,
             'registeredList' => $registeredEmployees,
             'unregisteredList' => $unregisteredEmployees,
+            'stations' => $stations,
+            'userStation' => $user->employee->station->name,
+            'userStationId' => $stationId,
         ]);
     }
 
@@ -42,8 +73,9 @@ class EmployeeManagementController extends Controller
             'middle_name' => 'nullable|string|max:255',
             'last_name' => 'required|string|max:255',
             'position' => 'required|string|max:255',
-            'department' => 'required|string|max:255',
+            'department_id' => 'required|exists:departments,id',
             'work_type' => 'required|string|max:255',
+            'station_id' => 'required|exists:stations,id', 
         ]);
 
         Employee::create($validated);
@@ -53,6 +85,17 @@ class EmployeeManagementController extends Controller
 
     public function update(Request $request, $id)
     {
+
+        $request->validate([
+            'password' => 'required',
+        ]);
+
+        if (!Hash::check($request->password, auth()->user()->password)) {
+            throw ValidationException::withMessages([
+                'password' => 'Wrong password. Please try again.',
+            ]);
+        }
+
         $employee = Employee::findOrFail($id);
 
         $validated = $request->validate([
@@ -60,13 +103,14 @@ class EmployeeManagementController extends Controller
             'middle_name' => 'nullable|string|max:255',
             'last_name' => 'required|string|max:255',
             'position' => 'required|string|max:255',
-            'department' => 'required|string|max:255',
+            'department_id' => 'required|exists:departments,id',
             'work_type' => 'required|string|max:255',
             'active_status' => 'required|boolean',
+            'station_id' => 'required|exists:stations,id',
         ]);
 
         $employee->update($validated);
 
-        return redirect()->back()->with('success', 'Employee updated successfully 🎉');
+        return back()->with('success', 'Employee updated successfully 🎉');
     }
 }

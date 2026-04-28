@@ -26,7 +26,6 @@ export default function ConfirmPasswordDialog({
     processingText = "Processing...",
     danger = true,
 
-    // additional content
     itemName = "",
     itemLabel = "Selected Item",
     note = "",
@@ -37,7 +36,10 @@ export default function ConfirmPasswordDialog({
 }) {
     const [open, setOpen] = useState(false);
 
-    const { data, setData, reset, processing, errors, clearErrors } = useForm({
+    // ✅ added loading state
+    const [loading, setLoading] = useState(false);
+
+    const { data, setData, reset, errors, clearErrors, setError } = useForm({
         password: "",
     });
 
@@ -57,16 +59,27 @@ export default function ConfirmPasswordDialog({
         };
 
         const options = {
-            data: submitData,
             preserveScroll: true,
+
+            onStart: () => setLoading(true),
+
             onSuccess: (...args) => {
+                setLoading(false);
                 setOpen(false);
                 reset();
                 clearErrors();
                 onSuccess?.(...args);
             },
-            onError: (...args) => {
-                onError?.(...args);
+
+            onError: (err) => {
+                setLoading(false);
+
+                if (err?.password) {
+                    setError("password", err.password);
+                    setData("password", "");
+                }
+
+                onError?.(err);
             },
         };
 
@@ -85,7 +98,10 @@ export default function ConfirmPasswordDialog({
 
             case "delete":
             default:
-                router.delete(action, options);
+                router.delete(action, {
+                    ...options,
+                    data: submitData,
+                });
                 break;
         }
     };
@@ -172,7 +188,7 @@ export default function ConfirmPasswordDialog({
                                 type="password"
                                 placeholder={passwordPlaceholder}
                                 className={`w-full rounded-lg border bg-background py-2.5 pl-10 pr-3 text-sm outline-none transition ${
-                                    errors.password
+                                    errors?.password
                                         ? "border-red-500 focus:ring-2 focus:ring-red-200"
                                         : "border-input focus:ring-2 focus:ring-ring/20"
                                 }`}
@@ -184,13 +200,13 @@ export default function ConfirmPasswordDialog({
                             />
                         </div>
 
-                        {!errors.password && passwordHelpText && (
+                        {!errors?.password && passwordHelpText && (
                             <p className="text-xs leading-5 text-muted-foreground">
                                 {passwordHelpText}
                             </p>
                         )}
 
-                        {errors.password && (
+                        {errors?.password && (
                             <p className="text-sm font-medium text-red-600">
                                 {errors.password}
                             </p>
@@ -208,7 +224,7 @@ export default function ConfirmPasswordDialog({
                         <button
                             type="button"
                             onClick={() => setOpen(false)}
-                            disabled={processing}
+                            disabled={loading}
                             className="inline-flex h-10 items-center justify-center rounded-lg border px-4 text-sm font-medium transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {cancelText}
@@ -216,17 +232,17 @@ export default function ConfirmPasswordDialog({
 
                         <button
                             type="submit"
-                            disabled={processing || !data.password}
+                            disabled={loading || !data.password}
                             className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
                                 danger
                                     ? "bg-red-600 hover:bg-red-700"
                                     : "bg-blue-600 hover:bg-blue-700"
                             }`}
                         >
-                            {processing && (
+                            {loading && (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                             )}
-                            {processing ? processingText : confirmText}
+                            {loading ? processingText : confirmText}
                         </button>
                     </DialogFooter>
                 </form>

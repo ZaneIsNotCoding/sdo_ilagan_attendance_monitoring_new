@@ -9,6 +9,7 @@ use App\Services\TardinessConvertion\FixedFlexiTardinessService;
 use App\Services\TardinessConvertion\FullFlexiTardinessService;
 use App\Models\EmployeeLeave;
 use Illuminate\Http\Request;
+use App\Models\Department;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Cache;
 
@@ -27,23 +28,65 @@ class AttendanceManagementController extends Controller
 
     public function index()
     {
-        $incompleteAttendances = Attendance::with([
-            'employee:id,id,first_name,last_name,work_type,department',
+        $user = auth()->user();
+        $stationId = optional($user->employee)->station_id;
+        $departments = Department::select('id', 'name')->get();
+
+        if (!$stationId) {
+            abort(403, 'Station not assigned to this user.');
+        }
+
+        // ✅ Incomplete Attendances (filtered by station + active employees)
+        $incompleteAttendances = Attendance::with(['employee:id,first_name,last_name,work_type,department_id,station_id,active_status',
             'am:id,attendance_id,am_time_in,am_time_out',
             'pm:id,attendance_id,pm_time_in,pm_time_out'
         ])
-            ->whereHas('am', fn($q) => $q->whereNull('am_time_in')->orWhereNull('am_time_out'))
-            ->orWhereHas('pm', fn($q) => $q->whereNull('pm_time_in')->orWhereNull('pm_time_out'))
+        ->whereHas('employee', function ($q) use ($stationId) {
+            $q->where('station_id', $stationId)
+            ->where('active_status', 1);
+        })
+        ->where(function ($q) {
+            $q->where(function ($q) {
+                $q->whereHas('am', function ($q) {
+                    $q->whereNull('am_time_in')
+                    ->orWhereNull('am_time_out');
+                });
+            })
+            ->orWhere(function ($q) {
+                $q->whereHas('pm', function ($q) {
+                    $q->whereNull('pm_time_in')
+                    ->orWhereNull('pm_time_out');
+                });
+            });
+        })
+        ->get();
+
+        // ✅ Employees (filtered by station + active)
+        $employees = Employee::with('department:id,name')
+            ->where('station_id', $stationId)
+            ->where('active_status', 1)
+            ->select('id', 'first_name', 'last_name', 'work_type', 'department_id', 'active_status')
             ->get();
 
-        $employees = Employee::select('id', 'first_name', 'last_name', 'work_type', 'department')->get();
-        $employeeLeaves = EmployeeLeave::select('employee_id', 'date', 'leave_type',)->get();
+        // ✅ Employee Leaves (filtered by station + active)
+        $employeeLeaves = EmployeeLeave::whereHas('employee', function ($q) use ($stationId) {
+                $q->where('station_id', $stationId)
+                ->where('active_status', 1);
+            })
+            ->select('employee_id', 'date', 'leave_type')
+            ->get();
 
+        // ✅ Attendance Lookup (cached per station)
         $attendanceRecords = Cache::remember(
-            'attendance_lookup',
+            'attendance_lookup_' . $stationId,
             60,
             fn() =>
-            Attendance::select('employee_id', 'date')->get()
+                Attendance::whereHas('employee', function ($q) use ($stationId) {
+                    $q->where('station_id', $stationId)
+                    ->where('active_status', 1);
+                })
+                ->select('employee_id', 'date')
+                ->get()
                 ->mapWithKeys(fn($a) => [$a->employee_id . '_' . $a->date => true])
                 ->toArray()
         );
@@ -51,11 +94,11 @@ class AttendanceManagementController extends Controller
         return Inertia::render('Admin/AttendanceManagement/AttendanceManagement', [
             'incomplete_attendances' => $incompleteAttendances,
             'employees' => $employees,
+            'departments' => $departments,
             'attendance_lookup' => $attendanceRecords,
             'employee_leaves' => $employeeLeaves,
         ]);
     }
-
 
     /**
      * Update missing attendance times and recalc tardiness.

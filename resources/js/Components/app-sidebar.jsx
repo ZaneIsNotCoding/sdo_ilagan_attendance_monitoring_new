@@ -14,11 +14,12 @@ import {
     UserCog,
     LogOut,
     User,
-    Briefcase,
-    FileText,
-    FileUser,
+    MapPin,
+    LandPlot,
     Plane,
+    Building2,
     MapPinned,
+    Network,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -60,33 +61,46 @@ export function AppSidebar({ active, user, ...props }) {
 
     return (
         <Sidebar {...props}>
-            <SidebarHeader>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link
-                                href="/"
-                                className="flex items-center gap-4 bg-blue-700 hover:shadow-lg px-8 py-11 text-white w-full"
-                            >
-                                <div className="flex size-11 aspect-square items-center justify-center text-primary-foreground">
-                                    <ApplicationLogo className="h-11 w-auto" />
-                                </div>
-                                <div className="flex flex-col gap-0.5 leading-tight text-white">
-                                    <span className="text-[14px] font-semibold tracking-tight">
-                                        TimeVault
-                                    </span>
-                                    <span className="text-[9px] font-medium uppercase tracking-wide opacity-80 leading-[1rem]">
-                                        Securing Attendance and Tardiness Data
-                                        with Biometrics
-                                    </span>
-                                </div>
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
+            <SidebarHeader className="bg-blue-700 p-0">
+                <div className="px-5 py-4 pb-5">
+                    <div className="border-b border-blue-400 ">
+                        <SidebarMenu>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton size="lg" asChild>
+                                    <Link
+                                        href="/"
+                                        className="flex items-center gap-4 py-11 text-white w-full"
+                                    >
+                                        <div className="flex size-11 aspect-square items-center justify-center text-primary-foreground">
+                                            <ApplicationLogo className="h-11 w-auto" />
+                                        </div>
+                                        <div className="flex flex-col gap-0.5 leading-tight text-white">
+                                            <span className="text-[14px] font-semibold tracking-tight">
+                                                TimeVault
+                                            </span>
+                                            <span className="text-[9px] font-medium uppercase tracking-wide opacity-80 leading-[1rem]">
+                                                Securing Attendance and
+                                                Tardiness Data with Biometrics
+                                            </span>
+                                        </div>
+                                    </Link>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </SidebarMenu>
+                    </div>
+                </div>
             </SidebarHeader>
 
-            <SidebarContent className="bg-blue-700 text-white rounded-lg m-2 p-2">
+            <SidebarContent className="bg-blue-700 text-white p-0">
+                <div className="px-5">
+                    <div className="border-b border-blue-400 pb-5">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-left text-white px-3 py-2 rounded-md">
+                            <MapPin className="h-5 w-5 text-blue-200" />
+                            {auth?.user?.employee?.station?.name ||
+                                "No Station"}
+                        </div>
+                    </div>
+                </div>
                 <SidebarGroup>
                     <SidebarMenu>
                         {/* Administrator */}
@@ -122,7 +136,7 @@ export function AppSidebar({ active, user, ...props }) {
                                                 )}
                                                 className="flex items-center gap-2 text-xs text-white hover:bg-blue-900 hover:text-blue-100"
                                             >
-                                                <CalendarDays
+                                                <UserCog
                                                     className={`h-4 w-4 ${
                                                         active ===
                                                         "employeemanagement"
@@ -139,22 +153,51 @@ export function AppSidebar({ active, user, ...props }) {
                                         <SidebarMenuSubButton
                                             asChild
                                             isActive={
-                                                active === "departmenthead"
+                                                active ===
+                                                "departmentmanagement"
                                             }
                                         >
                                             <Link
-                                                href={route("departmenthead")}
+                                                href={route(
+                                                    "departmentmanagement",
+                                                )}
                                                 className="flex items-center gap-2 text-xs text-white hover:bg-blue-900 hover:text-blue-100"
                                             >
-                                                <FileUser
+                                                <Building2
                                                     className={`h-4 w-4 ${
                                                         active ===
-                                                        "departmenthead"
+                                                        "departmentmanagement"
                                                             ? "!text-black"
                                                             : "!text-white"
                                                     }`}
                                                 />
-                                                Department Heads
+                                                Department Management
+                                            </Link>
+                                        </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+
+                                    <SidebarMenuSubItem>
+                                        <SidebarMenuSubButton
+                                            asChild
+                                            isActive={
+                                                active === "stationmanagement"
+                                            }
+                                        >
+                                            <Link
+                                                href={route(
+                                                    "stationmanagement",
+                                                )}
+                                                className="flex items-center gap-2 text-xs text-white hover:bg-blue-900 hover:text-blue-100"
+                                            >
+                                                <LandPlot
+                                                    className={`h-4 w-4 ${
+                                                        active ===
+                                                        "stationmanagement"
+                                                            ? "!text-black"
+                                                            : "!text-white"
+                                                    }`}
+                                                />
+                                                Station Management
                                             </Link>
                                         </SidebarMenuSubButton>
                                     </SidebarMenuSubItem>
@@ -231,6 +274,28 @@ export function AppSidebar({ active, user, ...props }) {
                                                     }`}
                                                 />
                                                 Tardiness Summary
+                                            </Link>
+                                        </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+                                    <SidebarMenuSubItem>
+                                        <SidebarMenuSubButton
+                                            asChild
+                                            isActive={url.startsWith(
+                                                "/position",
+                                            )}
+                                        >
+                                            <Link
+                                                href={route("position.index")}
+                                                className="flex items-center gap-2 text-xs text-white hover:bg-blue-900 hover:text-blue-100"
+                                            >
+                                                <Network
+                                                    className={`h-4 w-4 ${
+                                                        active === "/position"
+                                                            ? "!text-black"
+                                                            : "!text-white"
+                                                    }`}
+                                                />
+                                                List of Positions
                                             </Link>
                                         </SidebarMenuSubButton>
                                     </SidebarMenuSubItem>

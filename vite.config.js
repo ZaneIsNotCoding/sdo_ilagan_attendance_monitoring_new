@@ -11,9 +11,5 @@ export default defineConfig({
         }),
         react(),
     ],
-    resolve: {
-        alias: {
-            WebSdk: path.resolve(__dirname, "resources/js/lib/WebSdk.js"),
-        },
-    },
+    resolve: {},
 });

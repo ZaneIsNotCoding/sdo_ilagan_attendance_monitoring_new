@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Administrator;
 
 use App\Models\Administrator\Employee;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,7 +15,6 @@ class Station extends Model
         'name',
     ];
 
-    // relationship
     public function employees()
     {
         return $this->hasMany(Employee::class);

@@ -47,6 +47,7 @@ class FingerprintService:
             password="",
             database="sdo_ilagan_attendance_new"
         )
+            
         self.cursor = self.conn.cursor()
 
     def get_next_finger_id(self):

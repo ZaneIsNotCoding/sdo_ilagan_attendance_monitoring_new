@@ -48,7 +48,7 @@ const NoAttendanceTable = ({ employees, selectedDate }) => {
                             <TableCell>
                                 {emp.first_name} {emp.last_name}
                             </TableCell>
-                            <TableCell>{emp.department || "-"}</TableCell>
+                            <TableCell>{emp.department?.name || "-"}</TableCell>
                             <TableCell>
                                 {dayjs(selectedDate).format("DD MMMM")}
                             </TableCell>

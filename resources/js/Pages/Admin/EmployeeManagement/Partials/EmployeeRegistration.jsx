@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import FloatingInput from "@/components/floating-input";
-import { User, Briefcase, Building2 } from "lucide-react";
+import { UserPlus, User, Briefcase, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     AlertDialog,
@@ -13,43 +13,40 @@ import {
     AlertDialogCancel,
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { CustomDropdownCheckbox } from "@/components/dropdown-menu-main";
+import {
+    CustomDropdownCheckbox,
+    CustomDropdownCheckboxObject,
+} from "@/components/dropdown-menu-main";
 import { router } from "@inertiajs/react";
 import { toast } from "sonner";
 
-const department_choices = [
-    "CID",
-    "SGOD",
-    "HRMO",
-    "ADMINISTRATIVE UNIT",
-    "CASH UNIT",
-    "BUDGET UNIT",
-    "ACCOUNTING UNIT",
-    "RECORDS UNIT",
-    "SDS OFFICE",
-    "ICT UNIT",
-    "SUPPLY UNIT",
-];
-
 const work_type_choices = ["Full", "Fixed", "Work From Home"];
 
-const EmployeeRegistration = () => {
+const EmployeeRegistration = ({ userStationId, departments }) => {
     const [form, setForm] = useState({
         first_name: "",
         middle_name: "",
         last_name: "",
         position: "",
-        department: "",
+        department_id: "",
         work_type: "",
+        station_id: "",
     });
+
+    useEffect(() => {
+        setForm((prev) => ({
+            ...prev,
+            station_id: userStationId,
+            department: userStationId !== 1 ? "Not Applicable" : "",
+        }));
+    }, [userStationId]);
 
     const handleFormChange = (e) => {
         const { name, value } = e.target;
 
-        // Allow letters, spaces, and hyphens for name fields
         if (["first_name", "middle_name", "last_name"].includes(name)) {
-            const regex = /^[A-Za-z\s-]*$/; // Added hyphen
-            if (!regex.test(value)) return; // Ignore invalid input
+            const regex = /^[A-Za-z\s-]*$/;
+            if (!regex.test(value)) return;
         }
 
         setForm({ ...form, [name]: value });
@@ -64,13 +61,15 @@ const EmployeeRegistration = () => {
                     middle_name: "",
                     last_name: "",
                     position: "",
-                    department: "",
+                    department_id: userStationId !== 1 ? "Not Applicable" : "",
                     work_type: "",
+                    station_id: userStationId,
                 });
 
                 toast.success("Employee added successfully 🎉", {
                     description: `${form.first_name} ${form.last_name} has been registered.`,
                 });
+
                 router.reload({
                     only: [
                         "employeesList",
@@ -84,12 +83,15 @@ const EmployeeRegistration = () => {
 
     return (
         <div className="bg-gradient-to-br from-blue-100 to-white shadow-lg rounded-2xl p-6 border border-gray-100 md:col-span-2 flex flex-col">
-            <h2 className="text-l font-bold text-gray-800 mb-6 flex items-center gap-3">
-                <User className="w-6 h-6 text-blue-600" />
+            <h2 className="text-l font-bold text-gray-800 mb-4 flex items-center gap-3">
+                <span className="p-2 rounded-full bg-blue-600 text-white flex items-center justify-center">
+                    <UserPlus className="w-3.5 h-3.5" />
+                </span>
                 Employee Registration
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                {/* First Name */}
                 <FloatingInput
                     label="First Name"
                     icon={User}
@@ -97,28 +99,44 @@ const EmployeeRegistration = () => {
                     value={form.first_name}
                     onChange={handleFormChange}
                 />
+
+                {/* Department */}
                 <div className="relative w-full">
                     <FloatingInput
                         label="Department"
                         icon={Building2}
-                        value={form.department || ""}
+                        value={
+                            departments?.find(
+                                (d) => d.id === form.department_id,
+                            )?.name || ""
+                        }
                         readOnly
                         onChange={() => {}}
                     />
-                    <div className="absolute right-2 top-0 h-full flex items-center">
-                        <CustomDropdownCheckbox
+                    <div
+                        className={`absolute right-2 top-0 h-full flex items-center ${
+                            Number(userStationId) !== 1
+                                ? "pointer-events-none opacity-50"
+                                : ""
+                        }`}
+                    >
+                        <CustomDropdownCheckboxObject
                             label="Select Department"
-                            items={department_choices}
-                            selected={""}
+                            items={departments}
                             onChange={(val) =>
-                                setForm({ ...form, department: val })
+                                setForm((prev) => ({
+                                    ...prev,
+                                    department_id: val,
+                                }))
                             }
                             buttonVariant="white"
                             iconOnly
+                            disabled={userStationId !== 1}
                         />
                     </div>
                 </div>
 
+                {/* Middle Name */}
                 <FloatingInput
                     label="Middle Name"
                     icon={User}
@@ -126,6 +144,8 @@ const EmployeeRegistration = () => {
                     value={form.middle_name}
                     onChange={handleFormChange}
                 />
+
+                {/* Position */}
                 <FloatingInput
                     label="Position"
                     icon={Briefcase}
@@ -133,6 +153,8 @@ const EmployeeRegistration = () => {
                     value={form.position}
                     onChange={handleFormChange}
                 />
+
+                {/* Last Name */}
                 <FloatingInput
                     label="Last Name"
                     icon={User}
@@ -140,6 +162,8 @@ const EmployeeRegistration = () => {
                     value={form.last_name}
                     onChange={handleFormChange}
                 />
+
+                {/* Work Type */}
                 <div className="relative w-full">
                     <FloatingInput
                         label="Work Type"
@@ -163,6 +187,7 @@ const EmployeeRegistration = () => {
                 </div>
             </div>
 
+            {/* Button */}
             <AlertDialog>
                 <div className="cursor-pointer w-full flex justify-center">
                     <AlertDialogTrigger asChild>
@@ -173,8 +198,9 @@ const EmployeeRegistration = () => {
                                 !form.middle_name ||
                                 !form.last_name ||
                                 !form.position ||
-                                !form.department ||
-                                !form.work_type
+                                !form.department_id ||
+                                !form.work_type ||
+                                !form.station_id
                             }
                             className="w-full"
                         >
@@ -189,8 +215,7 @@ const EmployeeRegistration = () => {
                             Confirm Add Employee
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to add this employee? This
-                            action will save the employee to the system.
+                            Are you sure you want to add this employee?
                         </AlertDialogDescription>
                     </AlertDialogHeader>
 

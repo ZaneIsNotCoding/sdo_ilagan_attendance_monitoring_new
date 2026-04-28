@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\Administrator\Employee;
+use App\Models\Department;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Administrator\Employee>
@@ -41,7 +42,7 @@ class EmployeeFactory extends Factory
                 'Administrative Support Specialist',
                 'Project Administrator',
             ]),
-            'department'  => $this->faker->randomElement(['CID', 'SGOD', 'HRMO', 'ADMINISTRATIVE UNIT', 'CASH UNIT', 'BUDGET UNIT', 'ACCOUNTING UNIT', 'RECORDS UNIT', 'SDS OFFICE', 'ICT UNIT', 'SUPPLY UNIT']),
+            'department_id' => Department::inRandomOrder()->first()?->id,
             'work_type'   => $this->faker->randomElement(['Full', 'Fixed', 'Work From Home']),
             'active_status'  => $this->faker->boolean(90),
 

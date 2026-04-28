@@ -6,7 +6,8 @@ use App\Http\Controllers\Administrator\{
     EmployeeManagementController,
     TardinessRecordController,
     AttendanceManagementController,
-    DepartmentHeadController,
+    DepartmentManagementController,
+    StationManagementController
 };
 use App\Http\Controllers\FingerprintController;
 use App\Http\Controllers\HumanResource\{
@@ -18,6 +19,7 @@ use App\Http\Controllers\HumanResource\{
 };
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeLeaveController;
+use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Auth;
@@ -45,22 +47,13 @@ Route::get('/', function () {
 
 Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance');
 Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('dashboard');
-Route::get('/fingerprint/register', [FingerprintController::class, 'register'])
-    ->name('fingerprint.register');
-
-Route::get('/fingerprint/test', function () {
-    return Inertia::render('FingerprintTest');
-})->name('fingerprint.test.page');
-Route::post('/fingerprint/test-three', [FingerprintController::class, 'testThree'])
-    ->name('fingerprint.testThree');
-
 /*
 |--------------------------------------------------------------------------
 | Authenticated & Verified Routes
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'role:admin'])->group(function () {
+Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(function () {
 
     //Attendance Management
     Route::get('/attendancemanagement', [AttendanceManagementController::class, 'index'])->name('attendancemanagement');
@@ -102,12 +95,20 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::put('/vacationleaveupdate', [VacationLeaveController::class, 'update'])->name('vacation-leave.update');
     Route::put('/sickleaveupdate', [SickLeaveController::class, 'update'])->name('sick-leave.update');
 
-    // Department Heads
-    Route::get('/departmentheads', [DepartmentHeadController::class, 'index'])->name('departmenthead');
-    Route::post('/departmentheads/store', [DepartmentHeadController::class, 'store'])->name('departmenthead.store');
-    Route::patch('/department-head/{departmentHead}/toggle-status', [DepartmentHeadController::class, 'toggleStatus'])
-        ->name('departmenthead.toggle-status');
-    Route::delete('/departmentheads/delete/{id}', [DepartmentHeadController::class, 'destroy'])->name('departmenthead.destroy');
+    // Department Management
+    Route::get('/departmentmanagement', [DepartmentManagementController::class, 'index'])->name('departmentmanagement');
+    Route::post('/departmentmanagement/depheadstore', [DepartmentManagementController::class, 'storeHead'])->name('departmenthead.storeHead');
+    Route::post('/departmentmanagement/addDepartment', [DepartmentManagementController::class, 'storeDepartment'])->name('department.storeDepartment');
+    Route::put('/departmentmanagement/updateDepartment/{id}', [DepartmentManagementController::class, 'updateDepartment'])->name('department.updateDepartment');
+    Route::delete('/departmentmanagement/delete/{id}', [DepartmentManagementController::class, 'destroy'])->name('departmenthead.destroy');
+    Route::delete('/departmentmanagement/department/delete/{id}', [DepartmentManagementController::class, 'destroyDepartment'])
+        ->name('department.destroy');
+    
+
+    //Station Management
+    Route::get('/stations', [StationManagementController::class, 'index'])->name('stationmanagement');
+    Route::delete('/stations/{station}', [StationController::class, 'destroy'])->name('stations.destroy');
+
 
     Route::middleware(['auth'])->group(function () {
         Route::get('/employee/locator-slip', [LocatorSlipController::class, 'index'])
@@ -127,7 +128,14 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/travel-order', function () {
         return Inertia::render('Employee/TravelOrder/TravelOrderPage');
     })->name('travelorder');
+
+    Route::resource('position', PositionController::class);
 });
+
+
+Route::get('/test-role', function () {
+    dd(auth()->user()->getRoleNames());
+})->middleware('auth');
 
 
 
