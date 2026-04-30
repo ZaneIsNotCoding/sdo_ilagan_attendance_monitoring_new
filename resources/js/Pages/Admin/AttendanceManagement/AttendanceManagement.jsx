@@ -30,10 +30,10 @@ const AttendanceManagement = ({
     employees,
     attendance_lookup,
     employee_leaves,
-    departments,
+    offices = [],
 }) => {
     // --- Filter states ---
-    const [selectedDepartment, setSelectedDepartment] = useState("all");
+    const [selectedOffice, setSelectedOffice] = useState("all");
     const [selectedYear, setSelectedYear] = useState(dayjs().format("YYYY"));
     const [selectedMonth, setSelectedMonth] = useState(dayjs().format("MMMM"));
     const [selectedDay, setSelectedDay] = useState(dayjs().format("DD"));
@@ -43,11 +43,6 @@ const AttendanceManagement = ({
     const [noAttendancePage, setNoAttendancePage] = useState(1);
     const [leavePage, setLeavePage] = useState(1);
     const recordsPerPage = 7;
-
-    const departmentOptions = [
-        { id: "all", name: "All Departments" },
-        ...departments,
-    ];
 
     const years = useMemo(
         () =>
@@ -83,19 +78,19 @@ const AttendanceManagement = ({
     const filteredRecords = useMemo(
         () =>
             incomplete_attendances.filter((att) => {
-                const matchesDept =
-                    selectedDepartment === "all" ||
-                    att.employee?.department_id === selectedDepartment;
+                const matchesOffice =
+                    selectedOffice === "all" ||
+                    att.employee?.office_id === selectedOffice;
                 const matchesYear =
                     dayjs(att.date).format("YYYY") === selectedYear;
                 const matchesMonth =
                     dayjs(att.date).format("MMMM") === selectedMonth;
                 const matchesDay = dayjs(att.date).format("DD") === selectedDay;
-                return matchesDept && matchesYear && matchesMonth && matchesDay;
+                return matchesOffice && matchesYear && matchesMonth && matchesDay;
             }),
         [
             incomplete_attendances,
-            selectedDepartment,
+            selectedOffice,
             selectedYear,
             selectedMonth,
             selectedDay,
@@ -141,8 +136,8 @@ const AttendanceManagement = ({
                 !attendance_lookup[lookupKey] &&
                 !isWeekend &&
                 !hasLeave &&
-                (selectedDepartment === "all" ||
-                    emp.department_id === selectedDepartment)
+                (selectedOffice === "all" ||
+                    emp.office_id === selectedOffice)
             );
         });
     }, [
@@ -150,7 +145,7 @@ const AttendanceManagement = ({
         selectedDateKey,
         attendance_lookup,
         leaveLookup,
-        selectedDepartment,
+        selectedOffice,
     ]);
 
     const employeesWithLeave = useMemo(() => {
@@ -162,8 +157,8 @@ const AttendanceManagement = ({
 
                 if (
                     (leaveType || !hasAttendance) &&
-                    (selectedDepartment === "all" ||
-                        emp.department_id === selectedDepartment)
+                    (selectedOffice === "all" ||
+                        emp.office_id === selectedOffice)
                 ) {
                     return {
                         ...emp,
@@ -179,7 +174,7 @@ const AttendanceManagement = ({
         leaveLookup,
         selectedDateKey,
         attendance_lookup,
-        selectedDepartment,
+        selectedOffice,
     ]);
 
     // --- Paginations ---
@@ -212,15 +207,15 @@ const AttendanceManagement = ({
                 {/* Filters */}
                 <div className="flex items-center justify-between gap-4 mb-4">
                     <CustomDropdownCheckboxObject
-                        label="Select Department"
-                        items={departments}
-                        selected={selectedDepartment}
+                        label="Select Office"
+                        items={offices}
+                        selected={selectedOffice}
                         buttonLabel={
-                            departments.find((d) => d.id === selectedDepartment)
-                                ?.name || "All Departments"
+                            offices.find((office) => office.id === selectedOffice)
+                                ?.name || "All Offices"
                         }
                         onChange={(val) => {
-                            setSelectedDepartment(val);
+                            setSelectedOffice(val);
                         }}
                         buttonVariant="green"
                         className="w-[215px]"

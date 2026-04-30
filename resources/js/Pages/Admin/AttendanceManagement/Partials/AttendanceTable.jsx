@@ -20,7 +20,7 @@ const AttendanceTable = ({ records }) => {
             <TableHeader>
                 <TableRow className="bg-blue-900 hover:bg-blue-800">
                     <TableHead>Employee</TableHead>
-                    <TableHead>Department</TableHead>
+                        <TableHead>Office</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>AM Time In</TableHead>
                     <TableHead>AM Time Out</TableHead>
@@ -38,7 +38,7 @@ const AttendanceTable = ({ records }) => {
                                 {att.employee?.last_name}
                             </TableCell>
                             <TableCell>
-                                {att.employee?.department?.name || "-"}
+                                    {att.employee?.office?.name || "-"}
                             </TableCell>
                             <TableCell>
                                 {dayjs(att.date).format("DD MMMM")}

@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\Administrator\Employee;
-use App\Models\Department;
+use App\Models\Administrator\Office;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Administrator\Employee>
@@ -16,9 +16,9 @@ class EmployeeFactory extends Factory
     public function definition(): array
     {
         return [
-            'first_name'  => $this->faker->firstName,
+            'first_name' => $this->faker->firstName,
             'middle_name' => $this->faker->optional()->firstName,
-            'last_name'   => $this->faker->lastName,
+            'last_name' => $this->faker->lastName,
             'position' => $this->faker->randomElement([
                 'Administrative Officer 1',
                 'Administrative Officer 2',
@@ -42,16 +42,15 @@ class EmployeeFactory extends Factory
                 'Administrative Support Specialist',
                 'Project Administrator',
             ]),
-            'department_id' => Department::inRandomOrder()->first()?->id,
-            'work_type'   => $this->faker->randomElement(['Full', 'Fixed', 'Work From Home']),
-            'active_status'  => $this->faker->boolean(90),
-
-            'civil_status'               => $this->faker->optional()->randomElement(['Single', 'Married', 'Widowed']),
-            'gsis_policy_no'             => null,
-            'entrance_to_duty'           => null,
-            'tin_no'                     => null,
-            'employment_status'          => null,
-            'unit'                       => null,
+            'office_id' => Office::inRandomOrder()->first()?->id,
+            'work_type' => $this->faker->randomElement(['Full', 'Fixed', 'Work From Home']),
+            'active_status' => $this->faker->boolean(90),
+            'civil_status' => $this->faker->optional()->randomElement(['Single', 'Married', 'Widowed']),
+            'gsis_policy_no' => null,
+            'entrance_to_duty' => null,
+            'tin_no' => null,
+            'employment_status' => null,
+            'unit' => null,
             'national_reference_card_no' => null,
         ];
     }

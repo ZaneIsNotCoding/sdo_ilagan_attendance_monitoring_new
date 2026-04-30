@@ -2,17 +2,14 @@
 
 namespace App\Models\Administrator;
 
-use App\Models\Administrator\DepartmentHeadandSchoolAdmin;
-use App\Models\Department;
+use App\Models\Biometric;
+use App\Models\HumanResource\SickLeave;
+use App\Models\HumanResource\TardyConvertion;
+use App\Models\HumanResource\VacationLeave;
+use App\Models\User;
+use Database\Factories\EmployeeFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\HumanResource\TardyConvertion;
-use App\Models\Biometric;
-use App\Models\User;
-use App\Models\HumanResource\SickLeave;
-use App\Models\HumanResource\VacationLeave;
-use App\Models\Administrator\Station;
-use Database\Factories\EmployeeFactory;
 
 class Employee extends Model
 {
@@ -22,8 +19,9 @@ class Employee extends Model
         'first_name',
         'middle_name',
         'last_name',
+        'profile_img',
         'position',
-        'department_id',
+        'office_id',
         'work_type',
         'active_status',
         'station_id',
@@ -39,7 +37,10 @@ class Employee extends Model
     protected $appends = [
         'full_name',
         'is_department_head',
-        'is_school_admin'
+        'is_school_admin',
+        'is_unit_head',
+        'is_division_head',
+        'department',
     ];
 
     protected static function newFactory()
@@ -55,6 +56,11 @@ class Employee extends Model
     public function getFullNameAttribute()
     {
         return "{$this->first_name} {$this->last_name}";
+    }
+
+    public function getDepartmentAttribute()
+    {
+        return $this->office?->name;
     }
 
     public function tardyConvertion()
@@ -76,10 +82,10 @@ class Employee extends Model
     {
         return $this->hasMany(VacationLeave::class);
     }
-    
-    public function department()
+
+    public function office()
     {
-        return $this->belongsTo(Department::class);
+        return $this->belongsTo(Office::class);
     }
 
     public function station()
@@ -92,27 +98,34 @@ class Employee extends Model
         return $this->hasOne(User::class);
     }
 
-    // ============================
-    // 🔥 FIXED ROLE SYSTEM
-    // ============================
-
     public function roles()
     {
-        return $this->hasMany(DepartmentHeadandSchoolAdmin::class, 'employee_id');
+        return $this->hasMany(DivisionHead::class, 'employee_id');
+    }
+
+    public function stationRoles()
+    {
+        return $this->hasMany(StationAdmin::class, 'employee_id');
     }
 
     public function isDepartmentHead()
     {
-        return $this->roles()
-            ->where('type', 'department_head')
-            ->exists();
+        return $this->roles()->where('type', 'unit_head')->exists();
     }
 
     public function isSchoolAdmin()
     {
-        return $this->roles()
-            ->where('type', 'school_admin')
-            ->exists();
+        return $this->stationRoles()->where('type', 'school_admin')->exists();
+    }
+
+    public function isUnitHead()
+    {
+        return $this->roles()->where('type', 'unit_head')->exists();
+    }
+
+    public function isDivisionHead()
+    {
+        return $this->roles()->where('type', 'division_head')->exists();
     }
 
     public function getIsDepartmentHeadAttribute()
@@ -123,5 +136,15 @@ class Employee extends Model
     public function getIsSchoolAdminAttribute()
     {
         return $this->isSchoolAdmin();
+    }
+
+    public function getIsUnitHeadAttribute()
+    {
+        return $this->isUnitHead();
+    }
+
+    public function getIsDivisionHeadAttribute()
+    {
+        return $this->isDivisionHead();
     }
 }

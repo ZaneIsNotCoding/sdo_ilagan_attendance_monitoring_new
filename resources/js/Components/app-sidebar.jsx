@@ -171,7 +171,7 @@ export function AppSidebar({ active, user, ...props }) {
                                                             : "!text-white"
                                                     }`}
                                                 />
-                                                Department Management
+                                                Organization Management
                                             </Link>
                                         </SidebarMenuSubButton>
                                     </SidebarMenuSubItem>

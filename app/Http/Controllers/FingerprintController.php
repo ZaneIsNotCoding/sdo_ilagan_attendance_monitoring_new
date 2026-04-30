@@ -310,7 +310,7 @@ class FingerprintController extends Controller
                             'middle_name' => $biometric->employee->middle_name,
                             'last_name' => $biometric->employee->last_name,
                             'position' => $biometric->employee->position,
-                            'department' => $biometric->employee->department,
+                            'office' => $biometric->employee->office,
                         ],
                         'score' => round($percent, 2),
                         'capture_index' => $captureIndex + 1,

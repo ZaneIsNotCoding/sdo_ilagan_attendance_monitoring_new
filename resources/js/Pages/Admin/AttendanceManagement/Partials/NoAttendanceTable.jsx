@@ -26,7 +26,7 @@ const NoAttendanceTable = ({ employees, selectedDate }) => {
             <TableHeader>
                 <TableRow className="bg-red-900 hover:bg-red-800">
                     <TableHead>Employee</TableHead>
-                    <TableHead>Department</TableHead>
+                    <TableHead>Office</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>AM Time In</TableHead>
                     <TableHead>AM Time Out</TableHead>
@@ -48,7 +48,7 @@ const NoAttendanceTable = ({ employees, selectedDate }) => {
                             <TableCell>
                                 {emp.first_name} {emp.last_name}
                             </TableCell>
-                            <TableCell>{emp.department?.name || "-"}</TableCell>
+                        <TableCell>{emp.office?.name || "-"}</TableCell>
                             <TableCell>
                                 {dayjs(selectedDate).format("DD MMMM")}
                             </TableCell>

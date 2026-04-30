@@ -1,70 +1,31 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Fingerprint, UserCog } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-    AlertDialog,
-    AlertDialogTrigger,
-    AlertDialogContent,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogCancel,
-    AlertDialogAction,
-} from "@/components/ui/alert-dialog";
-
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList,
-} from "@/components/ui/command";
-
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
+import { UserCog } from "lucide-react";
 
 import EmployeeRegistration from "./Partials/EmployeeRegistration";
 import EmployeeList from "./Partials/EmployeeList";
 import EmployeeEditDialog from "./Partials/EmployeeEditDialog";
+import FingerprintRegistrationPanel from "./Partials/EmployeeFingerprintPanel";
 
 const EmployeeManagement = ({
     employeesList,
-    departments,
+    filteredEmployeesList,
+    offices = [],
     registeredList,
     unregisteredList,
     stations,
     userStation,
     userStationId,
+    search = "",
     ...props
 }) => {
-    const sortedDepartments = [...departments].sort((a, b) => {
-        const aName = a.name.trim().toLowerCase();
-        const bName = b.name.trim().toLowerCase();
+    const formatSearchDisplay = (value) =>
+        String(value || "")
+            .replace(/^\d+\s+/, "")
+            .trim();
 
-        const aIsNA = aName === "not applicable";
-        const bIsNA = bName === "not applicable";
-
-        // Not Applicable always first
-        if (aIsNA) return -1;
-        if (bIsNA) return 1;
-
-        // normal A-Z
-        return a.name.localeCompare(b.name);
-    });
-
-    const departmentOptions = [
-        { id: "all", name: "All Departments" },
-        ...sortedDepartments,
-    ];
-    console.log("Depts", { departments });
-    const [search, setSearch] = useState("");
+    const [searchInput, setSearchInput] = useState(formatSearchDisplay(search));
 
     const [employees, setEmployees] = useState(employeesList || []);
     const [registered, setRegistered] = useState(registeredList || []);
@@ -85,7 +46,7 @@ const EmployeeManagement = ({
     const [testStatus, setTestStatus] = useState("idle");
     const [testSource, setTestSource] = useState(null);
 
-    const [selectedDepartment, setSelectedDepartment] = useState("all");
+    const [selectedOffice, setSelectedOffice] = useState("all");
     const [statusFilter, setStatusFilter] = useState("Active");
     const statusOptions = ["Active", "Inactive"];
 
@@ -94,24 +55,19 @@ const EmployeeManagement = ({
         setEmployees(Array.isArray(employeesList) ? employeesList : []);
     }, [employeesList]);
 
+    useEffect(() => {
+        setSearchInput(formatSearchDisplay(search));
+
+        if (search) {
+            setSelectedOffice("all");
+        }
+    }, [search]);
+
     // Keep registered / unregistered reactive
     useEffect(() => {
         setRegistered(employees.filter((emp) => emp.available_fingers < 3));
         setUnregistered(employees.filter((emp) => emp.available_fingers === 3));
     }, [employees]);
-
-    const getFingerprintColor = () => {
-        switch (scanStatus) {
-            case "scanning":
-                return "text-blue-500 animate-pulse";
-            case "success":
-                return "text-green-500 animate-bounce";
-            case "error":
-                return "text-red-500";
-            default:
-                return "text-gray-400";
-        }
-    };
 
     const isRegistered = (id) => registered?.some((reg) => reg.id === id);
 
@@ -243,7 +199,7 @@ const EmployeeManagement = ({
                         middle_name,
                         last_name,
                         position,
-                        department,
+                        office,
                     } = data.employee;
 
                     setTestEmployee({
@@ -251,12 +207,12 @@ const EmployeeManagement = ({
                         middle_name,
                         last_name,
                         position,
-                        department,
+                        office,
                     });
 
                     setTestStatus("success");
                     setTestMessage(
-                        `✅ Match: ${first_name} ${last_name} (${department} - ${position})`,
+                        `✅ Match: ${first_name} ${last_name} (${office?.name || "No office"} - ${position})`,
                     );
 
                     // countdown to reset UI
@@ -319,7 +275,7 @@ const EmployeeManagement = ({
         middle_name: "",
         last_name: "",
         position: "",
-        department: "",
+        office_id: "",
         work_type: "",
     });
 
@@ -332,22 +288,16 @@ const EmployeeManagement = ({
         setEditOpen(true);
     };
 
-    const filteredEmployees = employees.filter((emp) => {
-        const matchesSearch =
-            emp.first_name.toLowerCase().includes(search.toLowerCase()) ||
-            emp.last_name.toLowerCase().includes(search.toLowerCase()) ||
-            (emp.position &&
-                emp.position.toLowerCase().includes(search.toLowerCase())) ||
-            (emp.department?.name &&
-                emp.department.name
-                    .toLowerCase()
-                    .includes(search.toLowerCase()));
+    const visibleEmployees = Array.isArray(filteredEmployeesList)
+        ? filteredEmployeesList
+        : employees;
 
-        // Department filter
-        const matchesDepartment =
-            selectedDepartment === "all"
+    const filteredEmployees = visibleEmployees.filter((emp) => {
+        // Office filter
+        const matchesOffice =
+            selectedOffice === "all"
                 ? true
-                : emp.department_id === Number(selectedDepartment);
+                : emp.office_id === Number(selectedOffice);
 
         // Status filter
         const matchesStatus =
@@ -357,7 +307,7 @@ const EmployeeManagement = ({
                   ? emp.active_status === "Active" || emp.active_status === 1
                   : emp.active_status === "Inactive" || emp.active_status === 0;
 
-        return matchesSearch && matchesDepartment && matchesStatus;
+        return matchesOffice && matchesStatus;
     });
 
     return (
@@ -371,219 +321,59 @@ const EmployeeManagement = ({
         >
             <Head title="Employee Management" />
             <main>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <EmployeeRegistration
                         userStationId={userStationId}
-                        departments={departments}
+                        offices={offices}
                     />
-                    <div className="bg-gradient-to-br from-blue-100 to-white shadow-lg rounded-2xl p-6 border border-gray-100 flex flex-col">
-                        <h2 className="text-l font-bold text-gray-800 mb-1 flex items-center gap-2">
-                            <Fingerprint className="w-6 h-6 text-blue-600" />
-                            Employee Fingerprint Registration
-                        </h2>
-
-                        <div className="flex flex-col items-center gap-2">
-                            <Popover open={open} onOpenChange={setOpen}>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="cyan"
-                                        role="combobox"
-                                        className="justify-between"
-                                    >
-                                        {employees.find(
-                                            (emp) =>
-                                                emp.id === selectedEmployee,
-                                        )?.full_name || "-- Choose Employee --"}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[300px] p-3">
-                                    <Command>
-                                        <CommandInput placeholder="Search employee..." />
-                                        <CommandList>
-                                            <CommandEmpty>
-                                                No employee found.
-                                            </CommandEmpty>
-                                            <CommandGroup>
-                                                {employees
-                                                    .filter(
-                                                        (emp) =>
-                                                            availableFingers(
-                                                                emp.id,
-                                                            ) > 0,
-                                                    )
-                                                    .map((emp) => (
-                                                        <CommandItem
-                                                            key={emp.id}
-                                                            onSelect={() => {
-                                                                setSelectedEmployee(
-                                                                    emp.id,
-                                                                );
-                                                                setOpen(false);
-                                                            }}
-                                                        >
-                                                            {emp.full_name} (
-                                                            {availableFingers(
-                                                                emp.id,
-                                                            )}{" "}
-                                                            finger
-                                                            {availableFingers(
-                                                                emp.id,
-                                                            ) !== 1
-                                                                ? "s"
-                                                                : ""}{" "}
-                                                            available)
-                                                        </CommandItem>
-                                                    ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
-
-                            <div className="flex flex-col items-center justify-center text-center">
-                                <Fingerprint
-                                    className={`w-20 h-20 transition-all duration-300 mt-5 ${getFingerprintColor()}`}
-                                />
-                                <p
-                                    className={`text-sm font-semibold mt-4 min-h-[1.25rem] ${
-                                        scanStatus === "error"
-                                            ? "text-red-500"
-                                            : scanStatus === "success"
-                                              ? "text-green-500"
-                                              : "text-blue-500"
-                                    }`}
-                                >
-                                    {scanStatus === "error"
-                                        ? scanMessage
-                                        : scanStatus === "success"
-                                          ? scanMessage
-                                          : scanning
-                                            ? scanMessage
-                                            : selectedEmployee
-                                              ? `${availableFingers(
-                                                    selectedEmployee,
-                                                )} Available Fingerprint${
-                                                    availableFingers(
-                                                        selectedEmployee,
-                                                    ) !== 1
-                                                        ? "s"
-                                                        : ""
-                                                } Registration`
-                                              : ""}
-                                </p>
-                            </div>
-
-                            <div className="cursor-pointer w-full flex justify-center gap-4">
-                                <Button
-                                    variant={scanning ? "cyan" : "green"}
-                                    onClick={() => {
-                                        if (scanning) cancelScan();
-                                        else if (scanStatus === "success") {
-                                            setScanning(false);
-                                            setScanStatus("idle");
-                                            setScanMessage(
-                                                "Place your fingerprint",
-                                            );
-                                            setSelectedEmployee("");
-                                        } else if (scanStatus === "error")
-                                            registerFingerprint();
-                                        else registerFingerprint();
-                                    }}
-                                    disabled={!selectedEmployee}
-                                    className="w-60 mt-1"
-                                >
-                                    {scanning
-                                        ? "Cancel"
-                                        : scanStatus === "success"
-                                          ? "Register Another"
-                                          : scanStatus === "error"
-                                            ? "Retry"
-                                            : "Register Fingerprint"}
-                                </Button>
-                                <AlertDialog
-                                    open={testOpen}
-                                    onOpenChange={(open) => {
-                                        setTestOpen(open);
-                                        if (open) {
-                                            // Start the continuous fingerprint test scan when dialog opens
-                                            startTestFingerprint();
-                                        } else {
-                                            // Clean up SSE and reset UI when dialog closes
-                                            if (testSource) testSource.close();
-                                            setTestMessage(
-                                                "Waiting for scan...",
-                                            );
-                                            setTestStatus("idle"); // optional, if you track status
-                                        }
-                                    }}
-                                >
-                                    <AlertDialogTrigger asChild>
-                                        <Button
-                                            variant="blue"
-                                            className="w-60 mt-1"
-                                        >
-                                            Test Fingerprint
-                                        </Button>
-                                    </AlertDialogTrigger>
-
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>
-                                                Test Fingerprint
-                                            </AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Place your finger on the
-                                                scanner. It will check against
-                                                registered employees.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-
-                                        <div className="flex flex-col items-center py-4">
-                                            <Fingerprint
-                                                className={`w-20 h-20 ${
-                                                    testStatus === "scanning"
-                                                        ? "text-blue-500 animate-pulse"
-                                                        : testStatus ===
-                                                            "success"
-                                                          ? "text-green-500 animate-bounce"
-                                                          : "text-red-500"
-                                                }`}
-                                            />
-                                            <p className="mt-3 text-sm text-gray-700">
-                                                {testMessage}
-                                            </p>
-                                        </div>
-
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel
-                                                onClick={() => {
-                                                    if (testSource)
-                                                        testSource.close();
-                                                    setTestMessage(
-                                                        "Waiting for scan...",
-                                                    );
-                                                    setTestStatus("idle"); // optional reset
-                                                }}
-                                            >
-                                                Close
-                                            </AlertDialogCancel>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </div>
-                        </div>
-                    </div>
+                    <FingerprintRegistrationPanel
+                        employees={employees}
+                        unregistered={unregistered}
+                        selectedEmployee={selectedEmployee}
+                        setSelectedEmployee={setSelectedEmployee}
+                        availableFingers={availableFingers}
+                        scanning={scanning}
+                        scanStatus={scanStatus}
+                        scanMessage={scanMessage}
+                        cancelScan={cancelScan}
+                        registerFingerprint={registerFingerprint}
+                        open={open}
+                        setOpen={setOpen}
+                        testOpen={testOpen}
+                        setTestOpen={setTestOpen}
+                        testSource={testSource}
+                        testMessage={testMessage}
+                        setTestMessage={setTestMessage}
+                        testStatus={testStatus}
+                        setTestStatus={setTestStatus}
+                        startTestFingerprint={startTestFingerprint}
+                    />
                 </div>
 
                 <EmployeeList
+                    employees={employees}
                     filteredEmployees={filteredEmployees}
                     isRegistered={isRegistered}
                     handleEdit={handleEdit}
-                    search={search}
-                    setSearch={setSearch}
-                    departments={departments}
-                    selectedDepartment={selectedDepartment}
-                    setSelectedDepartment={setSelectedDepartment}
+                    searchInput={searchInput}
+                    setSearchInput={setSearchInput}
+                    applySearch={(value) => {
+                        setSelectedOffice("all");
+                        router.get(
+                            route("employeemanagement"),
+                            value && value.trim()
+                                ? { search: value.trim() }
+                                : {},
+                            {
+                                preserveState: true,
+                                preserveScroll: true,
+                                replace: true,
+                            },
+                        );
+                    }}
+                    offices={offices}
+                    selectedOffice={selectedOffice}
+                    setSelectedOffice={setSelectedOffice}
                     statusOptions={statusOptions}
                     statusFilter={statusFilter}
                     setStatusFilter={setStatusFilter}
@@ -594,7 +384,7 @@ const EmployeeManagement = ({
                     setEditForm={setEditForm}
                     editOpen={editOpen}
                     setEditOpen={setEditOpen}
-                    departments={departments}
+                    offices={offices}
                     stations={stations}
                     userStationId={userStationId}
                 />

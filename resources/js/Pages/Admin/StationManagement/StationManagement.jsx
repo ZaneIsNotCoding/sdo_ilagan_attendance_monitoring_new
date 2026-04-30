@@ -1,15 +1,33 @@
-import React from "react";
-import { Head, router } from "@inertiajs/react";
+import React, { useRef, useState } from "react";
+import { Head } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { LandPlot } from "lucide-react";
 
+import StationList from "./Partials/StationList";
 import StationAdminList from "./Partials/StationAdminList";
 
 const StationManagement = ({
     school_admins = [],
     employees = [],
     stations = [],
+    search = "",
 }) => {
+    const sectionRef = useRef(null);
+    const [highlightedStationId, setHighlightedStationId] = useState(null);
+    const [highlightRequestKey, setHighlightRequestKey] = useState(0);
+
+    const focusStationRow = (stationId) => {
+        if (!stationId) return;
+
+        setHighlightedStationId(stationId);
+        setHighlightRequestKey((value) => value + 1);
+
+        sectionRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+        });
+    };
+
     return (
         <AuthenticatedLayout
             header={
@@ -21,11 +39,24 @@ const StationManagement = ({
         >
             <Head title="Station Management" />
             <main>
-                <div className="rounded-xl p-4 border-2  shadow-lg">
+                <div className="mb-5">
+                    <StationList
+                        stations={stations}
+                        school_admins={school_admins}
+                        onAssignNow={focusStationRow}
+                    />
+                </div>
+                <div
+                    ref={sectionRef}
+                    className="rounded-xl p-4 border-2 shadow-lg"
+                >
                     <StationAdminList
                         stations={stations}
                         school_admins={school_admins}
                         employees={employees}
+                        search={search}
+                        highlightedStationId={highlightedStationId}
+                        highlightRequestKey={highlightRequestKey}
                     />
                 </div>
             </main>

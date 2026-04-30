@@ -16,7 +16,7 @@ class DashboardController extends Controller
         )->value('average_am_time_in');
 
         // 2️⃣ Best department (earliest avg AM-in)
-        $bestDepartment = Employee::with(['attendances.am'])
+        $bestDepartment = Employee::with(['attendances.am', 'office'])
             ->get()
             ->map(function ($emp) {
                 $times = $emp->attendances
@@ -25,7 +25,7 @@ class DashboardController extends Controller
                 if ($times->count() > 0) {
                     $avg = $times->avg(fn($t) => strtotime($t));
                     return [
-                        'department' => $emp->department,
+                        'department' => $emp->office?->name,
                         'avg_time' => date("H:i:s", $avg),
                     ];
                 }
@@ -64,7 +64,8 @@ class DashboardController extends Controller
         }])
         ->orderByDesc('late_count')
         ->take(5)
-        ->get(['id', 'first_name', 'last_name', 'department']);
+        ->with('office:id,name')
+        ->get(['id', 'first_name', 'last_name', 'office_id']);
 
         // 6️⃣ On-time Arrival Rate
         $onTimeCount = AttendanceAm::where('am_time_in', '<=', '08:00:00')->count();
@@ -79,9 +80,9 @@ class DashboardController extends Controller
         ->first();
 
         // 8️⃣ Department Ranking (average AM-in per department)
-        $departmentRanking = Employee::with('attendances.am')
+        $departmentRanking = Employee::with(['attendances.am', 'office'])
             ->get()
-            ->groupBy('department')
+            ->groupBy(fn ($employee) => $employee->office?->name ?? 'No Office')
             ->map(function($emps, $dept) {
                 $times = $emps->flatMap(fn($e) => $e->attendances->pluck('am.am_time_in')->filter());
                 $avg = $times->count() ? date('H:i:s', round($times->map(fn($t) => strtotime($t))->avg())) : null;
@@ -99,7 +100,7 @@ class DashboardController extends Controller
             'onTimeRate' => $onTimeRate,
             'bestEmployee' => $bestEmployee,
             'departmentRanking' => $departmentRanking,
-            'employees' => Employee::select('id', 'first_name', 'last_name', 'position', 'department')->get()
+            'employees' => Employee::with('office:id,name')->select('id', 'first_name', 'last_name', 'position', 'office_id')->get()
         ]);
     }
 }

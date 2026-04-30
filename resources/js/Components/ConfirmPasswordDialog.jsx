@@ -33,8 +33,15 @@ export default function ConfirmPasswordDialog({
     passwordPlaceholder = "Enter your password",
     passwordHelpText = "For security purposes, please re-enter your account password.",
     showSecurityNote = true,
+    open: controlledOpen,
+    onOpenChange,
 }) {
-    const [open, setOpen] = useState(false);
+    const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+    const open = controlledOpen ?? uncontrolledOpen;
+    const setOpen = (nextOpen) => {
+        setUncontrolledOpen(nextOpen);
+        onOpenChange?.(nextOpen);
+    };
 
     // ✅ added loading state
     const [loading, setLoading] = useState(false);

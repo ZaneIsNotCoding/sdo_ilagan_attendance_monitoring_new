@@ -22,7 +22,7 @@ class TardyConvertionController extends Controller
         $monthFilter = $request->input('month'); // expects format YYYY-MM
 
         // ✅ Fetch tardiness records with employee relation
-        $records = TardinessRecord::with('employee')
+        $records = TardinessRecord::with('employee.office')
             ->whereDoesntHave('tardyConvertions')
             ->get();
 
@@ -55,7 +55,7 @@ class TardyConvertionController extends Controller
             return [
                 'employee_id' => optional($employee)->id,
                 'name'        => optional($employee)->first_name . ' ' . optional($employee)->last_name,
-                'dept'        => optional($employee)->department,
+                'dept'        => optional($employee?->office)->name,
                 'date'        => $recordDate,
                 'total_tardy' => $totalTardy,
             ];

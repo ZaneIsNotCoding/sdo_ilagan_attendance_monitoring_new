@@ -98,16 +98,28 @@ Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(functio
     // Department Management
     Route::get('/departmentmanagement', [DepartmentManagementController::class, 'index'])->name('departmentmanagement');
     Route::post('/departmentmanagement/depheadstore', [DepartmentManagementController::class, 'storeHead'])->name('departmenthead.storeHead');
-    Route::post('/departmentmanagement/addDepartment', [DepartmentManagementController::class, 'storeDepartment'])->name('department.storeDepartment');
+    Route::post('/departmentmanagement/divisionheadstore', [DepartmentManagementController::class, 'storeDivisionHead'])->name('divisionhead.storeDivisionHead');
+    Route::post('/departmentmanagement/addDepartment', [DepartmentManagementController::class, 'storeDepartment'])->name('division.storeDivision');
     Route::put('/departmentmanagement/updateDepartment/{id}', [DepartmentManagementController::class, 'updateDepartment'])->name('department.updateDepartment');
     Route::delete('/departmentmanagement/delete/{id}', [DepartmentManagementController::class, 'destroy'])->name('departmenthead.destroy');
+    Route::delete('/departmentmanagement/division/delete/{id}', [DepartmentManagementController::class, 'destroyDivisionHead'])->name('divisionhead.destroy');
     Route::delete('/departmentmanagement/department/delete/{id}', [DepartmentManagementController::class, 'destroyDepartment'])
         ->name('department.destroy');
+    Route::post('/departmentmanagement/addOffice', [DepartmentManagementController::class, 'storeOffice'])->name('office.storeOffice');
+    Route::put('/departmentmanagement/updateOffice/{id}', [DepartmentManagementController::class, 'updateOffice'])->name('office.updateOffice');
+    Route::delete('/departmentmanagement/office/delete/{id}', [DepartmentManagementController::class, 'destroyOffice'])->name('office.destroy');
+    Route::post('/departmentmanagement/suggest-names', [DepartmentManagementController::class, 'suggestDepartmentNames'])->name('departmentnames.suggest');
     
 
     //Station Management
     Route::get('/stations', [StationManagementController::class, 'index'])->name('stationmanagement');
-    Route::delete('/stations/{station}', [StationController::class, 'destroy'])->name('stations.destroy');
+    Route::post('/stations', [StationManagementController::class, 'storeStation'])->name('stations.store');
+    Route::post('/stations/admin', [StationManagementController::class, 'store'])->name('stationadmin.store');
+    Route::delete('/stations/admin/{id}', [StationManagementController::class, 'destroy'])->name('stationadmin.destroy');
+    Route::put('/station-assignments/{stationAssignment}', [StationManagementController::class, 'updateStationAssignment'])->name('stationassignments.update');
+    Route::delete('/station-assignments/{stationAssignment}', [StationManagementController::class, 'destroyStationAssignment'])->name('stationassignments.destroy');
+    Route::put('/stations/{station}', [StationManagementController::class, 'updateStation'])->name('stations.update');
+    Route::delete('/stations/{station}', [StationManagementController::class, 'destroyStation'])->name('stations.destroy');
 
 
     Route::middleware(['auth'])->group(function () {

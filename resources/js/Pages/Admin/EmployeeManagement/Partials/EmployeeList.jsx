@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
     CustomDropdownCheckbox,
     CustomDropdownCheckboxObject,
@@ -13,7 +13,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { SquarePen, Search } from "lucide-react";
+import { SquarePen, Search, User } from "lucide-react";
 import FloatingInput from "@/components/floating-input";
 import {
     HoverCard,
@@ -31,23 +31,35 @@ import {
     PaginationPrevious,
     PaginationNext,
 } from "@/components/ui/pagination";
+import EmployeeAvatar from "@/Components/EmployeeAvatar";
 
 const ITEMS_PER_PAGE = 10;
 
+const formatEmployeeSearchName = (emp) =>
+    [emp.first_name, emp.middle_name, emp.last_name]
+        .filter(Boolean)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+
 const EmployeeList = ({
+    employees = [],
     filteredEmployees,
     isRegistered,
     handleEdit,
-    search,
-    setSearch,
-    departments,
-    selectedDepartment,
-    setSelectedDepartment,
+    searchInput,
+    setSearchInput,
+    applySearch,
+    offices = [],
+    selectedOffice,
+    setSelectedOffice,
     statusOptions,
     statusFilter,
     setStatusFilter,
 }) => {
     const [currentPage, setCurrentPage] = useState(1);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const searchBoxRef = useRef(null);
 
     const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
     const paginatedEmployees = filteredEmployees.slice(
@@ -60,30 +72,133 @@ const EmployeeList = ({
         setCurrentPage(page);
     };
 
+    const suggestionMatches = useMemo(() => {
+        const query = (searchInput || "").trim().toLowerCase();
+
+        if (!query) {
+            return [];
+        }
+
+        return employees
+            .filter((emp) => {
+                const fullName = formatEmployeeSearchName(emp).toLowerCase();
+                const employeeId = String(emp.id || "").toLowerCase();
+
+                return fullName.includes(query) || employeeId.includes(query);
+            })
+            .slice(0, 8)
+            .map((emp) => ({
+                id: emp.id,
+                label: formatEmployeeSearchName(emp) || "-",
+                meta: [emp.office?.name, emp.office?.division?.code]
+                    .filter(Boolean)
+                    .join(" • "),
+                search: formatEmployeeSearchName(emp) || "",
+            }));
+    }, [employees, searchInput]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (
+                searchBoxRef.current &&
+                !searchBoxRef.current.contains(event.target)
+            ) {
+                setShowSuggestions(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
+
     return (
-        <div className="rounded-xl p-4 mt-4 border-2 shadow-lg">
-            <div className="rounded-xlFempl">
+        <div className="rounded-2xl p-4 mt-4 border border-blue-100 shadow-lg">
+            <div className="rounded-xl">
                 <div className="flex items-center justify-between mb-4 gap-4">
                     {/* LEFT SIDE */}
                     <div className="min-w-0">
-                        <h2 className="text-lg font-bold">Employee List</h2>
+                        <h2 className="text-l font-bold">Employee List</h2>
                         <p className="text-sm text-gray-500">
                             Manage employee records
                         </p>
                     </div>
 
                     {/* RIGHT SIDE */}
-                    <div className="flex items-center gap-4 ">
-                        <FloatingInput
-                            label="Search Employee"
-                            icon={Search}
-                            name="search"
-                            value={search}
-                            onChange={(e) => {
-                                setSearch(e.target.value);
-                                setCurrentPage(1);
-                            }}
-                        />
+                    <div className="flex items-start gap-4 ">
+                        <div ref={searchBoxRef} className="relative w-full">
+                            <FloatingInput
+                                label="Search Employee"
+                                icon={Search}
+                                name="search"
+                                value={searchInput}
+                                onChange={(e) => {
+                                    setSearchInput(e.target.value);
+                                    setCurrentPage(1);
+                                    setShowSuggestions(true);
+                                }}
+                                onFocus={() => setShowSuggestions(true)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        applySearch(searchInput);
+                                        setCurrentPage(1);
+                                        setShowSuggestions(false);
+                                    }
+                                }}
+                            />
+
+                            {showSuggestions && searchInput.trim() ? (
+                                <div className="absolute right-0 top-full z-50 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
+                                    <div className="border-b bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                        Suggestions
+                                    </div>
+
+                                    <div className="max-h-72 overflow-y-auto">
+                                        {suggestionMatches.length > 0 ? (
+                                            suggestionMatches.map((emp) => (
+                                                <button
+                                                    key={emp.id}
+                                                    type="button"
+                                                    onMouseDown={() => {
+                                                        setSearchInput(
+                                                            emp.label,
+                                                        );
+                                                        applySearch(
+                                                            `${emp.id} ${emp.label}`,
+                                                        );
+                                                        setCurrentPage(1);
+                                                        setShowSuggestions(
+                                                            false,
+                                                        );
+                                                    }}
+                                                    className="flex w-full items-start justify-between gap-3 px-3 py-2 text-left text-sm transition hover:bg-blue-50"
+                                                >
+                                                    <div className="min-w-0">
+                                                        <div className="truncate font-medium text-slate-800">
+                                                            {emp.label}
+                                                        </div>
+                                                        <div className="truncate text-xs text-slate-500">
+                                                            {emp.meta}
+                                                        </div>
+                                                    </div>
+
+                                                    <span className="shrink-0 rounded-full bg-blue-100 px-2 py-1 text-[11px] font-semibold text-blue-700">
+                                                        Search
+                                                    </span>
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <div className="px-3 py-4 text-sm text-slate-500">
+                                                No employee matches found.
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
 
                         <CustomDropdownCheckbox
                             label="Select Status"
@@ -98,16 +213,16 @@ const EmployeeList = ({
                         />
 
                         <CustomDropdownCheckboxObject
-                            label="Select Department"
-                            items={departments}
-                            selected={selectedDepartment}
+                            label="Select Office"
+                            items={offices}
+                            selected={selectedOffice}
                             buttonLabel={
-                                departments.find(
-                                    (d) => d.id === selectedDepartment,
-                                )?.name || "All Departments"
+                                offices.find(
+                                    (office) => office.id === selectedOffice,
+                                )?.name || "All Offices"
                             }
                             onChange={(val) => {
-                                setSelectedDepartment(val);
+                                setSelectedOffice(val);
                                 setCurrentPage(1);
                             }}
                             buttonVariant="green"
@@ -121,14 +236,14 @@ const EmployeeList = ({
                 <Table className="w-full table-fixed">
                     <TableHeader>
                         <TableRow className="bg-blue-900 hover:bg-blue-800">
-                            <TableHead className="text-white text-left px-16 w-[30%]">
+                            <TableHead className="text-white text-left px-16 w-[25%]">
                                 Employee Name
                             </TableHead>
                             <TableHead className="text-white text-left w-[20%]">
                                 Position
                             </TableHead>
-                            <TableHead className="text-white text-left w-[20%]">
-                                Department
+                            <TableHead className="text-white text-left w-[25%]">
+                                Office
                             </TableHead>
                             <TableHead className="text-white text-left w-[15%]">
                                 Work Type
@@ -146,21 +261,22 @@ const EmployeeList = ({
                                     key={emp.id}
                                     className="h-[64px] hover:bg-blue-50 transition"
                                 >
-                                    {/* EMPLOYEE */}
                                     <TableCell className="p-3">
                                         <div className="flex gap-3 min-w-0">
                                             {/* Avatar */}
-                                            <div className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-full bg-blue-300 text-blue-600 flex items-center justify-center text-xs font-bold">
-                                                {emp.full_name
-                                                    .split(" ")
-                                                    .map((n) => n[0])
-                                                    .join("")}
-                                            </div>
+                                            <EmployeeAvatar
+                                                employee={emp}
+                                                name={formatEmployeeSearchName(
+                                                    emp,
+                                                )}
+                                            />
 
                                             {/* Name + badge */}
                                             <div className="flex items-center gap-2 min-w-0">
                                                 <span className="font-medium truncate max-w-[150px]">
-                                                    {emp.full_name}
+                                                    {formatEmployeeSearchName(
+                                                        emp,
+                                                    )}
                                                 </span>
 
                                                 <HoverCard>
@@ -207,15 +323,15 @@ const EmployeeList = ({
                                         {emp.position || "-"}
                                     </TableCell>
 
-                                    {/* DEPARTMENT */}
+                                    {/* OFFICE */}
                                     <TableCell className="p-3">
                                         <div className="flex items-center gap-2 min-w-0">
                                             <div className="w-7 h-7 min-w-[28px] flex items-center justify-center rounded-full bg-gray-300">
                                                 <Building2 className="w-4 h-4 text-blue-600" />
                                             </div>
 
-                                            <span className="px-3 py-1 text-sm rounded truncate">
-                                                {emp.department?.name || "-"}
+                                            <span className="truncate">
+                                                {emp.office?.name || "-"}
                                             </span>
                                         </div>
                                     </TableCell>

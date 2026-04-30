@@ -36,17 +36,20 @@ const EmployeeEditDialog = ({
     setEditForm,
     editOpen,
     setEditOpen,
-    departments,
+    offices = [],
     stations,
     userStationId,
 }) => {
     const [confirmOpen, setConfirmOpen] = React.useState(false);
     const safeForm = editForm || {};
-    const canEditDepartment = userStationId === 1;
+    const canEditOffice = userStationId === 1;
 
     console.log("SAFE FORM:", safeForm);
 
-    const isHead = safeForm?.is_department_head;
+    const isHead =
+        safeForm?.is_unit_head ||
+        safeForm?.is_division_head ||
+        safeForm?.is_department_head;
 
     return (
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
@@ -106,6 +109,7 @@ const EmployeeEditDialog = ({
                                 )?.name || ""
                             }
                             readOnly
+                            inputClassName="truncate pr-12"
                         />
 
                         <div className="absolute right-2 top-0 h-full flex items-center">
@@ -147,21 +151,23 @@ const EmployeeEditDialog = ({
                         }
                     />
 
-                    {/* Department */}
+                    {/* Office */}
                     <div className="relative w-full">
                         <FloatingInput
-                            label="Department"
+                            label="Office"
                             icon={Building2}
                             value={
-                                departments?.find(
-                                    (d) => d.id === safeForm.department_id,
+                                offices?.find(
+                                    (office) =>
+                                        office.id === safeForm.office_id,
                                 )?.name || ""
                             }
                             readOnly
+                            inputClassName="truncate pr-12"
                         />
 
                         {/* HoverCard ONLY when employee is head */}
-                        {safeForm?.is_department_head && (
+                        {isHead && (
                             <div className="absolute right-2 top-0 h-full flex items-center">
                                 <HoverCard>
                                     <HoverCardTrigger asChild>
@@ -176,20 +182,20 @@ const EmployeeEditDialog = ({
                                         <span className="flex flex-col gap-1 text-red-600 font-medium">
                                             <div className="flex items-center gap-2">
                                                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                                                Department Head Active
+                                                Head Assignment Active
                                             </div>
 
                                             <p className="text-gray-600 font-normal">
                                                 This employee is currently
-                                                Department Head of{" "}
+                                                assigned as a head for{" "}
                                                 <span className="font-semibold text-black">
-                                                    {safeForm.department}
+                                                    {safeForm.office?.name}
                                                 </span>
                                             </p>
 
                                             <p className="text-red-500 font-semibold">
-                                                Remove as head first before
-                                                changing department.
+                                                Remove the assignment first
+                                                before changing office.
                                             </p>
                                         </span>
                                     </HoverCardContent>
@@ -199,20 +205,20 @@ const EmployeeEditDialog = ({
 
                         {/* Dropdown */}
                         <div className="absolute right-2 top-0 h-full flex items-center">
-                            {canEditDepartment &&
-                                !safeForm?.is_department_head && (
-                                    <CustomDropdownCheckboxObject
-                                        label="Select Department"
-                                        items={departments}
-                                        onChange={(val) =>
-                                            setEditForm((prev) => ({
-                                                ...prev,
-                                                department_id: val, // ✅ store ID
-                                            }))
-                                        }
-                                        buttonVariant="white"
-                                    />
-                                )}
+                            {canEditOffice && !isHead && (
+                                <CustomDropdownCheckboxObject
+                                    label="Select Office"
+                                    items={offices}
+                                    onChange={(val) =>
+                                        setEditForm((prev) => ({
+                                            ...prev,
+                                            office_id: val,
+                                        }))
+                                    }
+                                    buttonVariant="white"
+                                    iconOnly
+                                />
+                            )}
                         </div>
                     </div>
                     {/* Work Type */}
