@@ -55,7 +55,7 @@ class StationManagementController extends Controller
                 ];
             });
 
-        $stations = $sdo->merge($stations)->values();
+        $stations = collect($sdo->all())->merge($stations->all())->values();
 
         $employees = Employee::with('user:id,employee_id,email,created_at')
             ->select(

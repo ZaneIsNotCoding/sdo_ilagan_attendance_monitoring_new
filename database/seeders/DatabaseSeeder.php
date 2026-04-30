@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             Convertion::class,
             StationSeeder::class,
+            StationAssignmentSeeder::class,
             DivisionSeeder::class,
             OfficeSeeder::class,
         ]);

@@ -50,7 +50,7 @@ const EditStationModal = ({ open, setOpen, station }) => {
                             <DialogTitle className="flex items-center gap-2 text-white">
                                 <LandPlot className="h-5 w-5" />
                                 {isSdoAssignment
-                                    ? "Edit SDO Assignment"
+                                    ? "Edit SDO Station"
                                     : "Edit Station"}
                             </DialogTitle>
                             <DialogDescription className="text-blue-100">
