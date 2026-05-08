@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import axios from "axios";
 import { router } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,14 +18,18 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Trash2, LandPlot, CheckCircle2, XCircle } from "lucide-react";
+import {
+    Trash2,
+    LandPlot,
+    CheckCircle2,
+    XCircle,
+    Loader2,
+} from "lucide-react";
 import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
 import AssignStationAdminModal from "./AssignStationAdminModal";
 import FloatingInput from "@/components/floating-input";
 import { Search } from "lucide-react";
 import EmployeeAvatar from "@/Components/EmployeeAvatar";
-
-const ITEMS_PER_PAGE = 10;
 
 const getStationHighlightKey = (station) => {
     if (!station) return null;
@@ -35,89 +40,83 @@ const getStationHighlightKey = (station) => {
 };
 
 const StationAdminList = ({
-    stations = [],
-    school_admins = [],
+    stationRows = {},
     employees = [],
     search = "",
+    adminLimit = 10,
     highlightedStationId = null,
     highlightRequestKey = 0,
 }) => {
-    const [currentPage, setCurrentPage] = useState(1);
     const [selectedStationForAssign, setSelectedStationForAssign] =
         useState(null);
     const [animatedStationId, setAnimatedStationId] = useState(null);
     const [searchTerm, setSearchTerm] = useState(search || "");
+    const [suggestionMatches, setSuggestionMatches] = useState([]);
+    const [suggestionsLoading, setSuggestionsLoading] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const animationTimeoutRef = useRef(null);
+    const suggestionRequestRef = useRef(0);
     const searchBoxRef = useRef(null);
 
     useEffect(() => {
         setSearchTerm(search || "");
     }, [search]);
 
-    const stationRows = useMemo(
-        () =>
-            stations.map((station) => {
-                let admin = null;
+    const visibleStationRows = stationRows?.data || [];
+    const activePage = stationRows?.current_page || 1;
+    const totalPages = stationRows?.last_page || 1;
+    const totalEntries = stationRows?.total || 0;
+    const startIndex = stationRows?.from || 0;
+    const endIndex = stationRows?.to || 0;
 
-                if (station.source === "station") {
-                    admin = school_admins.find(
-                        (a) =>
-                            String(a.employee?.station_id) ===
-                                String(station.id) &&
-                            a.type === "school_admin",
-                    );
-                }
-
-                if (station.source === "sdo") {
-                    admin = school_admins.find(
-                        (a) => a.type === station.role,
-                    );
-                }
-
-                return {
-                    station,
-                    admin: admin || null,
-                };
-            }),
-        [school_admins, stations],
-    );
-
-    const visibleStationRows = useMemo(() => {
-        if (!search.trim()) {
-            return stationRows;
-        }
-
-        const query = search.trim().toLowerCase();
-
-        return stationRows.filter((row) => {
-            const name = (row.station.name || "").toLowerCase();
-            const code = (row.station.code || "").toLowerCase();
-
-            return name.includes(query) || code.includes(query);
-        });
-    }, [search, stationRows]);
-
-    const suggestionMatches = useMemo(() => {
-        const query = searchTerm.trim().toLowerCase();
+    useEffect(() => {
+        const query = searchTerm.trim();
 
         if (!query) {
-            return [];
+            setSuggestionMatches([]);
+            setSuggestionsLoading(false);
+            return;
         }
 
-        return stations
-            .filter((station) => {
-                const name = (station.name || "").toLowerCase();
-                return name.includes(query);
-            })
-            .slice(0, 8)
-            .map((station) => ({
-                id: station.id,
-                label: station.name,
-                meta: station.code ? `${station.code}` : "No code",
-                search: station.name,
-            }));
-    }, [searchTerm, stations]);
+        setSuggestionsLoading(true);
+        const requestId = suggestionRequestRef.current + 1;
+        suggestionRequestRef.current = requestId;
+
+        const timeout = setTimeout(() => {
+            axios
+                .get(route("stations.suggestions"), {
+                    params: { search: query },
+                })
+                .then((response) => {
+                    if (suggestionRequestRef.current !== requestId) return;
+
+                    setSuggestionMatches(
+                        (response.data || []).map((station) => ({
+                            id: `${station.source || "station"}:${
+                                station.record_id || station.id
+                            }`,
+                            label: station.name,
+                            meta: station.code ? `${station.code}` : "No code",
+                            search: station.name,
+                        })),
+                    );
+                })
+                .catch(() => {
+                    if (suggestionRequestRef.current !== requestId) return;
+
+                    setSuggestionMatches([]);
+                })
+                .finally(() => {
+                    if (suggestionRequestRef.current !== requestId) return;
+
+                    setSuggestionsLoading(false);
+                });
+        }, 250);
+
+        return () => {
+            clearTimeout(timeout);
+        };
+    }, [searchTerm]);
 
     const highlightedStationIndex = useMemo(
         () =>
@@ -134,10 +133,6 @@ const StationAdminList = ({
             return;
         }
 
-        const targetPage =
-            Math.floor(highlightedStationIndex / ITEMS_PER_PAGE) + 1;
-
-        setCurrentPage(targetPage);
         setAnimatedStationId(highlightedStationId);
 
         if (animationTimeoutRef.current) {
@@ -147,7 +142,11 @@ const StationAdminList = ({
         animationTimeoutRef.current = setTimeout(() => {
             setAnimatedStationId(null);
         }, 2200);
-    }, [highlightedStationId, highlightedStationIndex, highlightRequestKey]);
+    }, [
+        highlightedStationId,
+        highlightedStationIndex,
+        highlightRequestKey,
+    ]);
 
     useEffect(() => {
         return () => {
@@ -157,16 +156,20 @@ const StationAdminList = ({
         };
     }, []);
 
-    const totalPages = Math.ceil(visibleStationRows.length / ITEMS_PER_PAGE);
-
-    const paginatedRows = visibleStationRows.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE,
-    );
+    const paginatedRows = visibleStationRows;
 
     const handlePageChange = (page) => {
         if (page < 1 || page > totalPages) return;
-        setCurrentPage(page);
+
+        const params = new URLSearchParams(window.location.search);
+        params.set("admin_page", page);
+        params.set("admin_limit", adminLimit);
+
+        router.get(route("stationmanagement"), Object.fromEntries(params), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
     };
 
     const getFullName = (emp) => {
@@ -176,15 +179,20 @@ const StationAdminList = ({
             .trim();
     };
 
-    const totalEntries = visibleStationRows.length;
-    const startIndex =
-        totalEntries === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
-    const endIndex = Math.min(currentPage * ITEMS_PER_PAGE, totalEntries);
-
     const submitSearch = (value) => {
+        const params = new URLSearchParams(window.location.search);
+        params.set("admin_page", 1);
+        params.set("admin_limit", adminLimit);
+
+        if (value && value.trim()) {
+            params.set("search", value.trim());
+        } else {
+            params.delete("search");
+        }
+
         router.get(
             route("stationmanagement"),
-            value && value.trim() ? { search: value.trim() } : {},
+            Object.fromEntries(params),
             {
                 preserveState: true,
                 preserveScroll: true,
@@ -217,10 +225,6 @@ const StationAdminList = ({
         };
     }, []);
 
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchTerm]);
-
     return (
         <div className="rounded-xl">
             <div className="flex items-start justify-between gap-4 mb-4">
@@ -238,7 +242,6 @@ const StationAdminList = ({
                         onSubmit={(e) => {
                             e.preventDefault();
                             submitSearch(searchTerm);
-                            setCurrentPage(1);
                             setShowSuggestions(false);
                         }}
                         className="space-y-2"
@@ -256,7 +259,6 @@ const StationAdminList = ({
                                 if (e.key === "Enter") {
                                     e.preventDefault();
                                     submitSearch(searchTerm);
-                                    setCurrentPage(1);
                                     setShowSuggestions(false);
                                 }
                             }}
@@ -270,7 +272,21 @@ const StationAdminList = ({
                             </div>
 
                             <div className="max-h-72 overflow-y-auto">
-                                {suggestionMatches.length > 0 ? (
+                                {suggestionsLoading ? (
+                                    <div className="flex items-center gap-3 px-3 py-4 text-sm text-slate-500">
+                                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        </span>
+                                        <div>
+                                            <div className="font-medium text-slate-700">
+                                                Searching stations...
+                                            </div>
+                                            <div className="text-xs text-slate-400">
+                                                Checking names and codes
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : suggestionMatches.length > 0 ? (
                                     suggestionMatches.map((suggestion) => (
                                         <button
                                             key={suggestion.id}
@@ -467,6 +483,7 @@ const StationAdminList = ({
                                                                         ? station.role
                                                                         : "school_admin",
                                                                 source: station.source,
+                                                                name: station.name,
                                                             },
                                                         )
                                                     }
@@ -502,14 +519,14 @@ const StationAdminList = ({
                         <Pagination>
                             <PaginationPrevious
                                 onClick={() =>
-                                    handlePageChange(currentPage - 1)
+                                    handlePageChange(activePage - 1)
                                 }
                             />
                             <PaginationContent>
                                 {Array.from({ length: totalPages }, (_, i) => (
                                     <PaginationItem key={i}>
                                         <PaginationLink
-                                            isActive={currentPage === i + 1}
+                                            isActive={activePage === i + 1}
                                             onClick={() =>
                                                 handlePageChange(i + 1)
                                             }
@@ -521,7 +538,7 @@ const StationAdminList = ({
                             </PaginationContent>
                             <PaginationNext
                                 onClick={() =>
-                                    handlePageChange(currentPage + 1)
+                                    handlePageChange(activePage + 1)
                                 }
                             />
                         </Pagination>
@@ -533,7 +550,7 @@ const StationAdminList = ({
                 open={!!selectedStationForAssign}
                 setOpen={() => setSelectedStationForAssign(null)}
                 employees={employees}
-                stations={stations}
+                stations={[]}
                 stationData={selectedStationForAssign}
             />
         </div>

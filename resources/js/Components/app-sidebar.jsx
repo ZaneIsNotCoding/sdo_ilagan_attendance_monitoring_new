@@ -6,9 +6,9 @@ import {
     CalendarDays,
     ChevronDown,
     ChevronRight,
-    Clock,
     Archive,
     CalendarClock,
+    ChartColumn,
     ArrowLeftRight,
     UserCircle,
     UserCog,
@@ -238,9 +238,9 @@ export function AppSidebar({ active, user, ...props }) {
                                         >
                                             <Link
                                                 href={route("dailytimerecord")}
-                                                className="flex items-center gap-2 text-xs text-white hover:bg-blue-900 hover:text-blue-100"
+                                                className="flex items-center gap-2 text-xs text-white hover:bg-blue-900 hover:text-blue-100     h-8"
                                             >
-                                                <Clock
+                                                <CalendarClock
                                                     className={`h-4 w-4 ${
                                                         url.startsWith(
                                                             "/dailytimerecord",
@@ -249,7 +249,7 @@ export function AppSidebar({ active, user, ...props }) {
                                                             : "!text-white"
                                                     }`}
                                                 />
-                                                Daily Time Record
+                                                Daily Time Record Management
                                             </Link>
                                         </SidebarMenuSubButton>
                                     </SidebarMenuSubItem>
@@ -265,7 +265,7 @@ export function AppSidebar({ active, user, ...props }) {
                                                 href={route("tardysummary")}
                                                 className="flex items-center gap-2 text-xs text-white hover:bg-blue-900 hover:text-blue-100"
                                             >
-                                                <CalendarClock
+                                                <ChartColumn
                                                     className={`h-4 w-4 ${
                                                         active ===
                                                         "tardysummary"

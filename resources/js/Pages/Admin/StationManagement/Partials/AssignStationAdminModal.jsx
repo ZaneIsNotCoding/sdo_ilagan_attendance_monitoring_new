@@ -74,6 +74,7 @@ const AssignStationAdminModal = ({
     // 🔥 resolve station name properly
     const stationName = useMemo(() => {
         return (
+            stationData?.name ||
             stations.find((s) => {
                 if (selectedSource === "sdo") {
                     return (
@@ -85,7 +86,7 @@ const AssignStationAdminModal = ({
                 return s.id == selectedStationId;
             })?.name || ""
         );
-    }, [stations, selectedStationId, selectedRole, selectedSource]);
+    }, [stationData, stations, selectedStationId, selectedRole, selectedSource]);
 
     // 🔥 filter employees safely
     const filteredEmployees = useMemo(() => {

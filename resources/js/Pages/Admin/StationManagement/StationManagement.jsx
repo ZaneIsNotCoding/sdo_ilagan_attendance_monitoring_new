@@ -7,10 +7,13 @@ import StationList from "./Partials/StationList";
 import StationAdminList from "./Partials/StationAdminList";
 
 const StationManagement = ({
-    school_admins = [],
     employees = [],
     stations = [],
+    stationAdminRows = [],
+    stationStats = {},
     search = "",
+    stationLimit = 5,
+    adminLimit = 10,
 }) => {
     const sectionRef = useRef(null);
     const [highlightedStationId, setHighlightedStationId] = useState(null);
@@ -27,7 +30,6 @@ const StationManagement = ({
             block: "start",
         });
     };
-
     return (
         <AuthenticatedLayout
             header={
@@ -42,7 +44,8 @@ const StationManagement = ({
                 <div className="mb-5">
                     <StationList
                         stations={stations}
-                        school_admins={school_admins}
+                        stationStats={stationStats}
+                        stationLimit={stationLimit}
                         onAssignNow={focusStationRow}
                     />
                 </div>
@@ -51,10 +54,10 @@ const StationManagement = ({
                     className="rounded-xl p-4 border-2 shadow-lg"
                 >
                     <StationAdminList
-                        stations={stations}
-                        school_admins={school_admins}
+                        stationRows={stationAdminRows}
                         employees={employees}
                         search={search}
+                        adminLimit={adminLimit}
                         highlightedStationId={highlightedStationId}
                         highlightRequestKey={highlightRequestKey}
                     />

@@ -62,9 +62,9 @@ Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(functio
     Route::post('/attendance/leave', [EmployeeLeaveController::class, 'store'])->name('attendance.leave.store');
     Route::delete('/attendance/leave', [EmployeeLeaveController::class, 'destroy']);
 
-
     // Daily Time Records
     Route::get('/dailytimerecord', [DailyTimeRecordController::class, 'index'])->name('dailytimerecord');
+    Route::get('/dailytimerecord/suggestions', [DailyTimeRecordController::class, 'suggestions'])->name('dailytimerecord.suggestions');
     Route::get('/dailytimerecord/{employeeId}-{first_name}', [DailyTimeRecordController::class, 'show'])->name('dailytimerecord.show');
     Route::get('/dailytimerecord/details/{employeeId}', [DailyTimeRecordController::class, 'details'])->name('dailytimerecord.details');
 
@@ -80,6 +80,7 @@ Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(functio
     Route::post('/tardy-convertions', [TardyConvertionController::class, 'store'])->name('tardy-convertions');
 
     //Employee Managements
+    Route::get('/employeemanagement/suggestions', [EmployeeManagementController::class, 'suggestions'])->name('employees.suggestions');
     Route::get('/employeemanagement', [EmployeeManagementController::class, 'index'])->name('employeemanagement');
     Route::post('/employeestore', [EmployeeManagementController::class, 'store'])->name('employees.store');
     Route::put('/employeeedit/{id}', [EmployeeManagementController::class, 'update'])->name('employees.update');
@@ -104,9 +105,9 @@ Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(functio
     Route::put('/departmentmanagement/updateOffice/{id}', [DepartmentManagementController::class, 'updateOffice'])->name('office.updateOffice');
     Route::delete('/departmentmanagement/office/delete/{id}', [DepartmentManagementController::class, 'destroyOffice'])->name('office.destroy');
     Route::post('/departmentmanagement/suggest-names', [DepartmentManagementController::class, 'suggestDepartmentNames'])->name('departmentnames.suggest');
-    
 
     //Station Management
+    Route::get('/stations/suggestions', [StationManagementController::class, 'suggestions'])->name('stations.suggestions');
     Route::get('/stations', [StationManagementController::class, 'index'])->name('stationmanagement');
     Route::post('/stations', [StationManagementController::class, 'storeStation'])->name('stations.store');
     Route::post('/stations/admin', [StationManagementController::class, 'store'])->name('stationadmin.store');

@@ -33,6 +33,12 @@ class EmployeeManagementController extends Controller
             $limit = 10;
         }
 
+        if ((string) request('limit') !== (string) $limit) {
+            return redirect()->to(request()->fullUrlWithQuery([
+                'limit' => $limit,
+            ]));
+        }
+
         $offices = Office::with('division:id,code,name')
             ->select('id', 'division_id', 'name')
             ->orderBy('name')
@@ -48,18 +54,22 @@ class EmployeeManagementController extends Controller
             ->withCount(['biometric'])
             ->where('station_id', $stationId);
 
+        $appendEmployeeMeta = function ($emp) {
+            $emp->available_fingers = 3 - $emp->biometric_count;
+
+            $emp->is_department_head = $emp->roles
+                ->where('type', 'department_head')
+                ->isNotEmpty();
+
+            return $emp;
+        };
+
         $employeesWithFingers = (clone $employeesQuery)
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->orderBy('id')
             ->get()
-            ->transform(function ($emp) {
-
-                $emp->available_fingers = 3 - $emp->biometric_count;
-
-                $emp->is_department_head = $emp->roles
-                    ->where('type', 'department_head')
-                    ->isNotEmpty();
-
-                return $emp;
-            });
+            ->transform($appendEmployeeMeta);
 
         $filteredEmployeesList = (clone $employeesQuery);
 
@@ -89,18 +99,15 @@ class EmployeeManagementController extends Controller
             $status === 'Active' ? 1 : 0,
         );
 
+        $filteredEmployeesList
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->orderBy('id');
+
         $filteredEmployeesList = $filteredEmployeesList
             ->paginate($limit)
             ->withQueryString()
-            ->through(function ($emp) {
-                $emp->available_fingers = 3 - $emp->biometric_count;
-
-                $emp->is_department_head = $emp->roles
-                    ->where('type', 'department_head')
-                    ->isNotEmpty();
-
-                return $emp;
-            });
+            ->through($appendEmployeeMeta);
 
         $registeredEmployees = $employeesWithFingers
             ->filter(fn($e) => $e->biometric_count > 0)
@@ -126,6 +133,78 @@ class EmployeeManagementController extends Controller
             'officeName' => $officeId === 'all' ? 'all' : $officeName,
             'limit' => $limit,
         ]);
+    }
+
+    public function suggestions(Request $request)
+    {
+        $user = auth()->user();
+        $stationId = $user->employee->station_id;
+        $search = trim((string) $request->query('search', ''));
+
+        if ($search === '') {
+            return response()->json([]);
+        }
+
+        $employees = Employee::with('office.division:id,code,name')
+            ->withCount(['biometric'])
+            ->select(
+                'id',
+                'first_name',
+                'middle_name',
+                'last_name',
+                'profile_img',
+                'position',
+                'office_id',
+            )
+            ->where('station_id', $stationId)
+            ->where(function ($query) use ($search) {
+                $query->where('id', $search)
+                    ->orWhere('first_name', 'like', "%{$search}%")
+                    ->orWhere('middle_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhereRaw(
+                        "CONCAT_WS(' ', first_name, middle_name, last_name) LIKE ?",
+                        ["%{$search}%"],
+                    )
+                    ->orWhereRaw(
+                        "CONCAT_WS(' ', id, first_name, middle_name, last_name) LIKE ?",
+                        ["%{$search}%"],
+                    );
+            })
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->limit(8)
+            ->get()
+            ->map(function ($employee) {
+                $fullName = trim(
+                    preg_replace(
+                        '/\s+/',
+                        ' ',
+                        implode(' ', [
+                            $employee->first_name ?? '',
+                            $employee->middle_name ?? '',
+                            $employee->last_name ?? '',
+                        ]),
+                    ),
+                );
+
+                return [
+                    'id' => $employee->id,
+                    'label' => $fullName !== '' ? $fullName : '-',
+                    'full_name' => $fullName !== '' ? $fullName : '-',
+                    'meta' => collect([
+                        $employee->office?->name,
+                        $employee->office?->division?->code,
+                    ])->filter()->join(' • '),
+                    'search' => $fullName,
+                    'profile_img' => $employee->profile_img,
+                    'position' => $employee->position,
+                    'office' => $employee->office,
+                    'available_fingers' => 3 - $employee->biometric_count,
+                ];
+            });
+
+        return response()->json($employees);
     }
 
     public function store(Request $request)

@@ -9,6 +9,7 @@ use App\Models\Administrator\StationAdmin;
 use App\Models\Administrator\StationAssignment;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\Rule;
 use App\Http\Controllers\Concerns\ValidatesPassword;
 use Inertia\Inertia;
@@ -20,6 +21,28 @@ class StationManagementController extends Controller
     public function index()
     {
         $search = trim((string) request('search', ''));
+        $stationPage = max((int) request('station_page', 1), 1);
+        $adminPage = max((int) request('admin_page', 1), 1);
+        $stationLimit = (int) request('station_limit', 5);
+        $adminLimit = (int) request('admin_limit', 10);
+
+        if (! in_array($stationLimit, [5, 10, 25, 50], true)) {
+            $stationLimit = 5;
+        }
+
+        if (! in_array($adminLimit, [10, 25, 50, 100], true)) {
+            $adminLimit = 10;
+        }
+
+        if (
+            (string) request('station_limit') !== (string) $stationLimit ||
+            (string) request('admin_limit') !== (string) $adminLimit
+        ) {
+            return redirect()->to(request()->fullUrlWithQuery([
+                'station_limit' => $stationLimit,
+                'admin_limit' => $adminLimit,
+            ]));
+        }
 
         $school_admins = StationAdmin::with([
             'employee:id,first_name,middle_name,last_name,profile_img,position,office_id,work_type,station_id',
@@ -57,6 +80,88 @@ class StationManagementController extends Controller
 
         $stations = collect($sdo->all())->merge($stations->all())->values();
 
+        $stationRows = $stations->map(function ($station) use ($school_admins) {
+            $admin = null;
+
+            if ($station['source'] === 'station') {
+                $admin = $school_admins->first(
+                    fn ($item) =>
+                        (string) $item->employee?->station_id === (string) $station['id'] &&
+                        $item->type === 'school_admin',
+                );
+            }
+
+            if ($station['source'] === 'sdo') {
+                $admin = $school_admins->first(
+                    fn ($item) => $item->type === $station['role'],
+                );
+            }
+
+            return [
+                'station' => $station,
+                'admin' => $admin,
+            ];
+        });
+
+        $adminRows = $stationRows;
+
+        if ($search !== '') {
+            $searchLower = mb_strtolower($search);
+
+            $adminRows = $adminRows->filter(function ($row) use ($searchLower) {
+                return str_contains(mb_strtolower($row['station']['name'] ?? ''), $searchLower) ||
+                    str_contains(mb_strtolower($row['station']['code'] ?? ''), $searchLower);
+            })->values();
+        }
+
+        $paginateCollection = function ($items, $perPage, $page, $pageName) {
+            $lastPage = (int) max(1, ceil($items->count() / $perPage));
+            $page = min($page, $lastPage);
+            $pageItems = $items
+                ->slice(($page - 1) * $perPage, $perPage)
+                ->values();
+
+            return new LengthAwarePaginator(
+                $pageItems,
+                $items->count(),
+                $perPage,
+                $page,
+                [
+                    'path' => request()->url(),
+                    'pageName' => $pageName,
+                    'query' => request()->query(),
+                ],
+            );
+        };
+
+        $stationRowsPage = $paginateCollection(
+            $stationRows,
+            $stationLimit,
+            $stationPage,
+            'station_page',
+        );
+
+        $adminRowsPage = $paginateCollection(
+            $adminRows,
+            $adminLimit,
+            $adminPage,
+            'admin_page',
+        );
+
+        $missingStations = $stationRows
+            ->filter(fn ($row) => ! $row['admin'])
+            ->values();
+
+        $stationStats = [
+            'total' => $stationRows->count(),
+            'assigned' => $stationRows->count() - $missingStations->count(),
+            'missing' => $missingStations->count(),
+            'missing_preview' => $missingStations
+                ->take(6)
+                ->map(fn ($row) => $row['station'])
+                ->values(),
+        ];
+
         $employees = Employee::with('user:id,employee_id,email,created_at')
             ->select(
                 'id',
@@ -72,11 +177,71 @@ class StationManagementController extends Controller
             ->get();
 
         return Inertia::render('Admin/StationManagement/StationManagement', [
-            'school_admins' => $school_admins,
-            'stations' => $stations,
+            'stations' => $stationRowsPage,
+            'stationAdminRows' => $adminRowsPage,
+            'stationStats' => $stationStats,
             'employees' => $employees,
             'search' => $search,
+            'stationPage' => $stationPage,
+            'adminPage' => $adminPage,
+            'stationLimit' => $stationLimit,
+            'adminLimit' => $adminLimit,
         ]);
+    }
+
+    public function suggestions(Request $request)
+    {
+        $search = trim((string) $request->query('search', ''));
+
+        if ($search === '') {
+            return response()->json([]);
+        }
+
+        $sdo = StationAssignment::whereIn('role', ['sdo_admin', 'sdo_hr'])
+            ->where(function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('code', 'like', "%{$search}%");
+            })
+            ->orderBy('name')
+            ->limit(8)
+            ->get()
+            ->map(fn ($item) => [
+                'id' => 'sdo-' . $item->role,
+                'record_id' => $item->id,
+                'code' => $item->code,
+                'name' => $item->name,
+                'source' => 'sdo',
+                'role' => $item->role,
+            ]);
+
+        $remaining = 8 - $sdo->count();
+
+        $stations = collect();
+
+        if ($remaining > 0) {
+            $stations = Station::where('code', '!=', 'SDO')
+                ->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('code', 'like', "%{$search}%");
+                })
+                ->orderBy('name')
+                ->limit($remaining)
+                ->get()
+                ->map(fn ($station) => [
+                    'id' => $station->id,
+                    'record_id' => null,
+                    'code' => $station->code,
+                    'name' => $station->name,
+                    'source' => 'station',
+                    'role' => null,
+                ]);
+        }
+
+        return response()->json(
+            collect($sdo->all())
+                ->merge($stations->all())
+                ->values(),
+        );
     }
 
     public function destroy(Request $request, $id)

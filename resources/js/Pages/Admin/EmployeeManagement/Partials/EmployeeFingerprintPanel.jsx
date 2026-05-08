@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
+import axios from "axios";
 import { Button } from "@/components/ui/button";
-import { Fingerprint, Search, User, X } from "lucide-react";
+import { Fingerprint, Loader2, Search, User, X } from "lucide-react";
 import {
     AlertDialog,
     AlertDialogTrigger,
@@ -31,25 +32,13 @@ const EmployeeFingerprintPanel = ({
     getFingerprintColor = () => "text-gray-400",
 }) => {
     const [searchValue, setSearchValue] = useState("");
+    const [suggestionMatches, setSuggestionMatches] = useState([]);
+    const [suggestionsLoading, setSuggestionsLoading] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const searchBoxRef = useRef(null);
+    const suggestionRequestRef = useRef(0);
     const selectedEmployeeRecord =
         employees.find((emp) => emp.id === selectedEmployee) || null;
-    const searchableEmployees = employees.filter(
-        (emp) => availableFingers(emp.id) > 0,
-    );
-    const filteredEmployees = searchableEmployees.filter((emp) => {
-        const query = searchValue.trim().toLowerCase();
-
-        if (!query) {
-            return false;
-        }
-
-        const fullName = String(emp.full_name || "").toLowerCase();
-        const officeName = String(emp.office?.name || "").toLowerCase();
-
-        return fullName.includes(query) || officeName.includes(query);
-    });
     const selectedOfficeName =
         selectedEmployeeRecord?.office?.name || "Department";
     const fingerprintStatusLabel = selectedEmployeeRecord
@@ -82,6 +71,47 @@ const EmployeeFingerprintPanel = ({
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, []);
+
+    useEffect(() => {
+        const query = searchValue.trim();
+
+        if (!query) {
+            setSuggestionMatches([]);
+            setSuggestionsLoading(false);
+            return;
+        }
+
+        setSuggestionsLoading(true);
+        const requestId = suggestionRequestRef.current + 1;
+        suggestionRequestRef.current = requestId;
+
+        const timeout = setTimeout(() => {
+            axios
+                .get(route("employees.suggestions"), {
+                    params: {
+                        search: query,
+                        available_fingers: 1,
+                    },
+                })
+                .then((response) => {
+                    if (suggestionRequestRef.current !== requestId) return;
+
+                    setSuggestionMatches(response.data || []);
+                })
+                .catch(() => {
+                    if (suggestionRequestRef.current !== requestId) return;
+
+                    setSuggestionMatches([]);
+                })
+                .finally(() => {
+                    if (suggestionRequestRef.current !== requestId) return;
+
+                    setSuggestionsLoading(false);
+                });
+        }, 250);
+
+        return () => clearTimeout(timeout);
+    }, [searchValue]);
 
     return (
         <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-lg">
@@ -123,9 +153,24 @@ const EmployeeFingerprintPanel = ({
                                 </div>
 
                                 <div className="max-h-52 overflow-y-auto">
-                                    {filteredEmployees.length > 0 ? (
+                                    {suggestionsLoading ? (
+                                        <div className="flex items-center gap-3 px-3 py-4 text-sm text-slate-500">
+                                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                            </span>
+                                            <div>
+                                                <div className="font-medium text-slate-700">
+                                                    Searching employees...
+                                                </div>
+                                                <div className="text-xs text-slate-400">
+                                                    Checking available
+                                                    fingerprints
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : suggestionMatches.length > 0 ? (
                                         <div className="py-1">
-                                            {filteredEmployees.map((emp) => (
+                                            {suggestionMatches.map((emp) => (
                                                 <button
                                                     key={emp.id}
                                                     type="button"
@@ -142,10 +187,13 @@ const EmployeeFingerprintPanel = ({
                                                 >
                                                     <div className="min-w-0">
                                                         <div className="truncate font-medium text-slate-800">
-                                                            {emp.full_name}
+                                                            {emp.full_name ||
+                                                                emp.label}
                                                         </div>
                                                         <div className="truncate text-xs text-slate-500">
-                                                            {emp.office?.name ||
+                                                            {emp.meta ||
+                                                                emp.office
+                                                                    ?.name ||
                                                                 "No Office"}
                                                         </div>
                                                     </div>

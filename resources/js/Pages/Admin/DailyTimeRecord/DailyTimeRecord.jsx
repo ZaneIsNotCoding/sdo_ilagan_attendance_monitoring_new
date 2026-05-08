@@ -1,94 +1,113 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { router } from "@inertiajs/react";
 import { Head } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Search, Printer } from "lucide-react";
-import FloatingInput from "@/components/floating-input";
-import { CustomDropdownCheckbox } from "@/components/dropdown-menu-main";
-import { Button } from "@/Components/ui/button";
+import { CalendarClock } from "lucide-react";
 
 import EmployeeTable from "./Partials/EmployeeTable";
 import PrintDialog from "./Partials/PrintDialog"; // <-- import dialog
 
-const Daily_Time_Record = ({ time_record }) => {
-    const employees = time_record;
-    const [search, setSearch] = useState("");
+const formatSearchDisplay = (value) =>
+    String(value || "")
+        .replace(/^\d+\s+/, "")
+        .trim();
+
+const Daily_Time_Record = ({
+    time_record,
+    offices = [],
+    search = "",
+    office = "all",
+    limit = 10,
+}) => {
+    const employees = Array.isArray(time_record?.data)
+        ? time_record.data
+        : Array.isArray(time_record)
+          ? time_record
+          : [];
+    const [searchInput, setSearchInput] = useState(formatSearchDisplay(search));
     const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
-    const [selectedDepartment, setSelectedDepartment] =
-        useState("All Departments");
+    const [selectedOffice, setSelectedOffice] = useState(office || "all");
     const [selectedEmployees, setSelectedEmployees] = useState({});
     const [dialogOpen, setDialogOpen] = useState(false); // dialog state
 
-    const departments = [
-        "All Departments",
-        ...new Set(employees.map((emp) => emp.department)),
-    ];
+    useEffect(() => {
+        setSearchInput(formatSearchDisplay(search));
+        const matchedOffice = offices.find((item) => item.name === office);
 
-    const filteredEmployees = employees.filter((emp) => {
-        const matchesDepartment =
-            selectedDepartment === "All Departments"
-                ? true
-                : emp.department === selectedDepartment;
+        setSelectedOffice(office === "all" ? "all" : matchedOffice?.id || "all");
+    }, [search, office, offices]);
 
-        const matchesSearch =
-            emp.first_name.toLowerCase().includes(search.toLowerCase()) ||
-            emp.last_name.toLowerCase().includes(search.toLowerCase()) ||
-            (emp.position &&
-                emp.position.toLowerCase().includes(search.toLowerCase())) ||
-            (emp.department &&
-                emp.department.toLowerCase().includes(search.toLowerCase()));
+    const applyFilters = ({
+        searchValue = searchInput,
+        officeValue = selectedOffice,
+        pageValue,
+        limitValue = limit,
+    } = {}) => {
+        const query = {
+            limit: limitValue,
+        };
 
-        return matchesDepartment && matchesSearch;
-    });
+        if (searchValue && searchValue.trim()) {
+            query.search = searchValue.trim();
+        }
+
+        const matchedOffice = offices.find(
+            (item) => Number(item.id) === Number(officeValue),
+        );
+
+        if (matchedOffice) {
+            query.office = matchedOffice.name;
+        }
+
+        if (pageValue && pageValue > 1) {
+            query.page = pageValue;
+        }
+
+        router.get(route("dailytimerecord"), query, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
 
     const handleSelectEmployee = (employee) => {
         router.visit(
             `/dailytimerecord/${
                 employee.id
             }-${employee.first_name.toLowerCase()}`,
-            { preserveState: true, preserveScroll: true }
+            { preserveState: true, preserveScroll: true },
         );
     };
 
     const selectedList = employees.filter((emp) => selectedEmployees[emp.id]);
 
     return (
-        <AuthenticatedLayout header="Monthly Daily Time Record">
+        <AuthenticatedLayout
+            header={
+                <div className="flex items-center gap-5">
+                    <CalendarClock className="w-5 h-5 text-blue-600" />
+                    <span>Daily Time Record Management</span>
+                </div>
+            }
+        >
             <Head title="AMS" />
-            <main className="p-6">
+            <main>
                 {!selectedEmployeeId && (
                     <>
-                        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                            <FloatingInput
-                                label="Search Employee"
-                                icon={Search}
-                                name="search"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                            />
-                            <CustomDropdownCheckbox
-                                label="Select Department"
-                                items={departments}
-                                selected={selectedDepartment}
-                                onChange={setSelectedDepartment}
-                                buttonVariant="green"
-                            />
-                            <Button
-                                onClick={() => setDialogOpen(true)}
-                                variant="blue"
-                                disabled={selectedList.length === 0}
-                                className="flex items-center gap-1 px-3 py-2"
-                            >
-                                <Printer className="w-4 h-4" />
-                                Print Selected
-                            </Button>
-                        </div>
-
                         <EmployeeTable
-                            employees={filteredEmployees}
+                            employees={employees}
+                            pagination={time_record}
                             onSelect={handleSelectEmployee}
                             selectedEmployees={selectedEmployees}
                             setSelectedEmployees={setSelectedEmployees}
+                            search={searchInput}
+                            setSearch={setSearchInput}
+                            offices={offices}
+                            selectedOffice={selectedOffice}
+                            setSelectedOffice={setSelectedOffice}
+                            applyFilters={applyFilters}
+                            selectedCount={selectedList.length}
+                            onPrintSelected={() => setDialogOpen(true)}
                         />
 
                         <PrintDialog
@@ -96,7 +115,7 @@ const Daily_Time_Record = ({ time_record }) => {
                             onClose={() => setDialogOpen(false)}
                             selectedEmployees={selectedList}
                             attendances={selectedList.flatMap(
-                                (emp) => emp.attendances || []
+                                (emp) => emp.attendances || [],
                             )}
                         />
                     </>

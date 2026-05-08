@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import axios from "axios";
 import {
     CustomDropdownCheckbox,
     CustomDropdownCheckboxObject,
@@ -13,7 +14,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { SquarePen, Search, User } from "lucide-react";
+import { SquarePen, Search, User, Loader2 } from "lucide-react";
 import FloatingInput from "@/components/floating-input";
 import {
     HoverCard,
@@ -58,7 +59,10 @@ const EmployeeList = ({
     applyFilters,
 }) => {
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [suggestionMatches, setSuggestionMatches] = useState([]);
+    const [suggestionsLoading, setSuggestionsLoading] = useState(false);
     const searchBoxRef = useRef(null);
+    const suggestionRequestRef = useRef(0);
     const officeItems = useMemo(
         () => [{ id: "all", name: "All Offices" }, ...offices],
         [offices],
@@ -79,30 +83,45 @@ const EmployeeList = ({
         applyFilters({ pageValue: page });
     };
 
-    const suggestionMatches = useMemo(() => {
-        const query = (searchInput || "").trim().toLowerCase();
+    useEffect(() => {
+        const query = (searchInput || "").trim();
 
         if (!query) {
-            return [];
+            setSuggestionMatches([]);
+            setSuggestionsLoading(false);
+            return;
         }
 
-        return employees
-            .filter((emp) => {
-                const fullName = formatEmployeeSearchName(emp).toLowerCase();
-                const employeeId = String(emp.id || "").toLowerCase();
+        setSuggestionsLoading(true);
+        const requestId = suggestionRequestRef.current + 1;
+        suggestionRequestRef.current = requestId;
 
-                return fullName.includes(query) || employeeId.includes(query);
-            })
-            .slice(0, 8)
-            .map((emp) => ({
-                id: emp.id,
-                label: formatEmployeeSearchName(emp) || "-",
-                meta: [emp.office?.name, emp.office?.division?.code]
-                    .filter(Boolean)
-                    .join(" • "),
-                search: formatEmployeeSearchName(emp) || "",
-            }));
-    }, [employees, searchInput]);
+        const timeout = setTimeout(() => {
+            axios
+                .get(route("employees.suggestions"), {
+                    params: { search: query },
+                })
+                .then((response) => {
+                    if (suggestionRequestRef.current !== requestId) return;
+
+                    setSuggestionMatches(response.data || []);
+                })
+                .catch(() => {
+                    if (suggestionRequestRef.current !== requestId) return;
+
+                    setSuggestionMatches([]);
+                })
+                .finally(() => {
+                    if (suggestionRequestRef.current !== requestId) return;
+
+                    setSuggestionsLoading(false);
+                });
+        }, 250);
+
+        return () => {
+            clearTimeout(timeout);
+        };
+    }, [searchInput]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -162,7 +181,21 @@ const EmployeeList = ({
                                     </div>
 
                                     <div className="max-h-72 overflow-y-auto">
-                                        {suggestionMatches.length > 0 ? (
+                                        {suggestionsLoading ? (
+                                            <div className="flex items-center gap-3 px-3 py-4 text-sm text-slate-500">
+                                                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                </span>
+                                                <div>
+                                                    <div className="font-medium text-slate-700">
+                                                        Searching employees...
+                                                    </div>
+                                                    <div className="text-xs text-slate-400">
+                                                        Checking names and IDs
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : suggestionMatches.length > 0 ? (
                                             suggestionMatches.map((emp) => (
                                                 <button
                                                     key={emp.id}
