@@ -8,9 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('unit_and_division_heads', function (Blueprint $table) {
+            Schema::create('unit_and_division_heads', function (Blueprint $table) {
             $table->id();
             $table->foreignId('division_id')->constrained('divisions')->cascadeOnDelete();
+            $table->foreignId('office_id')->nullable()->constrained('offices')->cascadeOnDelete();
             $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
             $table->enum('type', ['unit_head', 'division_head']);
             $table->timestamps();

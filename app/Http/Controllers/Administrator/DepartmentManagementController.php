@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Administrator;
 
+use App\Http\Controllers\Concerns\HandleModalConcerns\DeparmentModals;
 use App\Http\Controllers\Concerns\ValidatesPassword;
 use App\Http\Controllers\Controller;
 use App\Models\Administrator\Employee;
@@ -17,6 +18,7 @@ use Throwable;
 
 class DepartmentManagementController extends Controller
 {
+    use DeparmentModals;
     use ValidatesPassword;
 
     public function index()
@@ -125,6 +127,13 @@ class DepartmentManagementController extends Controller
             'employees' => $employees,
             'office_search' => $officeSearch,
             'division_search' => $divisionSearch,
+            'addDivisionModal' => $this->isDepartmentModal('add-division'),
+            'addOfficeModal' => $this->isDepartmentModal('add-office'),
+            'editOfficeModal' => $this->resolveOfficeModal('edit-office'),
+            'deleteOfficeModal' => $this->resolveOfficeModal('delete-office'),
+            'assignOfficeHeadModal' => $this->resolveAssignOfficeHeadModal(),
+            'deleteOfficeHeadModal' => $this->resolveOfficeHeadModal('delete-office-head'),
+            'deleteDivisionHeadModal' => $this->resolveDivisionHeadModal('delete-division-head'),
         ]);
     }
 
@@ -146,13 +155,14 @@ class DepartmentManagementController extends Controller
 
         DivisionHead::updateOrCreate(
             [
-                'division_id' => $office->division_id,
+                'office_id' => $office->id,
                 'type' => 'unit_head',
             ],
             [
+                'division_id' => $office->division_id,
                 'employee_id' => $employee->id,
             ],
-        );
+);
 
         return back()->with('success', 'Office head added successfully!');
     }
@@ -173,6 +183,7 @@ class DepartmentManagementController extends Controller
             ],
             [
                 'employee_id' => $validated['employee_id'],
+                'office_id' => null,
             ],
         );
 
@@ -271,100 +282,6 @@ class DepartmentManagementController extends Controller
         $office->delete();
 
         return back()->with('success', 'Office deleted successfully!');
-    }
-
-    public function suggestDepartmentNames(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'query' => 'required|string|min:1|max:50',
-        ]);
-
-        $apiKey = env('OPENAI_API_KEY');
-
-        if (! $apiKey) {
-            return response()->json([
-                'suggestions' => [],
-                'message' => 'OPENAI_API_KEY is not configured.',
-            ]);
-        }
-
-        $query = trim($validated['query']);
-
-        try {
-            $response = Http::withToken($apiKey)
-                ->timeout(12)
-                ->post('https://api.openai.com/v1/responses', [
-                    'model' => env('OPENAI_MODEL', 'gpt-5-mini'),
-                    'input' => [
-                        [
-                            'role' => 'system',
-                            'content' => [
-                                [
-                                    'type' => 'input_text',
-                                    'text' => 'You suggest realistic division names for a school or government office management system. Return only short division-name suggestions.',
-                                ],
-                            ],
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => [
-                                [
-                                    'type' => 'input_text',
-                                    'text' => "Suggest up to 6 realistic division names that begin with or closely match this input: \"{$query}\". Return JSON only.",
-                                ],
-                            ],
-                        ],
-                    ],
-                    'text' => [
-                        'format' => [
-                            'type' => 'json_schema',
-                            'name' => 'division_name_suggestions',
-                            'strict' => true,
-                            'schema' => [
-                                'type' => 'object',
-                                'properties' => [
-                                    'suggestions' => [
-                                        'type' => 'array',
-                                        'items' => [
-                                            'type' => 'string',
-                                        ],
-                                        'maxItems' => 6,
-                                    ],
-                                ],
-                                'required' => ['suggestions'],
-                                'additionalProperties' => false,
-                            ],
-                        ],
-                    ],
-                ]);
-
-            if (! $response->successful()) {
-                return response()->json([
-                    'suggestions' => [],
-                    'message' => 'Suggestion service is currently unavailable.',
-                ], 502);
-            }
-
-            $payload = $response->json();
-            $jsonText = data_get($payload, 'output.0.content.0.text');
-            $decoded = json_decode($jsonText ?? '{}', true);
-
-            $suggestions = collect($decoded['suggestions'] ?? [])
-                ->filter(fn ($item) => is_string($item) && trim($item) !== '')
-                ->map(fn ($item) => trim($item))
-                ->unique()
-                ->values()
-                ->all();
-
-            return response()->json([
-                'suggestions' => $suggestions,
-            ]);
-        } catch (Throwable $e) {
-            return response()->json([
-                'suggestions' => [],
-                'message' => 'Suggestion service failed to respond.',
-            ], 500);
-        }
     }
 
     public function updateDepartment(Request $request, $id)

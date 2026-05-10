@@ -9,7 +9,6 @@ use App\Http\Controllers\Administrator\{
     DepartmentManagementController,
     StationManagementController
 };
-use App\Http\Controllers\FingerprintController;
 use App\Http\Controllers\HumanResource\{
     TardyConvertionController,
     ConvertedTardyRecordsController,
@@ -17,7 +16,7 @@ use App\Http\Controllers\HumanResource\{
     VacationLeaveController,
     SickLeaveController,
 };
-use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\AttendanceMonitoringController;
 use App\Http\Controllers\EmployeeLeaveController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ProfileController;
@@ -46,7 +45,7 @@ Route::get('/', function () {
 });
 
 Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance');
-Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('dashboard');
+Route::get('/attendance-monitoring', [AttendanceMonitoringController::class, 'index'])->name('attendance-monitoring');
 /*
 |--------------------------------------------------------------------------
 | Authenticated & Verified Routes
@@ -110,6 +109,7 @@ Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(functio
     Route::get('/stations/suggestions', [StationManagementController::class, 'suggestions'])->name('stations.suggestions');
     Route::get('/stations', [StationManagementController::class, 'index'])->name('stationmanagement');
     Route::post('/stations', [StationManagementController::class, 'storeStation'])->name('stations.store');
+    Route::get('/stations/admin/employees', [StationManagementController::class, 'adminEmployeeCandidates'])->name('stationadmin.employees');
     Route::post('/stations/admin', [StationManagementController::class, 'store'])->name('stationadmin.store');
     Route::delete('/stations/admin/{id}', [StationManagementController::class, 'destroy'])->name('stationadmin.destroy');
     Route::put('/station-assignments/{stationAssignment}', [StationManagementController::class, 'updateStationAssignment'])->name('stationassignments.update');

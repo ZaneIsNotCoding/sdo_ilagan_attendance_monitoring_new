@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { router } from "@inertiajs/react";
 import {
     Table,
     TableBody,
@@ -27,6 +28,7 @@ const DivisionHeadList = ({
     division_heads = [],
     employees = [],
     divisions = [],
+    deleteDivisionHeadModal = null,
     onAssignNow,
     highlightedDivisionId = null,
     highlightRequestKey = 0,
@@ -110,6 +112,42 @@ const DivisionHeadList = ({
     useEffect(() => {
         setCurrentPage(1);
     }, [divisions]);
+
+    const openDepartmentModal = (modal, params = {}) => {
+        const query = new URLSearchParams(window.location.search);
+
+        query.delete("head_id");
+        query.delete("division_id");
+        query.delete("office_id");
+        query.set("modal", modal);
+
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+                query.set(key, value);
+            }
+        });
+
+        router.get(route("departmentmanagement"), Object.fromEntries(query), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const closeDepartmentModal = () => {
+        const query = new URLSearchParams(window.location.search);
+
+        query.delete("modal");
+        query.delete("head_id");
+        query.delete("division_id");
+        query.delete("office_id");
+
+        router.get(route("departmentmanagement"), Object.fromEntries(query), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
 
     return (
         <div className="rounded-xl">
@@ -244,25 +282,21 @@ const DivisionHeadList = ({
 
                                         <TableCell className="p-3 text-center">
                                             {row.head ? (
-                                                <ConfirmPasswordDialog
-                                                    trigger={
-                                                        <Button
-                                                            size="icon"
-                                                            className="rounded-full bg-red-100 text-red-600 hover:bg-red-500 hover:text-white"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
+                                                <Button
+                                                    size="icon"
+                                                    onClick={() =>
+                                                        openDepartmentModal(
+                                                            "delete-division-head",
+                                                            {
+                                                                head_id:
+                                                                    row.head.id,
+                                                            },
+                                                        )
                                                     }
-                                                    title="Delete Division Head"
-                                                    description="You are about to permanently remove this division head assignment."
-                                                    itemLabel="Division Head"
-                                                    itemName={getFullName(emp)}
-                                                    action={route(
-                                                        "divisionhead.destroy",
-                                                        row.head.id,
-                                                    )}
-                                                    method="delete"
-                                                />
+                                                    className="rounded-full bg-red-100 text-red-600 hover:bg-red-500 hover:text-white"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
                                             ) : (
                                                 <Button
                                                     size="sm"
@@ -346,6 +380,27 @@ const DivisionHeadList = ({
                     )}
                 </div>
             </div>
+
+            <ConfirmPasswordDialog
+                trigger={null}
+                title="Delete Division Head"
+                description="You are about to permanently remove this division head assignment."
+                itemLabel="Division Head"
+                itemName={deleteDivisionHeadModal?.employee_name || ""}
+                action={
+                    deleteDivisionHeadModal?.id
+                        ? route(
+                              "divisionhead.destroy",
+                              deleteDivisionHeadModal.id,
+                          )
+                        : ""
+                }
+                method="delete"
+                open={!!deleteDivisionHeadModal}
+                onOpenChange={(nextOpen) => {
+                    if (!nextOpen) closeDepartmentModal();
+                }}
+            />
         </div>
     );
 };

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Head } from "@inertiajs/react";
+import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { LandPlot } from "lucide-react";
 
@@ -7,10 +7,13 @@ import StationList from "./Partials/StationList";
 import StationAdminList from "./Partials/StationAdminList";
 
 const StationManagement = ({
-    employees = [],
     stations = [],
     stationAdminRows = [],
     stationStats = {},
+    assignStationModal = null,
+    editStationModal = null,
+    deleteStationModal = null,
+    removeStationAdminModal = null,
     search = "",
     stationLimit = 5,
     adminLimit = 10,
@@ -19,17 +22,37 @@ const StationManagement = ({
     const [highlightedStationId, setHighlightedStationId] = useState(null);
     const [highlightRequestKey, setHighlightRequestKey] = useState(0);
 
-    const focusStationRow = (stationId) => {
+    const focusStationRow = (stationId, adminPage = null) => {
         if (!stationId) return;
 
         setHighlightedStationId(stationId);
         setHighlightRequestKey((value) => value + 1);
+
+        if (adminPage) {
+            const params = new URLSearchParams(window.location.search);
+            params.set("admin_page", adminPage);
+            params.set("admin_limit", adminLimit);
+
+            router.get(route("stationmanagement"), Object.fromEntries(params), {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            });
+        }
 
         sectionRef.current?.scrollIntoView({
             behavior: "smooth",
             block: "start",
         });
     };
+    console.log("StationManagement render", {
+        stations,
+        stationAdminRows,
+        stationStats,
+        search,
+        stationLimit,
+        adminLimit,
+    });
     return (
         <AuthenticatedLayout
             header={
@@ -46,6 +69,8 @@ const StationManagement = ({
                         stations={stations}
                         stationStats={stationStats}
                         stationLimit={stationLimit}
+                        editStationModal={editStationModal}
+                        deleteStationModal={deleteStationModal}
                         onAssignNow={focusStationRow}
                     />
                 </div>
@@ -55,9 +80,10 @@ const StationManagement = ({
                 >
                     <StationAdminList
                         stationRows={stationAdminRows}
-                        employees={employees}
                         search={search}
                         adminLimit={adminLimit}
+                        assignStationModal={assignStationModal}
+                        removeStationAdminModal={removeStationAdminModal}
                         highlightedStationId={highlightedStationId}
                         highlightRequestKey={highlightRequestKey}
                     />

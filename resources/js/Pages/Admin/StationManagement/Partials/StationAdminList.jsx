@@ -18,13 +18,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import {
-    Trash2,
-    LandPlot,
-    CheckCircle2,
-    XCircle,
-    Loader2,
-} from "lucide-react";
+import { Trash2, LandPlot, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
 import AssignStationAdminModal from "./AssignStationAdminModal";
 import FloatingInput from "@/components/floating-input";
@@ -41,14 +35,13 @@ const getStationHighlightKey = (station) => {
 
 const StationAdminList = ({
     stationRows = {},
-    employees = [],
     search = "",
     adminLimit = 10,
+    assignStationModal = null,
+    removeStationAdminModal = null,
     highlightedStationId = null,
     highlightRequestKey = 0,
 }) => {
-    const [selectedStationForAssign, setSelectedStationForAssign] =
-        useState(null);
     const [animatedStationId, setAnimatedStationId] = useState(null);
     const [searchTerm, setSearchTerm] = useState(search || "");
     const [suggestionMatches, setSuggestionMatches] = useState([]);
@@ -142,11 +135,7 @@ const StationAdminList = ({
         animationTimeoutRef.current = setTimeout(() => {
             setAnimatedStationId(null);
         }, 2200);
-    }, [
-        highlightedStationId,
-        highlightedStationIndex,
-        highlightRequestKey,
-    ]);
+    }, [highlightedStationId, highlightedStationIndex, highlightRequestKey]);
 
     useEffect(() => {
         return () => {
@@ -157,6 +146,76 @@ const StationAdminList = ({
     }, []);
 
     const paginatedRows = visibleStationRows;
+
+    const openAssignModal = (station) => {
+        const params = new URLSearchParams(window.location.search);
+
+        params.delete("admin_id");
+        params.set("modal", "station-admin");
+        params.set(
+            "station_id",
+            station.source === "sdo" ? station.station_id : station.id,
+        );
+        params.set(
+            "station_role",
+            station.source === "sdo" ? station.role : "school_admin",
+        );
+        params.set("station_source", station.source || "station");
+
+        router.get(route("stationmanagement"), Object.fromEntries(params), {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    };
+
+    const closeAssignModal = () => {
+        const params = new URLSearchParams(window.location.search);
+
+        params.delete("modal");
+        params.delete("admin_id");
+        params.delete("station_id");
+        params.delete("station_role");
+        params.delete("station_source");
+
+        router.get(route("stationmanagement"), Object.fromEntries(params), {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    };
+
+    const openRemoveAdminModal = (admin) => {
+        const params = new URLSearchParams(window.location.search);
+
+        params.delete("station_id");
+        params.delete("station_role");
+        params.delete("station_source");
+        params.set("modal", "remove-station-admin");
+        params.set("admin_id", admin.id);
+
+        router.get(route("stationmanagement"), Object.fromEntries(params), {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    };
+
+    const closeRemoveAdminModal = () => {
+        const params = new URLSearchParams(window.location.search);
+
+        params.delete("modal");
+        params.delete("admin_id");
+        params.delete("station_id");
+        params.delete("station_role");
+        params.delete("station_source");
+
+        router.get(route("stationmanagement"), Object.fromEntries(params), {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    };
 
     const handlePageChange = (page) => {
         if (page < 1 || page > totalPages) return;
@@ -190,15 +249,11 @@ const StationAdminList = ({
             params.delete("search");
         }
 
-        router.get(
-            route("stationmanagement"),
-            Object.fromEntries(params),
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            },
-        );
+        router.get(route("stationmanagement"), Object.fromEntries(params), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
     };
 
     const selectSuggestion = (suggestion) => {
@@ -268,7 +323,7 @@ const StationAdminList = ({
                     {showSuggestions && searchTerm.trim() ? (
                         <div className="absolute right-0 top-full z-50 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
                             <div className="border-b bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                Stations
+                                Results for "{searchTerm.trim()}"
                             </div>
 
                             <div className="max-h-72 overflow-y-auto">
@@ -442,25 +497,17 @@ const StationAdminList = ({
 
                                         <TableCell className="p-3 text-center">
                                             {admin ? (
-                                                <ConfirmPasswordDialog
-                                                    action={route(
-                                                        "stationadmin.destroy",
-                                                        admin.id,
-                                                    )}
-                                                    trigger={
-                                                        <Button
-                                                            size="icon"
-                                                            className="bg-red-100 text-red-600 hover:bg-red-500 hover:text-white rounded-full"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
+                                                <Button
+                                                    size="icon"
+                                                    onClick={() =>
+                                                        openRemoveAdminModal(
+                                                            admin,
+                                                        )
                                                     }
-                                                    title="Remove Station Admin"
-                                                    description="Remove assigned admin from this station."
-                                                    itemLabel="Station Admin"
-                                                    itemName={getFullName(emp)}
-                                                    method="delete"
-                                                />
+                                                    className="bg-red-100 text-red-600 hover:bg-red-500 hover:text-white rounded-full"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
                                             ) : (
                                                 <Button
                                                     size="sm"
@@ -470,22 +517,7 @@ const StationAdminList = ({
                                                             : ""
                                                     }`}
                                                     onClick={() =>
-                                                        setSelectedStationForAssign(
-                                                            {
-                                                                station_id:
-                                                                    station.source ===
-                                                                    "sdo"
-                                                                        ? station.station_id
-                                                                        : station.id,
-                                                                role:
-                                                                    station.source ===
-                                                                    "sdo"
-                                                                        ? station.role
-                                                                        : "school_admin",
-                                                                source: station.source,
-                                                                name: station.name,
-                                                            },
-                                                        )
+                                                        openAssignModal(station)
                                                     }
                                                 >
                                                     Assign
@@ -518,9 +550,7 @@ const StationAdminList = ({
                     {totalPages > 1 && (
                         <Pagination>
                             <PaginationPrevious
-                                onClick={() =>
-                                    handlePageChange(activePage - 1)
-                                }
+                                onClick={() => handlePageChange(activePage - 1)}
                             />
                             <PaginationContent>
                                 {Array.from({ length: totalPages }, (_, i) => (
@@ -537,9 +567,7 @@ const StationAdminList = ({
                                 ))}
                             </PaginationContent>
                             <PaginationNext
-                                onClick={() =>
-                                    handlePageChange(activePage + 1)
-                                }
+                                onClick={() => handlePageChange(activePage + 1)}
                             />
                         </Pagination>
                     )}
@@ -547,11 +575,31 @@ const StationAdminList = ({
             </div>
 
             <AssignStationAdminModal
-                open={!!selectedStationForAssign}
-                setOpen={() => setSelectedStationForAssign(null)}
-                employees={employees}
+                open={!!assignStationModal}
+                setOpen={closeAssignModal}
                 stations={[]}
-                stationData={selectedStationForAssign}
+                stationData={assignStationModal}
+            />
+
+            <ConfirmPasswordDialog
+                trigger={null}
+                action={
+                    removeStationAdminModal?.id
+                        ? route(
+                              "stationadmin.destroy",
+                              removeStationAdminModal.id,
+                          )
+                        : ""
+                }
+                title="Remove Station Admin"
+                description="Remove assigned admin from this station."
+                itemLabel="Station Admin"
+                itemName={removeStationAdminModal?.employee_name || ""}
+                method="delete"
+                open={!!removeStationAdminModal}
+                onOpenChange={(nextOpen) => {
+                    if (!nextOpen) closeRemoveAdminModal();
+                }}
             />
         </div>
     );

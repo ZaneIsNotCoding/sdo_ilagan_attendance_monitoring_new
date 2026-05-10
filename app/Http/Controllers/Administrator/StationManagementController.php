@@ -9,13 +9,15 @@ use App\Models\Administrator\StationAdmin;
 use App\Models\Administrator\StationAssignment;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\Rule;
+use App\Http\Controllers\Concerns\HandleModalConcerns\StationModals;
 use App\Http\Controllers\Concerns\ValidatesPassword;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class StationManagementController extends Controller
 {
+    use StationModals;
     use ValidatesPassword;
     
     public function index()
@@ -44,149 +46,274 @@ class StationManagementController extends Controller
             ]));
         }
 
-        $school_admins = StationAdmin::with([
-            'employee:id,first_name,middle_name,last_name,profile_img,position,office_id,work_type,station_id',
-            'employee.user:id,employee_id,email,created_at',
-        ])
-            ->whereIn('type', ['school_admin', 'sdo_admin', 'sdo_hr'])
-            ->latest()
-            ->get();
+        $stationRowsQuery = $this->stationRowsQuery();
 
-        $stations = Station::where('code', '!=', 'SDO')
-            ->select('id', 'name', 'code')
-            ->get()
-            ->map(function ($station) {
-                return [
-                    'id' => $station->id,
-                    'code' => $station->code,
-                    'name' => $station->name,
-                    'source' => 'station',
-                ];
-            });
+        $stationRowsPage = DB::query()
+            ->fromSub($stationRowsQuery, 'station_rows')
+            ->orderByRaw("CASE WHEN source = 'sdo' THEN 0 ELSE 1 END")
+            ->orderBy('name')
+            ->paginate($stationLimit, ['*'], 'station_page', $stationPage)
+            ->withQueryString();
 
-        $sdo = StationAssignment::whereIn('role', ['sdo_admin', 'sdo_hr'])
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'id' => 'sdo-' . $item->role,
-                    'record_id' => $item->id,
-                    'station_id' => $item->station_id,
-                    'code' => $item->code,
-                    'name' => $item->name,
-                    'source' => 'sdo',
-                    'role' => $item->role,
-                ];
-            });
-
-        $stations = collect($sdo->all())->merge($stations->all())->values();
-
-        $stationRows = $stations->map(function ($station) use ($school_admins) {
-            $admin = null;
-
-            if ($station['source'] === 'station') {
-                $admin = $school_admins->first(
-                    fn ($item) =>
-                        (string) $item->employee?->station_id === (string) $station['id'] &&
-                        $item->type === 'school_admin',
-                );
-            }
-
-            if ($station['source'] === 'sdo') {
-                $admin = $school_admins->first(
-                    fn ($item) => $item->type === $station['role'],
-                );
-            }
-
-            return [
-                'station' => $station,
-                'admin' => $admin,
-            ];
-        });
-
-        $adminRows = $stationRows;
+        $adminRowsQuery = DB::query()->fromSub($this->stationRowsQuery(), 'station_rows');
 
         if ($search !== '') {
-            $searchLower = mb_strtolower($search);
-
-            $adminRows = $adminRows->filter(function ($row) use ($searchLower) {
-                return str_contains(mb_strtolower($row['station']['name'] ?? ''), $searchLower) ||
-                    str_contains(mb_strtolower($row['station']['code'] ?? ''), $searchLower);
-            })->values();
+            $adminRowsQuery->where(function ($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                    ->orWhere('code', 'like', "%{$search}%");
+            });
         }
 
-        $paginateCollection = function ($items, $perPage, $page, $pageName) {
-            $lastPage = (int) max(1, ceil($items->count() / $perPage));
-            $page = min($page, $lastPage);
-            $pageItems = $items
-                ->slice(($page - 1) * $perPage, $perPage)
-                ->values();
+        $adminRowsPage = $adminRowsQuery
+            ->orderByRaw("CASE WHEN source = 'sdo' THEN 0 ELSE 1 END")
+            ->orderBy('name')
+            ->paginate($adminLimit, ['*'], 'admin_page', $adminPage)
+            ->withQueryString();
 
-            return new LengthAwarePaginator(
-                $pageItems,
-                $items->count(),
-                $perPage,
-                $page,
-                [
-                    'path' => request()->url(),
-                    'pageName' => $pageName,
-                    'query' => request()->query(),
-                ],
-            );
-        };
+        $stationRowsPage->setCollection($this->attachAdminsToStationRows($stationRowsPage->getCollection()));
+        $adminRowsPage->setCollection($this->attachAdminsToStationRows($adminRowsPage->getCollection()));
 
-        $stationRowsPage = $paginateCollection(
-            $stationRows,
-            $stationLimit,
-            $stationPage,
-            'station_page',
-        );
+        $stationTotal = DB::query()
+            ->fromSub($this->stationRowsQuery(), 'station_rows')
+            ->count();
 
-        $adminRowsPage = $paginateCollection(
-            $adminRows,
-            $adminLimit,
-            $adminPage,
-            'admin_page',
-        );
+        $assignedStationCount = Station::query()
+            ->where('code', '!=', 'SDO')
+            ->whereExists(function ($query) {
+                $query->selectRaw(1)
+                    ->from('station_admins')
+                    ->join('employees', 'employees.id', '=', 'station_admins.employee_id')
+                    ->whereColumn('employees.station_id', 'stations.id')
+                    ->where('station_admins.type', 'school_admin');
+            })
+            ->count();
 
-        $missingStations = $stationRows
-            ->filter(fn ($row) => ! $row['admin'])
+        $assignedSdoCount = StationAssignment::query()
+            ->whereIn('role', ['sdo_admin', 'sdo_hr'])
+            ->whereExists(function ($query) {
+                $query->selectRaw(1)
+                    ->from('station_admins')
+                    ->whereColumn('station_admins.type', 'station_assignments.role');
+            })
+            ->count();
+
+        $missingPreview = DB::query()
+            ->fromSub($this->missingStationRowsQuery(), 'station_rows')
+            ->orderByRaw("CASE WHEN source = 'sdo' THEN 0 ELSE 1 END")
+            ->orderBy('name')
+            ->limit(6)
+            ->get()
+            ->map(function ($station) use ($adminLimit) {
+                return array_merge(
+                    $this->formatStationRow($station),
+                    [
+                        'admin_page' => $this->stationAdminPageForRow(
+                            $station,
+                            $adminLimit,
+                        ),
+                    ],
+                );
+            })
             ->values();
 
         $stationStats = [
-            'total' => $stationRows->count(),
-            'assigned' => $stationRows->count() - $missingStations->count(),
-            'missing' => $missingStations->count(),
-            'missing_preview' => $missingStations
-                ->take(6)
-                ->map(fn ($row) => $row['station'])
-                ->values(),
+            'total' => $stationTotal,
+            'assigned' => $assignedStationCount + $assignedSdoCount,
+            'missing' => $stationTotal - ($assignedStationCount + $assignedSdoCount),
+            'missing_preview' => $missingPreview,
         ];
-
-        $employees = Employee::with('user:id,employee_id,email,created_at')
-            ->select(
-                'id',
-                'first_name',
-                'middle_name',
-                'last_name',
-                'profile_img',
-                'work_type',
-                'position',
-                'office_id',
-                'station_id',
-            )
-            ->get();
 
         return Inertia::render('Admin/StationManagement/StationManagement', [
             'stations' => $stationRowsPage,
             'stationAdminRows' => $adminRowsPage,
             'stationStats' => $stationStats,
-            'employees' => $employees,
+            'assignStationModal' => $this->resolveAssignStationModal(),
+            'editStationModal' => $this->resolveStationActionModal('edit-station'),
+            'deleteStationModal' => $this->resolveStationActionModal('delete-station'),
+            'removeStationAdminModal' => $this->resolveRemoveStationAdminModal(),
             'search' => $search,
             'stationPage' => $stationPage,
             'adminPage' => $adminPage,
             'stationLimit' => $stationLimit,
             'adminLimit' => $adminLimit,
         ]);
+    }
+
+    private function stationRowsQuery()
+    {
+        $sdo = StationAssignment::query()
+            ->whereIn('role', ['sdo_admin', 'sdo_hr'])
+            ->selectRaw("
+                CONCAT('sdo-', role) as id,
+                id as record_id,
+                station_id,
+                code,
+                name,
+                'sdo' as source,
+                role
+            ");
+
+        $stations = Station::query()
+            ->where('code', '!=', 'SDO')
+            ->selectRaw("
+                CAST(id AS CHAR) as id,
+                NULL as record_id,
+                id as station_id,
+                code,
+                name,
+                'station' as source,
+                NULL as role
+            ");
+
+        return $sdo->unionAll($stations);
+    }
+
+    private function missingStationRowsQuery()
+    {
+        $sdo = StationAssignment::query()
+            ->whereIn('role', ['sdo_admin', 'sdo_hr'])
+            ->whereNotExists(function ($query) {
+                $query->selectRaw(1)
+                    ->from('station_admins')
+                    ->whereColumn('station_admins.type', 'station_assignments.role');
+            })
+            ->selectRaw("
+                CONCAT('sdo-', role) as id,
+                id as record_id,
+                station_id,
+                code,
+                name,
+                'sdo' as source,
+                role
+            ");
+
+        $stations = Station::query()
+            ->where('code', '!=', 'SDO')
+            ->whereNotExists(function ($query) {
+                $query->selectRaw(1)
+                    ->from('station_admins')
+                    ->join('employees', 'employees.id', '=', 'station_admins.employee_id')
+                    ->whereColumn('employees.station_id', 'stations.id')
+                    ->where('station_admins.type', 'school_admin');
+            })
+            ->selectRaw("
+                CAST(id AS CHAR) as id,
+                NULL as record_id,
+                id as station_id,
+                code,
+                name,
+                'station' as source,
+                NULL as role
+            ");
+
+        return $sdo->unionAll($stations);
+    }
+
+    private function attachAdminsToStationRows($rows)
+    {
+        if ($rows->isEmpty()) {
+            return $rows;
+        }
+
+        $stationIds = $rows
+            ->where('source', 'station')
+            ->pluck('station_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $sdoRoles = $rows
+            ->where('source', 'sdo')
+            ->pluck('role')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $admins = StationAdmin::with([
+            'employee:id,first_name,middle_name,last_name,profile_img,position,office_id,work_type,station_id',
+            'employee.user:id,employee_id,email,created_at',
+        ])
+            ->where(function ($query) use ($stationIds, $sdoRoles) {
+                if ($stationIds->isNotEmpty()) {
+                    $query->orWhere(function ($query) use ($stationIds) {
+                        $query->where('type', 'school_admin')
+                            ->whereHas('employee', function ($query) use ($stationIds) {
+                                $query->whereIn('station_id', $stationIds);
+                            });
+                    });
+                }
+
+                if ($sdoRoles->isNotEmpty()) {
+                    $query->orWhereIn('type', $sdoRoles);
+                }
+            })
+            ->latest()
+            ->get();
+
+        $schoolAdminsByStation = $admins
+            ->where('type', 'school_admin')
+            ->filter(fn ($admin) => $admin->employee?->station_id)
+            ->groupBy(fn ($admin) => (string) $admin->employee->station_id)
+            ->map(fn ($admins) => $admins->first());
+
+        $sdoAdminsByRole = $admins
+            ->whereIn('type', ['sdo_admin', 'sdo_hr'])
+            ->groupBy('type')
+            ->map(fn ($admins) => $admins->first());
+
+        return $rows
+            ->map(function ($row) use ($schoolAdminsByStation, $sdoAdminsByRole) {
+                $admin = $row->source === 'station'
+                    ? $schoolAdminsByStation->get((string) $row->station_id)
+                    : $sdoAdminsByRole->get($row->role);
+
+                return [
+                    'station' => $this->formatStationRow($row),
+                    'admin' => $admin,
+                ];
+            })
+            ->values();
+    }
+
+    private function formatStationRow($row): array
+    {
+        $station = [
+            'id' => $row->source === 'sdo' ? 'sdo-' . $row->role : $row->station_id,
+            'code' => $row->code,
+            'name' => $row->name,
+            'source' => $row->source,
+        ];
+
+        if ($row->source === 'sdo') {
+            $station['record_id'] = $row->record_id;
+            $station['station_id'] = $row->station_id;
+            $station['role'] = $row->role;
+        }
+
+        return $station;
+    }
+
+    private function stationAdminPageForRow($row, int $perPage): int
+    {
+        $sdoCount = StationAssignment::query()
+            ->whereIn('role', ['sdo_admin', 'sdo_hr'])
+            ->count();
+
+        if ($row->source === 'sdo') {
+            $before = StationAssignment::query()
+                ->whereIn('role', ['sdo_admin', 'sdo_hr'])
+                ->where('name', '<', $row->name)
+                ->count();
+
+            return (int) floor($before / $perPage) + 1;
+        }
+
+        $before = $sdoCount + Station::query()
+            ->where('code', '!=', 'SDO')
+            ->where('name', '<', $row->name)
+            ->count();
+
+        return (int) floor($before / $perPage) + 1;
     }
 
     public function suggestions(Request $request)
@@ -242,6 +369,47 @@ class StationManagementController extends Controller
                 ->merge($stations->all())
                 ->values(),
         );
+    }
+
+    public function adminEmployeeCandidates(Request $request)
+    {
+        $validated = $request->validate([
+            'station_id' => ['required', 'integer', 'exists:stations,id'],
+            'search' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $search = trim((string) ($validated['search'] ?? ''));
+        $stationId = $validated['station_id'];
+
+        return Employee::with('user:id,employee_id,email,created_at')
+            ->select(
+                'id',
+                'first_name',
+                'middle_name',
+                'last_name',
+                'profile_img',
+                'work_type',
+                'position',
+                'office_id',
+                'station_id',
+            )
+            ->where(function ($query) use ($stationId) {
+                $query->whereNull('station_id')
+                    ->orWhere('station_id', $stationId);
+            })
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('first_name', 'like', "%{$search}%")
+                        ->orWhere('middle_name', 'like', "%{$search}%")
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhereRaw("CONCAT(first_name, ' ', last_name) like ?", ["%{$search}%"])
+                        ->orWhere('position', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->limit(5 )
+            ->get();
     }
 
     public function destroy(Request $request, $id)

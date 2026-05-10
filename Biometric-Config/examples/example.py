@@ -28,7 +28,7 @@ app.add_middleware(
 )
 
 class RegisterRequest(BaseModel):
-    employee_id: int
+    employee_id: intp
 
 # ----- INIT SERVICE -----
 class FingerprintService:

@@ -38,12 +38,12 @@ const StationList = ({
     stations = {},
     stationStats = {},
     stationLimit = 5,
+    editStationModal = null,
+    deleteStationModal = null,
     onAssignNow,
 }) => {
     const [chartReady, setChartReady] = useState(false);
     const [openAddStationModal, setOpenAddStationModal] = useState(false);
-    const [openEditStationModal, setOpenEditStationModal] = useState(false);
-    const [selectedStation, setSelectedStation] = useState(null);
 
     const paginatedStations = stations?.data || [];
     const activePage = stations?.current_page || 1;
@@ -55,6 +55,44 @@ const StationList = ({
         const params = new URLSearchParams(window.location.search);
         params.set("station_page", page);
         params.set("station_limit", stationLimit);
+
+        router.get(route("stationmanagement"), Object.fromEntries(params), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const openStationModal = (modal, station) => {
+        const params = new URLSearchParams(window.location.search);
+
+        params.delete("admin_id");
+        params.set("modal", modal);
+        params.set(
+            "station_id",
+            station.source === "sdo" ? station.station_id : station.id,
+        );
+        params.set(
+            "station_role",
+            station.source === "sdo" ? station.role : "school_admin",
+        );
+        params.set("station_source", station.source || "station");
+
+        router.get(route("stationmanagement"), Object.fromEntries(params), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const closeStationModal = () => {
+        const params = new URLSearchParams(window.location.search);
+
+        params.delete("modal");
+        params.delete("admin_id");
+        params.delete("station_id");
+        params.delete("station_role");
+        params.delete("station_source");
 
         router.get(route("stationmanagement"), Object.fromEntries(params), {
             preserveState: true,
@@ -179,14 +217,6 @@ const StationList = ({
                                 paginatedStations.map(({ station }) => {
                                     const isSdoAssignment =
                                         station.source === "sdo";
-                                    const deleteAction = isSdoAssignment
-                                        ? station.record_id
-                                            ? route(
-                                                  "stationassignments.destroy",
-                                                  station.record_id,
-                                              )
-                                            : ""
-                                        : route("stations.destroy", station.id);
 
                                     return (
                                         <TableRow key={station.id}>
@@ -216,51 +246,28 @@ const StationList = ({
                                             <TableCell className="p-3 text-center">
                                                 <div className="flex justify-center gap-5">
                                                     <Button
-                                                        onClick={() => {
-                                                            setSelectedStation(
+                                                        onClick={() =>
+                                                            openStationModal(
+                                                                "edit-station",
                                                                 station,
-                                                            );
-                                                            setOpenEditStationModal(
-                                                                true,
-                                                            );
-                                                        }}
+                                                            )
+                                                        }
                                                         className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 text-blue-100 hover:bg-blue-800 hover:text-white transition"
                                                     >
                                                         <SquarePen className="w-4 h-4" />
                                                     </Button>
 
-                                                    <ConfirmPasswordDialog
-                                                        trigger={
-                                                            <Button className="w-8 h-8 flex items-center justify-center rounded-full bg-red-200 text-red-600 hover:bg-red-600 hover:text-white transition">
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </Button>
+                                                    <Button
+                                                        onClick={() =>
+                                                            openStationModal(
+                                                                "delete-station",
+                                                                station,
+                                                            )
                                                         }
-                                                        title={
-                                                            isSdoAssignment
-                                                                ? "Delete SDO Station"
-                                                                : "Delete Station"
-                                                        }
-                                                        description="Please confirm your password before deleting this record."
-                                                        itemLabel={
-                                                            isSdoAssignment
-                                                                ? "SDO Station"
-                                                                : "Station"
-                                                        }
-                                                        itemName={station.name}
-                                                        note={
-                                                            isSdoAssignment
-                                                                ? "This SDO Station row will be removed."
-                                                                : "Employees assigned to this station will become unassigned after deletion."
-                                                        }
-                                                        action={deleteAction}
-                                                        method="delete"
-                                                        confirmText={
-                                                            isSdoAssignment
-                                                                ? "Delete Station"
-                                                                : "Delete Station"
-                                                        }
-                                                        processingText="Deleting..."
-                                                    />
+                                                        className="w-8 h-8 flex items-center justify-center rounded-full bg-red-200 text-red-600 hover:bg-red-600 hover:text-white transition"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -329,9 +336,49 @@ const StationList = ({
             </div>
 
             <EditStationModal
-                open={openEditStationModal}
-                setOpen={setOpenEditStationModal}
-                station={selectedStation}
+                open={!!editStationModal}
+                setOpen={closeStationModal}
+                station={editStationModal}
+            />
+
+            <ConfirmPasswordDialog
+                trigger={null}
+                title={
+                    deleteStationModal?.source === "sdo"
+                        ? "Delete SDO Station"
+                        : "Delete Station"
+                }
+                description="Please confirm your password before deleting this record."
+                itemLabel={
+                    deleteStationModal?.source === "sdo"
+                        ? "SDO Station"
+                        : "Station"
+                }
+                itemName={deleteStationModal?.name || ""}
+                note={
+                    deleteStationModal?.source === "sdo"
+                        ? "This SDO Station row will be removed."
+                        : "Employees assigned to this station will become unassigned after deletion."
+                }
+                action={
+                    deleteStationModal?.source === "sdo"
+                        ? deleteStationModal?.record_id
+                            ? route(
+                                  "stationassignments.destroy",
+                                  deleteStationModal.record_id,
+                              )
+                            : ""
+                        : deleteStationModal?.id
+                          ? route("stations.destroy", deleteStationModal.id)
+                          : ""
+                }
+                method="delete"
+                confirmText="Delete Station"
+                processingText="Deleting..."
+                open={!!deleteStationModal}
+                onOpenChange={(nextOpen) => {
+                    if (!nextOpen) closeStationModal();
+                }}
             />
 
             <AddStationModal
@@ -434,6 +481,7 @@ const StationList = ({
                                 onClick={() =>
                                     onAssignNow?.(
                                         getStationHighlightKey(station),
+                                        station.admin_page,
                                     )
                                 }
                                 className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-600 shadow-sm transition hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-600 hover:text-white"
@@ -450,6 +498,7 @@ const StationList = ({
                                         getStationHighlightKey(
                                             visibleMissingStations[0],
                                         ),
+                                        visibleMissingStations[0]?.admin_page,
                                     )
                                 }
                                 className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-600 shadow-sm transition hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-600 hover:text-white"
@@ -467,6 +516,7 @@ const StationList = ({
                                         getStationHighlightKey(
                                             visibleMissingStations[0],
                                         ),
+                                        visibleMissingStations[0]?.admin_page,
                                     )
                                 }
                                 className="text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition shadow-sm"

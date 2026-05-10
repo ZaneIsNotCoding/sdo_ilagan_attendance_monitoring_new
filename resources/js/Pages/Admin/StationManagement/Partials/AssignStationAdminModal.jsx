@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import axios from "axios";
 import {
     Dialog,
     DialogContent,
@@ -19,6 +20,7 @@ import {
     Mail,
     LockKeyhole,
     Users,
+    Loader2,
 } from "lucide-react";
 import FloatingInput from "@/components/floating-input";
 import EmployeeAvatar from "@/Components/EmployeeAvatar";
@@ -26,7 +28,6 @@ import EmployeeAvatar from "@/Components/EmployeeAvatar";
 const AssignStationAdminModal = ({
     open,
     setOpen,
-    employees = [],
     stations = [],
     stationData = null,
 }) => {
@@ -36,6 +37,8 @@ const AssignStationAdminModal = ({
     const selectedSource = stationData?.source || "station";
 
     const [selectedEmployee, setSelectedEmployee] = useState(null);
+    const [employees, setEmployees] = useState([]);
+    const [employeesLoading, setEmployeesLoading] = useState(false);
     const [search, setSearch] = useState("");
 
     const [email, setEmail] = useState("");
@@ -64,6 +67,7 @@ const AssignStationAdminModal = ({
     useEffect(() => {
         if (open) {
             setSelectedEmployee(null);
+            setEmployees([]);
             setSearch("");
             setEmail("");
             setPassword("");
@@ -84,23 +88,65 @@ const AssignStationAdminModal = ({
                     );
                 }
                 return s.id == selectedStationId;
-            })?.name || ""
+            })?.name ||
+            ""
         );
-    }, [stationData, stations, selectedStationId, selectedRole, selectedSource]);
+    }, [
+        stationData,
+        stations,
+        selectedStationId,
+        selectedRole,
+        selectedSource,
+    ]);
 
-    // 🔥 filter employees safely
-    const filteredEmployees = useMemo(() => {
-        return employees
-            .filter((emp) => {
-                // optional: you can adjust this rule
-                return !emp.station_id || emp.station_id == selectedStationId;
-            })
-            .filter((emp) =>
-                `${emp.first_name} ${emp.last_name}`
-                    .toLowerCase()
-                    .includes(search.toLowerCase()),
-            );
-    }, [employees, selectedStationId, search]);
+    useEffect(() => {
+        if (!open || !selectedStationId) {
+            setEmployees([]);
+            setEmployeesLoading(false);
+            return;
+        }
+
+        let isCurrentRequest = true;
+
+        setEmployeesLoading(true);
+
+        const timeout = setTimeout(() => {
+            axios
+                .get(route("stationadmin.employees"), {
+                    params: {
+                        station_id: selectedStationId,
+                        search,
+                    },
+                })
+                .then((response) => {
+                    if (!isCurrentRequest) return;
+
+                    console.log("Station admin employee candidates", {
+                        stationId: selectedStationId,
+                        search,
+                        count: response.data?.length || 0,
+                        employees: response.data || [],
+                    });
+
+                    setEmployees(response.data || []);
+                })
+                .catch(() => {
+                    if (!isCurrentRequest) return;
+
+                    setEmployees([]);
+                })
+                .finally(() => {
+                    if (!isCurrentRequest) return;
+
+                    setEmployeesLoading(false);
+                });
+        }, 250);
+
+        return () => {
+            isCurrentRequest = false;
+            clearTimeout(timeout);
+        };
+    }, [open, selectedStationId, search]);
 
     const handleSubmit = () => {
         if (
@@ -185,13 +231,20 @@ const AssignStationAdminModal = ({
                                     Employees
                                 </div>
                                 <div className="text-xs text-slate-400">
-                                    {filteredEmployees.length} found
+                                    {employeesLoading
+                                        ? "Searching..."
+                                        : `${employees.length} found`}
                                 </div>
                             </div>
 
                             <div className="h-[20rem] space-y-2 overflow-y-auto p-2">
-                                {filteredEmployees.length > 0 ? (
-                                    filteredEmployees.map((emp) => {
+                                {employeesLoading ? (
+                                    <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-slate-500">
+                                        <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                                        <span>Loading employees...</span>
+                                    </div>
+                                ) : employees.length > 0 ? (
+                                    employees.map((emp) => {
                                         const fullName =
                                             `${emp.first_name || ""} ${emp.middle_name || ""} ${emp.last_name || ""}`
                                                 .replace(/\s+/g, " ")

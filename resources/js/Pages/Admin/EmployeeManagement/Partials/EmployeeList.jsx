@@ -177,7 +177,7 @@ const EmployeeList = ({
                             {showSuggestions && searchInput.trim() ? (
                                 <div className="absolute right-0 top-full z-50 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
                                     <div className="border-b bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                        Suggestions
+                                        Results for "{searchInput.trim()}"
                                     </div>
 
                                     <div className="max-h-72 overflow-y-auto">

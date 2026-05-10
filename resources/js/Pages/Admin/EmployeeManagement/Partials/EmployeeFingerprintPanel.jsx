@@ -17,9 +17,12 @@ import FloatingInput from "@/components/floating-input";
 
 const EmployeeFingerprintPanel = ({
     employees = [],
-    unregistered = [],
     selectedEmployee,
     setSelectedEmployee,
+    selectedEmployeeRecord: selectedEmployeeRecordProp = null,
+    setSelectedEmployeeRecord = () => {},
+    onSelectEmployee = null,
+    onClearEmployee = null,
     registerFingerprint,
     scanning,
     scanStatus,
@@ -28,6 +31,8 @@ const EmployeeFingerprintPanel = ({
     availableFingers,
     testOpen,
     setTestOpen,
+    testMessage = "Waiting for scan...",
+    testStatus = "idle",
     startTestFingerprint,
     getFingerprintColor = () => "text-gray-400",
 }) => {
@@ -37,8 +42,11 @@ const EmployeeFingerprintPanel = ({
     const [showSuggestions, setShowSuggestions] = useState(false);
     const searchBoxRef = useRef(null);
     const suggestionRequestRef = useRef(0);
+    const testStartedRef = useRef(false);
     const selectedEmployeeRecord =
-        employees.find((emp) => emp.id === selectedEmployee) || null;
+        selectedEmployeeRecordProp ||
+        employees.find((emp) => String(emp.id) === String(selectedEmployee)) ||
+        null;
     const selectedOfficeName =
         selectedEmployeeRecord?.office?.name || "Department";
     const fingerprintStatusLabel = selectedEmployeeRecord
@@ -73,14 +81,27 @@ const EmployeeFingerprintPanel = ({
     }, []);
 
     useEffect(() => {
-        const query = searchValue.trim();
+        if (!testOpen) {
+            testStartedRef.current = false;
+            return;
+        }
 
-        if (!query) {
+        if (testStartedRef.current) {
+            return;
+        }
+
+        testStartedRef.current = true;
+        startTestFingerprint();
+    }, [testOpen, startTestFingerprint]);
+
+    useEffect(() => {
+        if (!showSuggestions) {
             setSuggestionMatches([]);
             setSuggestionsLoading(false);
             return;
         }
 
+        const query = searchValue.trim();
         setSuggestionsLoading(true);
         const requestId = suggestionRequestRef.current + 1;
         suggestionRequestRef.current = requestId;
@@ -88,10 +109,7 @@ const EmployeeFingerprintPanel = ({
         const timeout = setTimeout(() => {
             axios
                 .get(route("employees.suggestions"), {
-                    params: {
-                        search: query,
-                        available_fingers: 1,
-                    },
+                    params: { search: query },
                 })
                 .then((response) => {
                     if (suggestionRequestRef.current !== requestId) return;
@@ -111,7 +129,7 @@ const EmployeeFingerprintPanel = ({
         }, 250);
 
         return () => clearTimeout(timeout);
-    }, [searchValue]);
+    }, [searchValue, showSuggestions]);
 
     return (
         <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-lg">
@@ -144,12 +162,13 @@ const EmployeeFingerprintPanel = ({
                                 setShowSuggestions(true);
                             }}
                             onFocus={() => setShowSuggestions(true)}
+                            onClick={() => setShowSuggestions(true)}
                         />
 
-                        {showSuggestions && searchValue.trim() ? (
+                        {showSuggestions ? (
                             <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
                                 <div className="border-b bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    Results
+                                    Employees
                                 </div>
 
                                 <div className="max-h-52 overflow-y-auto">
@@ -170,7 +189,7 @@ const EmployeeFingerprintPanel = ({
                                         </div>
                                     ) : suggestionMatches.length > 0 ? (
                                         <div className="py-1">
-                                            {suggestionMatches.map((emp) => (
+                                            {suggestionMatches.slice(0, 10).map((emp) => (
                                                 <button
                                                     key={emp.id}
                                                     type="button"
@@ -178,6 +197,10 @@ const EmployeeFingerprintPanel = ({
                                                         setSelectedEmployee(
                                                             emp.id,
                                                         );
+                                                        setSelectedEmployeeRecord(
+                                                            emp,
+                                                        );
+                                                        onSelectEmployee?.(emp);
                                                         setSearchValue("");
                                                         setShowSuggestions(
                                                             false,
@@ -195,6 +218,17 @@ const EmployeeFingerprintPanel = ({
                                                                 emp.office
                                                                     ?.name ||
                                                                 "No Office"}
+                                                        </div>
+                                                        <div className="mt-1 text-xs font-medium text-blue-600">
+                                                            {
+                                                                emp.available_fingers
+                                                            }{" "}
+                                                            available
+                                                            fingerprint
+                                                            {emp.available_fingers !==
+                                                            1
+                                                                ? "s"
+                                                                : ""}
                                                         </div>
                                                     </div>
 
@@ -217,6 +251,8 @@ const EmployeeFingerprintPanel = ({
                     <Button
                         onClick={() => {
                             setSelectedEmployee("");
+                            setSelectedEmployeeRecord(null);
+                            onClearEmployee?.();
                             setSearchValue("");
                             setShowSuggestions(false);
                         }}
@@ -291,10 +327,7 @@ const EmployeeFingerprintPanel = ({
 
                     <AlertDialog
                         open={testOpen}
-                        onOpenChange={(open) => {
-                            setTestOpen(open);
-                            if (open) startTestFingerprint();
-                        }}
+                        onOpenChange={setTestOpen}
                     >
                         <AlertDialogTrigger asChild>
                             <Button
@@ -319,24 +352,20 @@ const EmployeeFingerprintPanel = ({
                             <div className="flex flex-col items-center py-4">
                                 <Fingerprint
                                     className={`w-20 h-20 ${
-                                        scanStatus === "scanning"
+                                        testStatus === "scanning"
                                             ? "text-blue-500 animate-pulse"
-                                            : scanStatus === "success"
+                                            : testStatus === "success"
                                               ? "text-green-500 animate-bounce"
                                               : "text-red-500"
                                     }`}
                                 />
                                 <p className="mt-3 text-sm text-gray-700">
-                                    {scanMessage}
+                                    {testMessage}
                                 </p>
                             </div>
 
                             <AlertDialogFooter>
-                                <AlertDialogCancel
-                                    onClick={() => setTestOpen(false)}
-                                >
-                                    Close
-                                </AlertDialogCancel>
+                                <AlertDialogCancel>Close</AlertDialogCancel>
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>

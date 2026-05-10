@@ -127,11 +127,7 @@ const EmployeeRegistration = ({ userStationId, offices = [] }) => {
                 }
 
                 router.reload({
-                    only: [
-                        "employeesList",
-                        "registeredList",
-                        "unregisteredList",
-                    ],
+                    only: ["filteredEmployeesList"],
                 });
             },
         });

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Administrator;
 
+use App\Http\Controllers\Concerns\HandleModalConcerns\EmployeeModals;
 use App\Http\Controllers\Concerns\ValidatesPassword;
 use App\Http\Controllers\Controller;
 use App\Models\Administrator\Employee;
@@ -13,6 +14,7 @@ use Inertia\Inertia;
 
 class EmployeeManagementController extends Controller
 {
+    use EmployeeModals;
     use ValidatesPassword;
     
     public function index()
@@ -64,13 +66,6 @@ class EmployeeManagementController extends Controller
             return $emp;
         };
 
-        $employeesWithFingers = (clone $employeesQuery)
-            ->orderBy('last_name')
-            ->orderBy('first_name')
-            ->orderBy('id')
-            ->get()
-            ->transform($appendEmployeeMeta);
-
         $filteredEmployeesList = (clone $employeesQuery);
 
         if ($search !== '') {
@@ -109,29 +104,21 @@ class EmployeeManagementController extends Controller
             ->withQueryString()
             ->through($appendEmployeeMeta);
 
-        $registeredEmployees = $employeesWithFingers
-            ->filter(fn($e) => $e->biometric_count > 0)
-            ->values();
-
-        $unregisteredEmployees = $employeesWithFingers
-            ->filter(fn($e) => $e->biometric_count === 0)
-            ->values();
-
         $stations = Station::select('id', 'name')->get();
 
         return Inertia::render('Admin/EmployeeManagement/EmployeeManagement', [
             'offices' => $offices,
-            'employeesList' => $employeesWithFingers,
             'filteredEmployeesList' => $filteredEmployeesList,
-            'registeredList' => $registeredEmployees,
-            'unregisteredList' => $unregisteredEmployees,
             'stations' => $stations,
+            'selectedFingerprintEmployee' => $this->resolveFingerprintEmployee($stationId),
             'userStation' => $user->employee->station->name ?? null,
             'userStationId' => $stationId,
             'search' => $search,
             'status' => $status,
             'officeName' => $officeId === 'all' ? 'all' : $officeName,
             'limit' => $limit,
+            'editEmployeeModal' => $this->resolveEmployeeActionModal('edit-employee'),
+            'testFingerprintModal' => $this->resolveTestFingerprintModal(),
         ]);
     }
 
@@ -140,10 +127,6 @@ class EmployeeManagementController extends Controller
         $user = auth()->user();
         $stationId = $user->employee->station_id;
         $search = trim((string) $request->query('search', ''));
-
-        if ($search === '') {
-            return response()->json([]);
-        }
 
         $employees = Employee::with('office.division:id,code,name')
             ->withCount(['biometric'])
@@ -157,52 +140,27 @@ class EmployeeManagementController extends Controller
                 'office_id',
             )
             ->where('station_id', $stationId)
-            ->where(function ($query) use ($search) {
-                $query->where('id', $search)
-                    ->orWhere('first_name', 'like', "%{$search}%")
-                    ->orWhere('middle_name', 'like', "%{$search}%")
-                    ->orWhere('last_name', 'like', "%{$search}%")
-                    ->orWhereRaw(
-                        "CONCAT_WS(' ', first_name, middle_name, last_name) LIKE ?",
-                        ["%{$search}%"],
-                    )
-                    ->orWhereRaw(
-                        "CONCAT_WS(' ', id, first_name, middle_name, last_name) LIKE ?",
-                        ["%{$search}%"],
-                    );
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('id', $search)
+                        ->orWhere('first_name', 'like', "%{$search}%")
+                        ->orWhere('middle_name', 'like', "%{$search}%")
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhereRaw(
+                            "CONCAT_WS(' ', first_name, middle_name, last_name) LIKE ?",
+                            ["%{$search}%"],
+                        )
+                        ->orWhereRaw(
+                            "CONCAT_WS(' ', id, first_name, middle_name, last_name) LIKE ?",
+                            ["%{$search}%"],
+                        );
+                });
             })
             ->orderBy('last_name')
             ->orderBy('first_name')
-            ->limit(8)
+            ->limit(10)
             ->get()
-            ->map(function ($employee) {
-                $fullName = trim(
-                    preg_replace(
-                        '/\s+/',
-                        ' ',
-                        implode(' ', [
-                            $employee->first_name ?? '',
-                            $employee->middle_name ?? '',
-                            $employee->last_name ?? '',
-                        ]),
-                    ),
-                );
-
-                return [
-                    'id' => $employee->id,
-                    'label' => $fullName !== '' ? $fullName : '-',
-                    'full_name' => $fullName !== '' ? $fullName : '-',
-                    'meta' => collect([
-                        $employee->office?->name,
-                        $employee->office?->division?->code,
-                    ])->filter()->join(' • '),
-                    'search' => $fullName,
-                    'profile_img' => $employee->profile_img,
-                    'position' => $employee->position,
-                    'office' => $employee->office,
-                    'available_fingers' => 3 - $employee->biometric_count,
-                ];
-            });
+            ->map(fn ($employee) => $this->formatFingerprintEmployee($employee));
 
         return response()->json($employees);
     }
