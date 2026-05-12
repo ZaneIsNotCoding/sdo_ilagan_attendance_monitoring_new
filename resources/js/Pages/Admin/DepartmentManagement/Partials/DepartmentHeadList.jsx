@@ -42,11 +42,11 @@ const DepartmentHeadList = ({
     offices = [],
     employees = [],
     officeSearch = "",
+    assignOfficeHeadModal = null,
+    deleteOfficeHeadModal = null,
     highlightedOfficeId = null,
     highlightRequestKey = 0,
 }) => {
-    const [openAdd, setOpenAdd] = useState(false);
-    const [selectedOffice, setSelectedOffice] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [searchInput, setSearchInput] = useState(officeSearch);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -192,6 +192,42 @@ const DepartmentHeadList = ({
         runSearch(searchInput);
     };
 
+    const openDepartmentModal = (modal, params = {}) => {
+        const query = new URLSearchParams(window.location.search);
+
+        query.delete("head_id");
+        query.delete("division_id");
+        query.delete("office_id");
+        query.set("modal", modal);
+
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+                query.set(key, value);
+            }
+        });
+
+        router.get(route("departmentmanagement"), Object.fromEntries(query), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const closeDepartmentModal = () => {
+        const query = new URLSearchParams(window.location.search);
+
+        query.delete("modal");
+        query.delete("head_id");
+        query.delete("division_id");
+        query.delete("office_id");
+
+        router.get(route("departmentmanagement"), Object.fromEntries(query), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
     const totalEntries = visibleRows.length;
     const startIndex =
         totalEntries === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
@@ -275,11 +311,13 @@ const DepartmentHeadList = ({
             </div>
 
             <AddOfficeHeadForm
-                open={openAdd}
-                setOpen={setOpenAdd}
+                open={!!assignOfficeHeadModal}
+                setOpen={(nextOpen) => {
+                    if (!nextOpen) closeDepartmentModal();
+                }}
                 employees={employees}
                 offices={offices}
-                preselectedOffice={selectedOffice}
+                preselectedOffice={assignOfficeHeadModal?.office_id || null}
             />
 
             <div className="overflow-x-auto border rounded-lg">
@@ -385,25 +423,21 @@ const DepartmentHeadList = ({
                                         </TableCell>
                                         <TableCell className="p-3 text-center">
                                             {row.head ? (
-                                                <ConfirmPasswordDialog
-                                                    trigger={
-                                                        <Button
-                                                            size="icon"
-                                                            className="bg-red-100 text-red-600 hover:bg-red-500 hover:text-white rounded-full"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
+                                                <Button
+                                                    size="icon"
+                                                    onClick={() =>
+                                                        openDepartmentModal(
+                                                            "delete-office-head",
+                                                            {
+                                                                head_id:
+                                                                    row.head.id,
+                                                            },
+                                                        )
                                                     }
-                                                    title="Delete Office Head"
-                                                    description="You are about to permanently remove this office head assignment."
-                                                    itemLabel="Office Head"
-                                                    itemName={getFullName(emp)}
-                                                    action={route(
-                                                        "departmenthead.destroy",
-                                                        row.head.id,
-                                                    )}
-                                                    method="delete"
-                                                />
+                                                    className="bg-red-100 text-red-600 hover:bg-red-500 hover:text-white rounded-full"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
                                             ) : (
                                                 <Button
                                                     size="sm"
@@ -413,10 +447,14 @@ const DepartmentHeadList = ({
                                                             : ""
                                                     }`}
                                                     onClick={() => {
-                                                        setSelectedOffice(
-                                                            row.office.id,
+                                                        openDepartmentModal(
+                                                            "assign-office-head",
+                                                            {
+                                                                office_id:
+                                                                    row.office
+                                                                        .id,
+                                                            },
                                                         );
-                                                        setOpenAdd(true);
                                                     }}
                                                 >
                                                     Assign
@@ -476,6 +514,27 @@ const DepartmentHeadList = ({
                     )}
                 </div>
             </div>
+
+            <ConfirmPasswordDialog
+                trigger={null}
+                title="Delete Office Head"
+                description="You are about to permanently remove this office head assignment."
+                itemLabel="Office Head"
+                itemName={deleteOfficeHeadModal?.employee_name || ""}
+                action={
+                    deleteOfficeHeadModal?.id
+                        ? route(
+                              "departmenthead.destroy",
+                              deleteOfficeHeadModal.id,
+                          )
+                        : ""
+                }
+                method="delete"
+                open={!!deleteOfficeHeadModal}
+                onOpenChange={(nextOpen) => {
+                    if (!nextOpen) closeDepartmentModal();
+                }}
+            />
         </div>
     );
 };

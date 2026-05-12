@@ -70,8 +70,10 @@ async def test_fingerprint(service):
 
                 # 🔹 Fetch employee info
                 service.cursor.execute("""
-                    SELECT id, first_name, middle_name, last_name, position, department, work_type
-                    FROM employees WHERE id=%s
+                    SELECT e.id, e.first_name, e.middle_name, e.last_name, e.position, e.work_type, o.id, o.name
+                    FROM employees e
+                    LEFT JOIN offices o ON o.id = e.office_id
+                    WHERE e.id=%s
                 """, (employee_id,))
                 emp_row = service.cursor.fetchone()
                 if not emp_row:
@@ -84,8 +86,11 @@ async def test_fingerprint(service):
                     "middle_name": emp_row[2],
                     "last_name": emp_row[3],
                     "position": emp_row[4],
-                    "department": emp_row[5],
-                    "work_type": emp_row[6],
+                    "work_type": emp_row[5],
+                    "office": {
+                        "id": emp_row[6],
+                        "name": emp_row[7],
+                    } if emp_row[6] else None,
                 }
 
                 # ✅ Return fingerprint ID + employee details

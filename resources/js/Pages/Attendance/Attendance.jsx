@@ -5,6 +5,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Fingerprint, User2, Search } from "lucide-react";
 import { AttendanceTable } from "./Partials/AttendanceTable";
 
+const fingerprintServiceUrl = `http://${window.location.hostname}:5000`;
+
 const Attendance = ({ attendances }) => {
     const [time, setTime] = useState(new Date());
     const [employee, setEmployee] = useState(null);
@@ -49,7 +51,7 @@ const Attendance = ({ attendances }) => {
         setScanStatus("scanning");
         setScanMessage("Place your fingerprint");
 
-        const eventSource = new EventSource("http://127.0.0.1:5000/bioLogin");
+        const eventSource = new EventSource(`${fingerprintServiceUrl}/bioLogin`);
         eventSourceRef.current = eventSource;
 
         eventSource.onmessage = (event) => {
@@ -92,14 +94,14 @@ const Attendance = ({ attendances }) => {
                         middle_name,
                         last_name,
                         position,
-                        department,
+                        office,
                     } = data.employee;
                     setEmployee({
                         first_name,
                         middle_name,
                         last_name,
                         position,
-                        department,
+                        office,
                     });
                     setScanStatus("success");
                     setScanMessage(`✅ ${data.message}`);
@@ -137,7 +139,7 @@ const Attendance = ({ attendances }) => {
                                     middle_name,
                                     last_name,
                                     position,
-                                    department,
+                                    office,
                                 },
                                 am:
                                     session === "AM"
@@ -215,7 +217,7 @@ const Attendance = ({ attendances }) => {
         setScanMessage(`Recording ${choice}...`);
 
         const eventSource = new EventSource(
-            `http://127.0.0.1:5000/bioFingerprintChoice/${
+            `${fingerprintServiceUrl}/bioFingerprintChoice/${
                 promptData.employee.id
             }/${encodeURIComponent(choice)}`,
         );
@@ -237,14 +239,14 @@ const Attendance = ({ attendances }) => {
                         middle_name,
                         last_name,
                         position,
-                        department,
+                        office,
                     } = data.employee;
                     setEmployee({
                         first_name,
                         middle_name,
                         last_name,
                         position,
-                        department,
+                        office,
                     });
                     setScanStatus("success");
                     setScanMessage(`✅ ${data.message}`);
@@ -282,7 +284,7 @@ const Attendance = ({ attendances }) => {
                                     middle_name,
                                     last_name,
                                     position,
-                                    department,
+                                    office,
                                 },
                                 am:
                                     session === "AM"
@@ -585,3 +587,4 @@ const Attendance = ({ attendances }) => {
 };
 
 export default Attendance;
+

@@ -16,22 +16,29 @@ class OfficeSeeder extends Seeder
             'CID' => [
                 'Instructional Management',
                 'Learning Resource Management',
+                'CID',
             ],
+
             'OSDS' => [
-                'Administrative Unit',
-                'Cash Unit',
-                'Budget Unit',
                 'Accounting Unit',
+                'Budget Unit',
+                'Administrative Unit',
+                'Supply and Property Unit',
                 'Records Unit',
-                'HRMO',
-                'SDS Office',
-                'ICT Unit',
-                'Supply Unit',
+                'Human Resource Management Unit',
+                'Cash Unit',
+                'SDS',
             ],
+
             'SGOD' => [
                 'Planning and Research Unit',
                 'DRRM Unit',
+                'YFP Unit',
                 'Health and Nutrition Unit',
+                'Human Resource Development Unit',
+                'School Management M&E Unit',
+                'Education Facilities',
+                'SGOD',
             ],
         ];
 
@@ -47,8 +54,7 @@ class OfficeSeeder extends Seeder
                     [
                         'division_id' => $divisionId,
                         'name' => $officeName,
-                    ],
-                    []
+                    ]
                 );
             }
         }

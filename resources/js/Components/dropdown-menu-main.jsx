@@ -128,12 +128,16 @@ export function CustomDropdownCheckboxObject({
                               .join(" • ")
                         : null;
 
+                    const isSelected =
+                        selected === item.id ||
+                        Number(selected) === Number(item.id);
+
                     return (
                         <DropdownMenuItem
                             key={item.id}
                             onSelect={() => onChange(item.id)}
                             className={`flex cursor-pointer items-start justify-between gap-3 rounded-none px-3 py-2 text-left transition hover:bg-blue-50 focus:bg-blue-50 ${
-                                Number(selected) === Number(item.id)
+                                isSelected
                                     ? "bg-blue-50 text-blue-700"
                                     : ""
                             }`}

@@ -1,4 +1,5 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import axios from "axios";
 import {
     CustomDropdownCheckbox,
     CustomDropdownCheckboxObject,
@@ -13,7 +14,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { SquarePen, Search, User } from "lucide-react";
+import { SquarePen, Search, User, Loader2 } from "lucide-react";
 import FloatingInput from "@/components/floating-input";
 import {
     HoverCard,
@@ -33,8 +34,6 @@ import {
 } from "@/components/ui/pagination";
 import EmployeeAvatar from "@/Components/EmployeeAvatar";
 
-const ITEMS_PER_PAGE = 10;
-
 const formatEmployeeSearchName = (emp) =>
     [emp.first_name, emp.middle_name, emp.last_name]
         .filter(Boolean)
@@ -44,7 +43,8 @@ const formatEmployeeSearchName = (emp) =>
 
 const EmployeeList = ({
     employees = [],
-    filteredEmployees,
+    filteredEmployees = [],
+    pagination,
     isRegistered,
     handleEdit,
     searchInput,
@@ -56,46 +56,91 @@ const EmployeeList = ({
     statusOptions,
     statusFilter,
     setStatusFilter,
+    applyFilters,
 }) => {
-    const [currentPage, setCurrentPage] = useState(1);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [suggestionMatches, setSuggestionMatches] = useState([]);
+    const [suggestionsLoading, setSuggestionsLoading] = useState(false);
     const searchBoxRef = useRef(null);
-
-    const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
-    const paginatedEmployees = filteredEmployees.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE,
+    const suggestionRequestRef = useRef(0);
+    const officeItems = useMemo(
+        () => [{ id: "all", name: "All Offices" }, ...offices],
+        [offices],
     );
+
+    const currentPage = pagination?.current_page || 1;
+    const totalPages = pagination?.last_page || 1;
+    const paginatedEmployees = filteredEmployees;
+    const pageNumbers = useMemo(() => {
+        if (totalPages <= 7) {
+            return Array.from({ length: totalPages }, (_, i) => i + 1);
+        }
+
+        const pages = [1];
+        const start = Math.max(2, currentPage - 1);
+        const end = Math.min(totalPages - 1, currentPage + 1);
+
+        if (start > 2) {
+            pages.push("start-ellipsis");
+        }
+
+        for (let page = start; page <= end; page += 1) {
+            pages.push(page);
+        }
+
+        if (end < totalPages - 1) {
+            pages.push("end-ellipsis");
+        }
+
+        pages.push(totalPages);
+
+        return pages;
+    }, [currentPage, totalPages]);
 
     const handlePageChange = (page) => {
         if (page < 1 || page > totalPages) return;
-        setCurrentPage(page);
+        applyFilters({ pageValue: page });
     };
 
-    const suggestionMatches = useMemo(() => {
-        const query = (searchInput || "").trim().toLowerCase();
+    useEffect(() => {
+        const query = (searchInput || "").trim();
 
         if (!query) {
-            return [];
+            setSuggestionMatches([]);
+            setSuggestionsLoading(false);
+            return;
         }
 
-        return employees
-            .filter((emp) => {
-                const fullName = formatEmployeeSearchName(emp).toLowerCase();
-                const employeeId = String(emp.id || "").toLowerCase();
+        setSuggestionsLoading(true);
+        const requestId = suggestionRequestRef.current + 1;
+        suggestionRequestRef.current = requestId;
 
-                return fullName.includes(query) || employeeId.includes(query);
-            })
-            .slice(0, 8)
-            .map((emp) => ({
-                id: emp.id,
-                label: formatEmployeeSearchName(emp) || "-",
-                meta: [emp.office?.name, emp.office?.division?.code]
-                    .filter(Boolean)
-                    .join(" • "),
-                search: formatEmployeeSearchName(emp) || "",
-            }));
-    }, [employees, searchInput]);
+        const timeout = setTimeout(() => {
+            axios
+                .get(route("employees.suggestions"), {
+                    params: { search: query },
+                })
+                .then((response) => {
+                    if (suggestionRequestRef.current !== requestId) return;
+
+                    setSuggestionMatches(response.data || []);
+                })
+                .catch(() => {
+                    if (suggestionRequestRef.current !== requestId) return;
+
+                    setSuggestionMatches([]);
+                })
+                .finally(() => {
+                    if (suggestionRequestRef.current !== requestId) return;
+
+                    setSuggestionsLoading(false);
+                });
+        }, 250);
+
+        return () => {
+            clearTimeout(timeout);
+        };
+    }, [searchInput]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -136,7 +181,6 @@ const EmployeeList = ({
                                 value={searchInput}
                                 onChange={(e) => {
                                     setSearchInput(e.target.value);
-                                    setCurrentPage(1);
                                     setShowSuggestions(true);
                                 }}
                                 onFocus={() => setShowSuggestions(true)}
@@ -144,7 +188,6 @@ const EmployeeList = ({
                                     if (e.key === "Enter") {
                                         e.preventDefault();
                                         applySearch(searchInput);
-                                        setCurrentPage(1);
                                         setShowSuggestions(false);
                                     }
                                 }}
@@ -153,11 +196,25 @@ const EmployeeList = ({
                             {showSuggestions && searchInput.trim() ? (
                                 <div className="absolute right-0 top-full z-50 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
                                     <div className="border-b bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                        Suggestions
+                                        Results for "{searchInput.trim()}"
                                     </div>
 
                                     <div className="max-h-72 overflow-y-auto">
-                                        {suggestionMatches.length > 0 ? (
+                                        {suggestionsLoading ? (
+                                            <div className="flex items-center gap-3 px-3 py-4 text-sm text-slate-500">
+                                                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                </span>
+                                                <div>
+                                                    <div className="font-medium text-slate-700">
+                                                        Searching employees...
+                                                    </div>
+                                                    <div className="text-xs text-slate-400">
+                                                        Checking names and IDs
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : suggestionMatches.length > 0 ? (
                                             suggestionMatches.map((emp) => (
                                                 <button
                                                     key={emp.id}
@@ -169,7 +226,6 @@ const EmployeeList = ({
                                                         applySearch(
                                                             `${emp.id} ${emp.label}`,
                                                         );
-                                                        setCurrentPage(1);
                                                         setShowSuggestions(
                                                             false,
                                                         );
@@ -206,7 +262,7 @@ const EmployeeList = ({
                             selected={statusFilter}
                             onChange={(val) => {
                                 setStatusFilter(val);
-                                setCurrentPage(1);
+                                applyFilters({ statusValue: val });
                             }}
                             buttonVariant="blue"
                             className="w-32"
@@ -214,16 +270,21 @@ const EmployeeList = ({
 
                         <CustomDropdownCheckboxObject
                             label="Select Office"
-                            items={offices}
+                            items={officeItems}
                             selected={selectedOffice}
                             buttonLabel={
                                 offices.find(
-                                    (office) => office.id === selectedOffice,
+                                    (office) =>
+                                        Number(office.id) ===
+                                        Number(selectedOffice),
                                 )?.name || "All Offices"
                             }
                             onChange={(val) => {
-                                setSelectedOffice(val);
-                                setCurrentPage(1);
+                                const nextOffice =
+                                    val === "all" ? "all" : Number(val);
+
+                                setSelectedOffice(nextOffice);
+                                applyFilters({ officeValue: nextOffice });
                             }}
                             buttonVariant="green"
                             className="w-[360px]"
@@ -376,14 +437,20 @@ const EmployeeList = ({
                         onClick={() => handlePageChange(currentPage - 1)}
                     />
                     <PaginationContent>
-                        {Array.from({ length: totalPages }, (_, i) => (
-                            <PaginationItem key={i}>
-                                <PaginationLink
-                                    isActive={currentPage === i + 1}
-                                    onClick={() => handlePageChange(i + 1)}
-                                >
-                                    {i + 1}
-                                </PaginationLink>
+                        {pageNumbers.map((page) => (
+                            <PaginationItem key={page}>
+                                {typeof page === "number" ? (
+                                    <PaginationLink
+                                        isActive={currentPage === page}
+                                        onClick={() => handlePageChange(page)}
+                                    >
+                                        {page}
+                                    </PaginationLink>
+                                ) : (
+                                    <span className="flex h-9 min-w-9 items-center justify-center px-2 text-sm font-medium text-slate-400">
+                                        ...
+                                    </span>
+                                )}
                             </PaginationItem>
                         ))}
                     </PaginationContent>

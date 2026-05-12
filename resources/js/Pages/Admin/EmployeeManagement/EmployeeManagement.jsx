@@ -8,16 +8,21 @@ import EmployeeList from "./Partials/EmployeeList";
 import EmployeeEditDialog from "./Partials/EmployeeEditDialog";
 import FingerprintRegistrationPanel from "./Partials/EmployeeFingerprintPanel";
 
+const fingerprintServiceUrl = `http://${window.location.hostname}:5000`;
+
 const EmployeeManagement = ({
-    employeesList,
     filteredEmployeesList,
     offices = [],
-    registeredList,
-    unregisteredList,
     stations,
     userStation,
     userStationId,
     search = "",
+    status = "Active",
+    officeName = "all",
+    limit = 10,
+    editEmployeeModal = null,
+    selectedFingerprintEmployee: selectedFingerprintEmployeeProp = null,
+    testFingerprintModal = false,
     ...props
 }) => {
     const formatSearchDisplay = (value) =>
@@ -26,53 +31,66 @@ const EmployeeManagement = ({
             .trim();
 
     const [searchInput, setSearchInput] = useState(formatSearchDisplay(search));
-
-    const [employees, setEmployees] = useState(employeesList || []);
-    const [registered, setRegistered] = useState(registeredList || []);
-    const [unregistered, setUnregistered] = useState(unregisteredList || []);
-
-    const [selectedEmployee, setSelectedEmployee] = useState("");
+    const [selectedEmployee, setSelectedEmployee] = useState(
+        selectedFingerprintEmployeeProp?.id || "",
+    );
+    const [selectedFingerprintEmployee, setSelectedFingerprintEmployee] =
+        useState(selectedFingerprintEmployeeProp);
     const [scanStatus, setScanStatus] = useState("idle");
     const [scanMessage, setScanMessage] = useState("");
     const [scanning, setScanning] = useState(false);
     const [eventSource, setEventSource] = useState(null);
-
     const [open, setOpen] = useState(false);
-
     const [testEmployee, setTestEmployee] = useState(null);
     const [testCountdown, setTestCountdown] = useState(null);
-    const [testOpen, setTestOpen] = useState(false);
+    const [testOpen, setTestOpen] = useState(Boolean(testFingerprintModal));
     const [testMessage, setTestMessage] = useState("Waiting for scan...");
     const [testStatus, setTestStatus] = useState("idle");
     const [testSource, setTestSource] = useState(null);
 
-    const [selectedOffice, setSelectedOffice] = useState("all");
-    const [statusFilter, setStatusFilter] = useState("Active");
+    const findOfficeByName = (value) =>
+        offices.find((office) => office.name === value);
+
+    const [selectedOffice, setSelectedOffice] = useState(
+        findOfficeByName(officeName)?.id || "all",
+    );
+    const [statusFilter, setStatusFilter] = useState(status || "Active");
     const statusOptions = ["Active", "Inactive"];
 
-    // Initialize employees from props
-    useEffect(() => {
-        setEmployees(Array.isArray(employeesList) ? employeesList : []);
-    }, [employeesList]);
+    const filteredEmployees = Array.isArray(filteredEmployeesList?.data)
+        ? filteredEmployeesList.data
+        : Array.isArray(filteredEmployeesList)
+          ? filteredEmployeesList
+          : [];
 
     useEffect(() => {
         setSearchInput(formatSearchDisplay(search));
+        setSelectedOffice(findOfficeByName(officeName)?.id || "all");
+        setStatusFilter(status || "Active");
+    }, [search, officeName, status, offices]);
 
-        if (search) {
-            setSelectedOffice("all");
-        }
-    }, [search]);
-
-    // Keep registered / unregistered reactive
     useEffect(() => {
-        setRegistered(employees.filter((emp) => emp.available_fingers < 3));
-        setUnregistered(employees.filter((emp) => emp.available_fingers === 3));
-    }, [employees]);
+        setSelectedEmployee(selectedFingerprintEmployeeProp?.id || "");
+        setSelectedFingerprintEmployee(selectedFingerprintEmployeeProp);
+    }, [selectedFingerprintEmployeeProp]);
 
-    const isRegistered = (id) => registered?.some((reg) => reg.id === id);
+    useEffect(() => {
+        setTestOpen(Boolean(testFingerprintModal));
+    }, [testFingerprintModal]);
+
+    const findCurrentEmployee = (empId) =>
+        String(selectedFingerprintEmployee?.id) === String(empId)
+            ? selectedFingerprintEmployee
+            : filteredEmployees.find((emp) => String(emp.id) === String(empId));
+
+    const isRegistered = (id) => {
+        const emp = findCurrentEmployee(id);
+
+        return emp ? emp.available_fingers < 3 : false;
+    };
 
     const availableFingers = (empId) => {
-        const emp = employees.find((e) => e.id === empId);
+        const emp = findCurrentEmployee(empId);
         return emp ? emp.available_fingers : 3;
     };
 
@@ -84,7 +102,7 @@ const EmployeeManagement = ({
                 setScanning(false);
                 setScanStatus("idle");
                 setScanMessage("Place your fingerprint");
-                setSelectedEmployee("");
+                clearFingerprintEmployee();
             }, 5000);
         }
         return () => clearTimeout(timer);
@@ -112,7 +130,7 @@ const EmployeeManagement = ({
         setScanMessage("🔄 Starting fingerprint registration...");
 
         const source = new EventSource(
-            `http://127.0.0.1:5000/bioRegisterSSE/${selectedEmployee}`,
+            `${fingerprintServiceUrl}/bioRegisterSSE/${selectedEmployee}`,
         );
         setEventSource(source);
 
@@ -132,24 +150,22 @@ const EmployeeManagement = ({
                     setScanning(false);
                     source.close();
 
-                    setEmployees((prev) =>
-                        prev.map((e) =>
-                            e.id === selectedEmployee
-                                ? {
-                                      ...e,
-                                      available_fingers: Math.max(
-                                          e.available_fingers - 1,
-                                          0,
-                                      ),
-                                  }
-                                : e,
-                        ),
+                    const emp = findCurrentEmployee(selectedEmployee);
+
+                    setSelectedFingerprintEmployee((current) =>
+                        String(current?.id) === String(selectedEmployee)
+                            ? {
+                                  ...current,
+                                  available_fingers: Math.max(
+                                      current.available_fingers - 1,
+                                      0,
+                                  ),
+                              }
+                            : current,
                     );
-                    const emp = employees.find(
-                        (e) => e.id === selectedEmployee,
-                    );
+
                     if (emp && emp.available_fingers - 1 <= 0) {
-                        setSelectedEmployee("");
+                        clearFingerprintEmployee();
                     }
                 } else if (data.success === false) {
                     setScanStatus("error");
@@ -183,7 +199,7 @@ const EmployeeManagement = ({
         setTestMessage("Place your finger on the scanner...");
         setTestStatus("scanning"); // optional state to show animation/status
 
-        const source = new EventSource(`http://127.0.0.1:5000/bioTestSSE`);
+        const source = new EventSource(`${fingerprintServiceUrl}/bioTestSSE`);
         setTestSource(source);
 
         source.onmessage = (event) => {
@@ -279,36 +295,131 @@ const EmployeeManagement = ({
         work_type: "",
     });
 
-    const [editOpen, setEditOpen] = useState(false);
+    const [editForm, setEditForm] = useState(editEmployeeModal);
 
-    const [editForm, setEditForm] = useState(null);
+    useEffect(() => {
+        setEditForm(editEmployeeModal);
+    }, [editEmployeeModal]);
 
     const handleEdit = (employee) => {
-        setEditForm(employee);
-        setEditOpen(true);
+        const params = new URLSearchParams(window.location.search);
+
+        params.set("modal", "edit-employee");
+        params.set("employee_id", employee.id);
+
+        router.get(route("employeemanagement"), Object.fromEntries(params), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
     };
 
-    const visibleEmployees = Array.isArray(filteredEmployeesList)
-        ? filteredEmployeesList
-        : employees;
+    const closeEditEmployeeModal = () => {
+        const params = new URLSearchParams(window.location.search);
 
-    const filteredEmployees = visibleEmployees.filter((emp) => {
-        // Office filter
-        const matchesOffice =
-            selectedOffice === "all"
-                ? true
-                : emp.office_id === Number(selectedOffice);
+        params.delete("modal");
+        params.delete("employee_id");
 
-        // Status filter
-        const matchesStatus =
-            statusFilter === "All Status"
-                ? true
-                : statusFilter === "Active"
-                  ? emp.active_status === "Active" || emp.active_status === 1
-                  : emp.active_status === "Inactive" || emp.active_status === 0;
+        router.get(route("employeemanagement"), Object.fromEntries(params), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
 
-        return matchesOffice && matchesStatus;
-    });
+    const selectFingerprintEmployee = (employee) => {
+        setSelectedEmployee(employee.id);
+        setSelectedFingerprintEmployee(employee);
+
+        const params = new URLSearchParams(window.location.search);
+        params.set("fingerprint_employee_id", employee.id);
+
+        router.get(route("employeemanagement"), Object.fromEntries(params), {
+            preserveState: false,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const clearFingerprintEmployee = () => {
+        setSelectedEmployee("");
+        setSelectedFingerprintEmployee(null);
+
+        const params = new URLSearchParams(window.location.search);
+        params.delete("fingerprint_employee_id");
+
+        router.get(route("employeemanagement"), Object.fromEntries(params), {
+            preserveState: false,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const handleTestFingerprintOpenChange = (nextOpen) => {
+        setTestOpen(nextOpen);
+
+        if (!nextOpen && testSource) {
+            testSource.close();
+            setTestSource(null);
+        }
+
+        const params = new URLSearchParams(window.location.search);
+
+        if (nextOpen) {
+            params.set("modal", "test-fingerprint");
+            params.delete("employee_id");
+        } else if (params.get("modal") === "test-fingerprint") {
+            params.delete("modal");
+        }
+
+        router.get(route("employeemanagement"), Object.fromEntries(params), {
+            only: ["testFingerprintModal"],
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const applyEmployeeFilters = ({
+        searchValue = searchInput,
+        statusValue = statusFilter,
+        officeValue = selectedOffice,
+        pageValue,
+        limitValue = limit,
+    } = {}) => {
+        const query = {
+            status: statusValue,
+            limit: limitValue,
+        };
+
+        if (searchValue && searchValue.trim()) {
+            query.search = searchValue.trim();
+        }
+
+        if (officeValue !== "all") {
+            const office = offices.find(
+                (item) => Number(item.id) === Number(officeValue),
+            );
+
+            if (office) {
+                query.office = office.name;
+            }
+        }
+
+        if (pageValue && pageValue > 1) {
+            query.page = pageValue;
+        }
+
+        if (selectedEmployee) {
+            query.fingerprint_employee_id = selectedEmployee;
+        }
+
+        router.get(route("employeemanagement"), query, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
 
     return (
         <AuthenticatedLayout
@@ -327,10 +438,13 @@ const EmployeeManagement = ({
                         offices={offices}
                     />
                     <FingerprintRegistrationPanel
-                        employees={employees}
-                        unregistered={unregistered}
+                        employees={filteredEmployees}
                         selectedEmployee={selectedEmployee}
                         setSelectedEmployee={setSelectedEmployee}
+                        selectedEmployeeRecord={selectedFingerprintEmployee}
+                        setSelectedEmployeeRecord={setSelectedFingerprintEmployee}
+                        onSelectEmployee={selectFingerprintEmployee}
+                        onClearEmployee={clearFingerprintEmployee}
                         availableFingers={availableFingers}
                         scanning={scanning}
                         scanStatus={scanStatus}
@@ -340,7 +454,7 @@ const EmployeeManagement = ({
                         open={open}
                         setOpen={setOpen}
                         testOpen={testOpen}
-                        setTestOpen={setTestOpen}
+                        setTestOpen={handleTestFingerprintOpenChange}
                         testSource={testSource}
                         testMessage={testMessage}
                         setTestMessage={setTestMessage}
@@ -351,25 +465,14 @@ const EmployeeManagement = ({
                 </div>
 
                 <EmployeeList
-                    employees={employees}
                     filteredEmployees={filteredEmployees}
+                    pagination={filteredEmployeesList}
                     isRegistered={isRegistered}
                     handleEdit={handleEdit}
                     searchInput={searchInput}
                     setSearchInput={setSearchInput}
                     applySearch={(value) => {
-                        setSelectedOffice("all");
-                        router.get(
-                            route("employeemanagement"),
-                            value && value.trim()
-                                ? { search: value.trim() }
-                                : {},
-                            {
-                                preserveState: true,
-                                preserveScroll: true,
-                                replace: true,
-                            },
-                        );
+                        applyEmployeeFilters({ searchValue: value });
                     }}
                     offices={offices}
                     selectedOffice={selectedOffice}
@@ -377,13 +480,16 @@ const EmployeeManagement = ({
                     statusOptions={statusOptions}
                     statusFilter={statusFilter}
                     setStatusFilter={setStatusFilter}
+                    applyFilters={applyEmployeeFilters}
                 />
 
                 <EmployeeEditDialog
                     editForm={editForm}
                     setEditForm={setEditForm}
-                    editOpen={editOpen}
-                    setEditOpen={setEditOpen}
+                    editOpen={!!editEmployeeModal}
+                    setEditOpen={(nextOpen) => {
+                        if (!nextOpen) closeEditEmployeeModal();
+                    }}
                     offices={offices}
                     stations={stations}
                     userStationId={userStationId}

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { router } from "@inertiajs/react";
 import {
     Table,
     TableBody,
@@ -32,13 +33,13 @@ const DepartmentList = ({
     divisions = [],
     offices = [],
     office_heads = [],
+    addDivisionModal = false,
+    addOfficeModal = false,
+    editOfficeModal = null,
+    deleteOfficeModal = null,
     onAssignNow,
 }) => {
     const [currentPage, setCurrentPage] = useState(1);
-    const [openDivisionModal, setOpenDivisionModal] = useState(false);
-    const [openOfficeModal, setOpenOfficeModal] = useState(false);
-    const [openEditOffice, setOpenEditOffice] = useState(false);
-    const [selectedOffice, setSelectedOffice] = useState(null);
 
     const sortedOffices = [...offices].sort((a, b) =>
         (a?.name || "").localeCompare(b?.name || ""),
@@ -141,6 +142,42 @@ const DepartmentList = ({
         return () => clearTimeout(timer);
     }, []);
 
+    const openDepartmentModal = (modal, params = {}) => {
+        const query = new URLSearchParams(window.location.search);
+
+        query.delete("head_id");
+        query.delete("division_id");
+        query.delete("office_id");
+        query.set("modal", modal);
+
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+                query.set(key, value);
+            }
+        });
+
+        router.get(route("departmentmanagement"), Object.fromEntries(query), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const closeDepartmentModal = () => {
+        const query = new URLSearchParams(window.location.search);
+
+        query.delete("modal");
+        query.delete("head_id");
+        query.delete("division_id");
+        query.delete("office_id");
+
+        router.get(route("departmentmanagement"), Object.fromEntries(query), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
     return (
         <div className="flex gap-5">
             <div className="w-[60%] rounded-xl p-4 border-2 shadow-lg">
@@ -154,13 +191,13 @@ const DepartmentList = ({
 
                     <div className="flex flex-wrap justify-end gap-2">
                         <Button
-                            onClick={() => setOpenDivisionModal(true)}
+                            onClick={() => openDepartmentModal("add-division")}
                             className="bg-blue-600 text-white hover:bg-blue-700"
                         >
                             + Add Division
                         </Button>
                         <Button
-                            onClick={() => setOpenOfficeModal(true)}
+                            onClick={() => openDepartmentModal("add-office")}
                             className="bg-slate-900 text-white hover:bg-slate-700"
                         >
                             + Add Office
@@ -169,20 +206,26 @@ const DepartmentList = ({
                 </div>
 
                 <AddDivisionModal
-                    open={openDivisionModal}
-                    setOpen={setOpenDivisionModal}
+                    open={addDivisionModal}
+                    setOpen={(nextOpen) => {
+                        if (!nextOpen) closeDepartmentModal();
+                    }}
                 />
 
                 <AddOfficeModal
-                    open={openOfficeModal}
-                    setOpen={setOpenOfficeModal}
+                    open={addOfficeModal}
+                    setOpen={(nextOpen) => {
+                        if (!nextOpen) closeDepartmentModal();
+                    }}
                     divisions={divisions}
                 />
 
                 <EditOfficeModal
-                    open={openEditOffice}
-                    setOpen={setOpenEditOffice}
-                    office={selectedOffice}
+                    open={!!editOfficeModal}
+                    setOpen={(nextOpen) => {
+                        if (!nextOpen) closeDepartmentModal();
+                    }}
+                    office={editOfficeModal}
                     divisions={divisions}
                 />
 
@@ -230,42 +273,36 @@ const DepartmentList = ({
                                             <TableCell className="p-3 text-center">
                                                 <div className="flex justify-center gap-2">
                                                     <Button
-                                                        onClick={() => {
-                                                            setSelectedOffice(
-                                                                office,
-                                                            );
-                                                            setOpenEditOffice(
-                                                                true,
-                                                            );
-                                                        }}
+                                                        onClick={() =>
+                                                            openDepartmentModal(
+                                                                "edit-office",
+                                                                {
+                                                                    office_id:
+                                                                        office.id,
+                                                                },
+                                                            )
+                                                        }
                                                         className="h-8 w-8 rounded-full bg-blue-600 text-white hover:bg-blue-800"
                                                         size="icon"
                                                     >
                                                         <SquarePen className="h-4 w-4" />
                                                     </Button>
 
-                                                    <ConfirmPasswordDialog
-                                                        trigger={
-                                                            <Button
-                                                                className="h-8 w-8 rounded-full bg-red-100 text-red-600 hover:bg-red-600 hover:text-white"
-                                                                size="icon"
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
+                                                    <Button
+                                                        onClick={() =>
+                                                            openDepartmentModal(
+                                                                "delete-office",
+                                                                {
+                                                                    office_id:
+                                                                        office.id,
+                                                                },
+                                                            )
                                                         }
-                                                        title="Delete Office"
-                                                        description="Please confirm your password before deleting this office."
-                                                        itemLabel="Office"
-                                                        itemName={office.name}
-                                                        note="Employees assigned to this office will become unassigned after deletion."
-                                                        action={route(
-                                                            "office.destroy",
-                                                            office.id,
-                                                        )}
-                                                        method="delete"
-                                                        confirmText="Delete Office"
-                                                        processingText="Deleting..."
-                                                    />
+                                                        className="h-8 w-8 rounded-full bg-red-100 text-red-600 hover:bg-red-600 hover:text-white"
+                                                        size="icon"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -340,6 +377,27 @@ const DepartmentList = ({
                     </div>
                 </div>
             </div>
+
+            <ConfirmPasswordDialog
+                trigger={null}
+                title="Delete Office"
+                description="Please confirm your password before deleting this office."
+                itemLabel="Office"
+                itemName={deleteOfficeModal?.name || ""}
+                note="Employees assigned to this office will become unassigned after deletion."
+                action={
+                    deleteOfficeModal?.id
+                        ? route("office.destroy", deleteOfficeModal.id)
+                        : ""
+                }
+                method="delete"
+                confirmText="Delete Office"
+                processingText="Deleting..."
+                open={!!deleteOfficeModal}
+                onOpenChange={(nextOpen) => {
+                    if (!nextOpen) closeDepartmentModal();
+                }}
+            />
 
             <div className="w-[40%] flex flex-col gap-2">
                 <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 px-5 py-3 shadow-sm">

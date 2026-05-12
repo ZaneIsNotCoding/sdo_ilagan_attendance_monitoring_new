@@ -5,12 +5,13 @@ namespace App\Http\Controllers\Administrator;
 use App\Http\Controllers\Controller;
 use App\Models\Administrator\Employee;
 use App\Models\Administrator\Attendance;
+use App\Models\Administrator\Office;
 use App\Services\TardinessConvertion\FixedFlexiTardinessService;
 use App\Services\TardinessConvertion\FullFlexiTardinessService;
 use App\Models\EmployeeLeave;
 use Inertia\Inertia;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Http\Request;
 
 class DailyTimeRecordController extends Controller
 {
@@ -32,9 +33,23 @@ class DailyTimeRecordController extends Controller
     {
         $user = auth()->user();
         $stationId = optional($user->employee)->station_id;
+        $search = trim((string) request('search', ''));
+        $officeName = trim((string) request('office', 'all'));
+        $officeId = 'all';
+        $limit = (int) request('limit', 10);
 
         if (!$stationId) {
             abort(403, 'Station not assigned to this user.');
+        }
+
+        if (! in_array($limit, [10, 25, 50, 100], true)) {
+            $limit = 10;
+        }
+
+        if ((string) request('limit') !== (string) $limit) {
+            return redirect()->to(request()->fullUrlWithQuery([
+                'limit' => $limit,
+            ]));
         }
 
         // ✅ Fixed / Work From Home Attendances (station + active)
@@ -74,15 +89,137 @@ class DailyTimeRecordController extends Controller
             $this->fullService->computeForAttendances($fullAttendances);
         }
 
-        // ✅ Employees (filtered)
-        $time_record = Employee::where('station_id', $stationId)
+        $officeIds = Employee::where('station_id', $stationId)
             ->where('active_status', 1)
-            ->orderBy('last_name')
+            ->whereNotNull('office_id')
+            ->distinct()
+            ->pluck('office_id');
+
+        $offices = Office::with('division:id,code,name')
+            ->select('id', 'division_id', 'name')
+            ->whereIn('id', $officeIds)
+            ->orderBy('name')
             ->get();
+
+        if ($officeName !== '' && $officeName !== 'all') {
+            $officeId = $offices
+                ->firstWhere('name', $officeName)
+                ?->id ?? 'all';
+        }
+
+        $time_record = Employee::with('office:id,name')
+            ->where('station_id', $stationId)
+            ->where('active_status', 1)
+            ->when($officeId !== 'all', function ($query) use ($officeId) {
+                $query->where('office_id', (int) $officeId);
+            })
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($employeeQuery) use ($search) {
+                    $employeeQuery->where('id', $search)
+                        ->orWhere('first_name', 'like', "%{$search}%")
+                        ->orWhere('middle_name', 'like', "%{$search}%")
+                        ->orWhere('last_name', 'like', "%{$search}%")
+                        ->orWhere('position', 'like', "%{$search}%")
+                        ->orWhere('work_type', 'like', "%{$search}%")
+                        ->orWhereRaw(
+                            "CONCAT_WS(' ', first_name, middle_name, last_name) LIKE ?",
+                            ["%{$search}%"],
+                        )
+                        ->orWhereRaw(
+                            "CONCAT_WS(' ', id, first_name, middle_name, last_name) LIKE ?",
+                            ["%{$search}%"],
+                        )
+                        ->orWhereHas('office', function ($officeQuery) use ($search) {
+                            $officeQuery->where('name', 'like', "%{$search}%");
+                        });
+                });
+            })
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->paginate($limit)
+            ->withQueryString();
 
         return Inertia::render('Admin/DailyTimeRecord/DailyTimeRecord', [
             'time_record' => $time_record,
+            'offices' => $offices,
+            'search' => $search,
+            'office' => $officeId === 'all' ? 'all' : $officeName,
+            'limit' => $limit,
         ]);
+    }
+
+    public function suggestions(Request $request)
+    {
+        $user = auth()->user();
+        $stationId = optional($user->employee)->station_id;
+        $search = trim((string) $request->query('search', ''));
+
+        if (!$stationId || $search === '') {
+            return response()->json([]);
+        }
+
+        $employees = Employee::with('office:id,name')
+            ->select(
+                'id',
+                'first_name',
+                'middle_name',
+                'last_name',
+                'profile_img',
+                'position',
+                'office_id',
+                'work_type',
+                'station_id',
+                'active_status',
+            )
+            ->where('station_id', $stationId)
+            ->where('active_status', 1)
+            ->where(function ($query) use ($search) {
+                $query->where('id', $search)
+                    ->orWhere('first_name', 'like', "%{$search}%")
+                    ->orWhere('middle_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('position', 'like', "%{$search}%")
+                    ->orWhereRaw(
+                        "CONCAT_WS(' ', first_name, middle_name, last_name) LIKE ?",
+                        ["%{$search}%"],
+                    )
+                    ->orWhereRaw(
+                        "CONCAT_WS(' ', id, first_name, middle_name, last_name) LIKE ?",
+                        ["%{$search}%"],
+                    )
+                    ->orWhereHas('office', function ($officeQuery) use ($search) {
+                        $officeQuery->where('name', 'like', "%{$search}%");
+                    });
+            })
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->limit(8)
+            ->get()
+            ->map(function ($employee) {
+                $fullName = trim(
+                    preg_replace(
+                        '/\s+/',
+                        ' ',
+                        implode(' ', [
+                            $employee->first_name ?? '',
+                            $employee->middle_name ?? '',
+                            $employee->last_name ?? '',
+                        ]),
+                    ),
+                );
+
+                return [
+                    'id' => $employee->id,
+                    'label' => $fullName !== '' ? $fullName : '-',
+                    'meta' => collect([
+                        $employee->department,
+                        $employee->position,
+                    ])->filter()->join(' • '),
+                    'search' => $fullName,
+                ];
+            });
+
+        return response()->json($employees);
     }
 
     /**

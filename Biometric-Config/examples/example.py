@@ -17,7 +17,12 @@ logger = logging.getLogger("FingerprintService")
 
 app = FastAPI()
 
-origins = ["http://127.0.0.1:8000"]
+origins = [
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    "http://192.168.43.86:8000",
+    "http://10.10.115.29:8000",
+]
 
 app.add_middleware(
     CORSMiddleware,
@@ -45,7 +50,7 @@ class FingerprintService:
             host="localhost",
             user="root",
             password="",
-            database="sdo_ilagan_attendance_new"
+            database="sdo_ilagan_attendance_monitoring"
         )
             
         self.cursor = self.conn.cursor()

@@ -14,6 +14,13 @@ const DepartmentManagement = ({
     divisions = [],
     offices = [],
     office_search = "",
+    addDivisionModal = false,
+    addOfficeModal = false,
+    editOfficeModal = null,
+    deleteOfficeModal = null,
+    assignOfficeHeadModal = null,
+    deleteOfficeHeadModal = null,
+    deleteDivisionHeadModal = null,
 }) => {
     const sectionRef = useRef(null);
     const [highlightedOfficeId, setHighlightedOfficeId] = useState(null);
@@ -48,6 +55,10 @@ const DepartmentManagement = ({
                         office_heads={office_heads}
                         divisions={divisions}
                         offices={offices}
+                        addDivisionModal={addDivisionModal}
+                        addOfficeModal={addOfficeModal}
+                        editOfficeModal={editOfficeModal}
+                        deleteOfficeModal={deleteOfficeModal}
                         onAssignNow={focusOfficeRow}
                     />
                 </div>
@@ -60,6 +71,7 @@ const DepartmentManagement = ({
                         division_heads={division_heads}
                         employees={employees}
                         divisions={divisions}
+                        deleteDivisionHeadModal={deleteDivisionHeadModal}
                     />
                 </div>
                 <div
@@ -72,6 +84,8 @@ const DepartmentManagement = ({
                         employees={employees}
                         divisions={divisions}
                         offices={offices}
+                        assignOfficeHeadModal={assignOfficeHeadModal}
+                        deleteOfficeHeadModal={deleteOfficeHeadModal}
                         highlightedOfficeId={highlightedOfficeId}
                         highlightRequestKey={highlightRequestKey}
                         officeSearch={office_search}

@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { router } from "@inertiajs/react";
 import {
     Table,
     TableBody,
@@ -25,8 +26,6 @@ import AddStationModal from "./AddStationModal";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const ITEMS_PER_PAGE = 5;
-
 const getStationHighlightKey = (station) => {
     if (!station) return null;
 
@@ -35,50 +34,71 @@ const getStationHighlightKey = (station) => {
     }`;
 };
 
-const StationList = ({ stations = [], school_admins = [], onAssignNow }) => {
-    const [currentPage, setCurrentPage] = useState(1);
+const StationList = ({
+    stations = {},
+    stationStats = {},
+    stationLimit = 5,
+    editStationModal = null,
+    deleteStationModal = null,
+    onAssignNow,
+}) => {
     const [chartReady, setChartReady] = useState(false);
     const [openAddStationModal, setOpenAddStationModal] = useState(false);
-    const [openEditStationModal, setOpenEditStationModal] = useState(false);
-    const [selectedStation, setSelectedStation] = useState(null);
 
-    const stationRows = useMemo(
-        () =>
-            stations.map((station) => {
-                let admin = null;
-
-                if (station.source === "station") {
-                    admin = school_admins.find(
-                        (a) =>
-                            String(a.employee?.station_id) ===
-                                String(station.id) && a.type === "school_admin",
-                    );
-                }
-
-                if (station.source === "sdo") {
-                    admin = school_admins.find((a) => a.type === station.role);
-                }
-
-                return {
-                    station,
-                    admin: admin || null,
-                };
-            }),
-        [school_admins, stations],
-    );
-
-    const stationRecords = stationRows;
-
-    const totalPages = Math.ceil(stationRecords.length / ITEMS_PER_PAGE);
-
-    const paginatedStations = stationRecords.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE,
-    );
+    const paginatedStations = stations?.data || [];
+    const activePage = stations?.current_page || 1;
+    const totalPages = stations?.last_page || 1;
 
     const handlePageChange = (page) => {
         if (page < 1 || page > totalPages) return;
-        setCurrentPage(page);
+
+        const params = new URLSearchParams(window.location.search);
+        params.set("station_page", page);
+        params.set("station_limit", stationLimit);
+
+        router.get(route("stationmanagement"), Object.fromEntries(params), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const openStationModal = (modal, station) => {
+        const params = new URLSearchParams(window.location.search);
+
+        params.delete("admin_id");
+        params.set("modal", modal);
+        params.set(
+            "station_id",
+            station.source === "sdo" ? station.station_id : station.id,
+        );
+        params.set(
+            "station_role",
+            station.source === "sdo" ? station.role : "school_admin",
+        );
+        params.set("station_source", station.source || "station");
+
+        router.get(route("stationmanagement"), Object.fromEntries(params), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const closeStationModal = () => {
+        const params = new URLSearchParams(window.location.search);
+
+        params.delete("modal");
+        params.delete("admin_id");
+        params.delete("station_id");
+        params.delete("station_role");
+        params.delete("station_source");
+
+        router.get(route("stationmanagement"), Object.fromEntries(params), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
     };
 
     const getPagination = () => {
@@ -91,18 +111,18 @@ const StationList = ({ stations = [], school_admins = [], onAssignNow }) => {
         } else {
             pages.push(1);
 
-            if (currentPage > 2) {
+            if (activePage > 2) {
                 pages.push("...");
             }
 
-            const start = Math.max(2, currentPage - 1);
-            const end = Math.min(totalPages - 1, currentPage + 1);
+            const start = Math.max(2, activePage - 1);
+            const end = Math.min(totalPages - 1, activePage + 1);
 
             for (let i = start; i <= end; i++) {
                 pages.push(i);
             }
 
-            if (currentPage < totalPages - 1) {
+            if (activePage < totalPages - 1) {
                 pages.push("...");
             }
 
@@ -112,26 +132,25 @@ const StationList = ({ stations = [], school_admins = [], onAssignNow }) => {
         return pages;
     };
 
-    const totalEntries = stationRecords.length;
-    const startIndex =
-        totalEntries === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
-    const endIndex = Math.min(currentPage * ITEMS_PER_PAGE, totalEntries);
+    const totalEntries = stations?.total || 0;
+    const startIndex = stations?.from || 0;
+    const endIndex = stations?.to || 0;
 
-    const assignedCount = stationRows.filter((row) => row.admin).length;
-    const missingStations = stationRows.filter((row) => !row.admin);
-    const visibleMissingStations = missingStations.slice(0, 6);
+    const assignedCount = stationStats.assigned || 0;
+    const missingCount = stationStats.missing || 0;
+    const visibleMissingStations = stationStats.missing_preview || [];
     const remainingMissingStations =
-        missingStations.length - visibleMissingStations.length;
+        missingCount - visibleMissingStations.length;
 
     const coverage = Math.round(
-        (assignedCount / (stationRows.length || 1)) * 100,
+        (assignedCount / (stationStats.total || 1)) * 100,
     );
 
     const chartData = {
         labels: ["Assigned", "Missing"],
         datasets: [
             {
-                data: [assignedCount, missingStations.length],
+                data: [assignedCount, missingCount],
                 backgroundColor: ["#1d4ed8", "#d1d5db"],
                 borderWidth: 0,
             },
@@ -198,14 +217,6 @@ const StationList = ({ stations = [], school_admins = [], onAssignNow }) => {
                                 paginatedStations.map(({ station }) => {
                                     const isSdoAssignment =
                                         station.source === "sdo";
-                                    const deleteAction = isSdoAssignment
-                                        ? station.record_id
-                                            ? route(
-                                                  "stationassignments.destroy",
-                                                  station.record_id,
-                                              )
-                                            : ""
-                                        : route("stations.destroy", station.id);
 
                                     return (
                                         <TableRow key={station.id}>
@@ -214,19 +225,20 @@ const StationList = ({ stations = [], school_admins = [], onAssignNow }) => {
                                                     <div className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-300">
                                                         <Building2 className="w-4 h-4 text-blue-600" />
                                                     </div>
-                                                    <div className="min-w-0">
+
+                                                    <div className="min-w-0 flex items-center gap-4">
                                                         <span className="block truncate">
                                                             {station.name}
                                                         </span>
+
                                                         {isSdoAssignment && (
-                                                            <span className="text-xs font-semibold text-slate-500">
-                                                                SDO Station
+                                                            <span className="shrink-0 text-xs font-semibold text-slate-500">
+                                                                SDO
                                                             </span>
                                                         )}
                                                     </div>
                                                 </div>
                                             </TableCell>
-
                                             <TableCell className="p-3 font-medium">
                                                 {station.code || "-"}
                                             </TableCell>
@@ -234,51 +246,28 @@ const StationList = ({ stations = [], school_admins = [], onAssignNow }) => {
                                             <TableCell className="p-3 text-center">
                                                 <div className="flex justify-center gap-5">
                                                     <Button
-                                                        onClick={() => {
-                                                            setSelectedStation(
+                                                        onClick={() =>
+                                                            openStationModal(
+                                                                "edit-station",
                                                                 station,
-                                                            );
-                                                            setOpenEditStationModal(
-                                                                true,
-                                                            );
-                                                        }}
+                                                            )
+                                                        }
                                                         className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 text-blue-100 hover:bg-blue-800 hover:text-white transition"
                                                     >
                                                         <SquarePen className="w-4 h-4" />
                                                     </Button>
 
-                                                    <ConfirmPasswordDialog
-                                                        trigger={
-                                                            <Button className="w-8 h-8 flex items-center justify-center rounded-full bg-red-200 text-red-600 hover:bg-red-600 hover:text-white transition">
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </Button>
+                                                    <Button
+                                                        onClick={() =>
+                                                            openStationModal(
+                                                                "delete-station",
+                                                                station,
+                                                            )
                                                         }
-                                                        title={
-                                                            isSdoAssignment
-                                                                ? "Delete SDO Station"
-                                                                : "Delete Station"
-                                                        }
-                                                        description="Please confirm your password before deleting this record."
-                                                        itemLabel={
-                                                            isSdoAssignment
-                                                                ? "SDO Station"
-                                                                : "Station"
-                                                        }
-                                                        itemName={station.name}
-                                                        note={
-                                                            isSdoAssignment
-                                                                ? "This SDO Station row will be removed."
-                                                                : "Employees assigned to this station will become unassigned after deletion."
-                                                        }
-                                                        action={deleteAction}
-                                                        method="delete"
-                                                        confirmText={
-                                                            isSdoAssignment
-                                                                ? "Delete Station"
-                                                                : "Delete Station"
-                                                        }
-                                                        processingText="Deleting..."
-                                                    />
+                                                        className="w-8 h-8 flex items-center justify-center rounded-full bg-red-200 text-red-600 hover:bg-red-600 hover:text-white transition"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -308,7 +297,7 @@ const StationList = ({ stations = [], school_admins = [], onAssignNow }) => {
                             <Pagination>
                                 <PaginationPrevious
                                     onClick={() =>
-                                        handlePageChange(currentPage - 1)
+                                        handlePageChange(activePage - 1)
                                     }
                                 />
 
@@ -322,7 +311,7 @@ const StationList = ({ stations = [], school_admins = [], onAssignNow }) => {
                                             ) : (
                                                 <PaginationLink
                                                     isActive={
-                                                        currentPage === item
+                                                        activePage === item
                                                     }
                                                     onClick={() =>
                                                         handlePageChange(item)
@@ -337,7 +326,7 @@ const StationList = ({ stations = [], school_admins = [], onAssignNow }) => {
 
                                 <PaginationNext
                                     onClick={() =>
-                                        handlePageChange(currentPage + 1)
+                                        handlePageChange(activePage + 1)
                                     }
                                 />
                             </Pagination>
@@ -347,9 +336,49 @@ const StationList = ({ stations = [], school_admins = [], onAssignNow }) => {
             </div>
 
             <EditStationModal
-                open={openEditStationModal}
-                setOpen={setOpenEditStationModal}
-                station={selectedStation}
+                open={!!editStationModal}
+                setOpen={closeStationModal}
+                station={editStationModal}
+            />
+
+            <ConfirmPasswordDialog
+                trigger={null}
+                title={
+                    deleteStationModal?.source === "sdo"
+                        ? "Delete SDO Station"
+                        : "Delete Station"
+                }
+                description="Please confirm your password before deleting this record."
+                itemLabel={
+                    deleteStationModal?.source === "sdo"
+                        ? "SDO Station"
+                        : "Station"
+                }
+                itemName={deleteStationModal?.name || ""}
+                note={
+                    deleteStationModal?.source === "sdo"
+                        ? "This SDO Station row will be removed."
+                        : "Employees assigned to this station will become unassigned after deletion."
+                }
+                action={
+                    deleteStationModal?.source === "sdo"
+                        ? deleteStationModal?.record_id
+                            ? route(
+                                  "stationassignments.destroy",
+                                  deleteStationModal.record_id,
+                              )
+                            : ""
+                        : deleteStationModal?.id
+                          ? route("stations.destroy", deleteStationModal.id)
+                          : ""
+                }
+                method="delete"
+                confirmText="Delete Station"
+                processingText="Deleting..."
+                open={!!deleteStationModal}
+                onOpenChange={(nextOpen) => {
+                    if (!nextOpen) closeStationModal();
+                }}
             />
 
             <AddStationModal
@@ -405,19 +434,19 @@ const StationList = ({ stations = [], school_admins = [], onAssignNow }) => {
                                 <span className="w-3 h-3 bg-gray-300"></span>
                                 <span className="text-gray-700">Missing</span>
                                 <span className="font-semibold text-gray-800">
-                                    ({missingStations.length})
+                                    ({missingCount})
                                 </span>
                             </div>
 
                             <p className="text-xs text-gray-600 pt-1">
-                                {assignedCount} of {stationRows.length} stations
+                                {assignedCount} of {stationStats.total || 0} stations
                                 covered
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="p-5 flex flex-col rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 to-red-100 shadow-sm h-[260px] overflow-hidden">
+                <div className="p-5 flex flex-col rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 to-red-100 shadow-sm h-[240px] overflow-hidden">
                     <div className="flex items-center gap-2">
                         <div className="p-2 bg-red-100 rounded-lg">
                             <AlertTriangle className="text-red-500 w-4 h-4" />
@@ -434,24 +463,25 @@ const StationList = ({ stations = [], school_admins = [], onAssignNow }) => {
 
                     <div
                         className={`flex flex-wrap content-start gap-2 mb-3 flex-1 ${
-                            missingStations.length === 0
+                            missingCount === 0
                                 ? "items-center justify-center"
                                 : ""
                         }`}
                     >
-                        {missingStations.length === 0 && (
+                        {missingCount === 0 && (
                             <div className="text-sm text-red-600 text-center">
                                 No missing stations
                             </div>
                         )}
 
-                        {visibleMissingStations.map(({ station }) => (
+                        {visibleMissingStations.map((station) => (
                             <button
                                 key={station.id}
                                 type="button"
                                 onClick={() =>
                                     onAssignNow?.(
                                         getStationHighlightKey(station),
+                                        station.admin_page,
                                     )
                                 }
                                 className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-600 shadow-sm transition hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-600 hover:text-white"
@@ -466,10 +496,9 @@ const StationList = ({ stations = [], school_admins = [], onAssignNow }) => {
                                 onClick={() =>
                                     onAssignNow?.(
                                         getStationHighlightKey(
-                                            missingStations[
-                                                visibleMissingStations.length
-                                            ]?.station,
+                                            visibleMissingStations[0],
                                         ),
+                                        visibleMissingStations[0]?.admin_page,
                                     )
                                 }
                                 className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-medium text-red-600 shadow-sm transition hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-600 hover:text-white"
@@ -480,13 +509,14 @@ const StationList = ({ stations = [], school_admins = [], onAssignNow }) => {
                     </div>
 
                     <div className="mt-auto flex justify-end">
-                        {missingStations.length > 0 && (
+                        {missingCount > 0 && (
                             <Button
                                 onClick={() =>
                                     onAssignNow?.(
                                         getStationHighlightKey(
-                                            missingStations[0]?.station,
+                                            visibleMissingStations[0],
                                         ),
+                                        visibleMissingStations[0]?.admin_page,
                                     )
                                 }
                                 className="text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition shadow-sm"

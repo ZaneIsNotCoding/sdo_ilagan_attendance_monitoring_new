@@ -40,7 +40,7 @@ class PositionController extends Controller
         if (request('level')) {
             $query->where('level', request('level'));
         }
-
+        
         $positions = $query->latest()->paginate(10)->withQueryString();
 
         return Inertia::render("Admin/Position/Index", [
