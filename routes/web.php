@@ -53,7 +53,6 @@ Route::post('/employee/travel-order', [TravelOrderController::class, 'store'])
 Route::get('/LandingPage', function () {
     return redirect()->route('landing');
 });
->>>>>>>>> Temporary merge branch 2
 /*
 |--------------------------------------------------------------------------
 | Authenticated & Verified Routes
@@ -124,16 +123,6 @@ Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(functio
     Route::delete('/station-assignments/{stationAssignment}', [StationManagementController::class, 'destroyStationAssignment'])->name('stationassignments.destroy');
     Route::put('/stations/{station}', [StationManagementController::class, 'updateStation'])->name('stations.update');
     Route::delete('/stations/{station}', [StationManagementController::class, 'destroyStation'])->name('stations.destroy');
-
-
-    Route::middleware(['auth'])->group(function () {
-        Route::get('/employee/locator-slip', [LocatorSlipController::class, 'index'])
-            ->name('locator-slips');
-
-        Route::post('/employee/locator-slip', [LocatorSlipController::class, 'store'])
-            ->name('locator-slips.store');
-    });
-
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
