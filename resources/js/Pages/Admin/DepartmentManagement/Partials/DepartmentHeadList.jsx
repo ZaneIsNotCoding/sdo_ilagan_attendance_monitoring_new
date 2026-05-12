@@ -385,13 +385,21 @@ const DepartmentHeadList = ({
                                             </span>
                                         </TableCell>
                                         <TableCell className="p-3">
-                                            <div className="flex items-center gap-2 min-w-0">
+                                            <div className="flex items-start gap-2 min-w-0">
                                                 <div className="w-7 h-7 min-w-[28px] flex items-center justify-center rounded-full bg-gray-300">
                                                     <Building2 className="w-4 h-4 text-blue-600" />
                                                 </div>
-                                                <span className="truncate">
-                                                    {row.office.name}
-                                                </span>
+
+                                                <div className="min-w-0">
+                                                    <div className="truncate font-medium">
+                                                        {row.office.name}
+                                                    </div>
+
+                                                    <div className="truncate text-xs text-gray-500">
+                                                        {row.office.division
+                                                            ?.name || "-"}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </TableCell>
                                         <TableCell className="p-3">
