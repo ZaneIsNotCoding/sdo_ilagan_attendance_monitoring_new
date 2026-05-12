@@ -11,20 +11,32 @@ use Carbon\Carbon;
 
 class LocatorSlipController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         /** @var User|null $user */
         $user = Auth::user();
         $employee = $user?->employee()->with('station')->first();
-        $locator_slips = LocatorSlip::with('employee.station')
-            ->when($employee, fn ($query) => $query->where('employee_id', $employee->id))
-            ->when(!$employee, fn ($query) => $query->whereNull('employee_id'))
+
+        $query = LocatorSlip::with('employee.station')
+            ->when($employee, fn ($q) => $q->where('employee_id', $employee->id))
+            ->when(!$employee, fn ($q) => $q->whereNull('employee_id'));
+
+        // FILTER BY DATE
+        if ($request->filled('date')) {
+            $query->whereDate('travel_datetime', $request->date);
+        }
+
+        $locator_slips = $query
             ->latest()
-            ->get();
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('Employee/LocatorSlip/LocatorSlipPage', [
             'locator_slips' => $locator_slips,
             'employee' => $employee,
+            'filters' => [
+                'date' => $request->date,
+            ],
             'success_message' => session('success_message'),
             'error_message' => session('error_message'),
         ]);

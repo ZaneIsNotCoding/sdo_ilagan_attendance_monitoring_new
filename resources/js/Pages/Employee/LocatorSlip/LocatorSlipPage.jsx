@@ -52,18 +52,22 @@ const statCards = [
         label: "Latest Destination",
         icon: Route,
         color: "text-amber-600",
-        getValue: ({ latestSlip }) => latestSlip?.destination || "No destination",
+        getValue: ({ latestSlip }) =>
+            latestSlip?.destination || "No destination",
     },
 ];
 
 export default function LocatorSlipPage({
-    locator_slips = [],
+    locator_slips,
     employee = null,
+    filters = {},
     success_message,
 }) {
     const [showForm, setShowForm] = useState(false);
-    const slipCount = locator_slips.length;
-    const latestSlip = locator_slips[0];
+    const slips = locator_slips.data || [];
+
+    const slipCount = locator_slips.total || 0;
+    const latestSlip = slips[0];
     const latestDate = latestSlip?.travel_datetime
         ? new Date(latestSlip.travel_datetime).toLocaleDateString("en-PH", {
               month: "short",
@@ -182,25 +186,27 @@ export default function LocatorSlipPage({
                         variants={itemVariants}
                         className="mt-8 grid gap-4 md:grid-cols-3"
                     >
-                        {statCards.map(({ label, icon: Icon, color, getValue }) => (
-                            <motion.div
-                                key={label}
-                                whileHover={{ y: -4 }}
-                                className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
-                            >
-                                <Icon className={`h-5 w-5 ${color}`} />
-                                <p className="mt-4 text-sm font-semibold text-slate-500">
-                                    {label}
-                                </p>
-                                <p className="mt-1 truncate text-2xl font-black text-slate-950 sm:text-3xl">
-                                    {getValue({
-                                        slipCount,
-                                        latestDate,
-                                        latestSlip,
-                                    })}
-                                </p>
-                            </motion.div>
-                        ))}
+                        {statCards.map(
+                            ({ label, icon: Icon, color, getValue }) => (
+                                <motion.div
+                                    key={label}
+                                    whileHover={{ y: -4 }}
+                                    className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+                                >
+                                    <Icon className={`h-5 w-5 ${color}`} />
+                                    <p className="mt-4 text-sm font-semibold text-slate-500">
+                                        {label}
+                                    </p>
+                                    <p className="mt-1 truncate text-2xl font-black text-slate-950 sm:text-3xl">
+                                        {getValue({
+                                            slipCount,
+                                            latestDate,
+                                            latestSlip,
+                                        })}
+                                    </p>
+                                </motion.div>
+                            ),
+                        )}
                     </motion.div>
 
                     {showForm && (
@@ -225,11 +231,16 @@ export default function LocatorSlipPage({
                                 </p>
                             </div>
                             <span className="inline-flex w-fit items-center rounded-lg bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-                                {slipCount} {slipCount === 1 ? "record" : "records"}
+                                {slipCount}{" "}
+                                {slipCount === 1 ? "record" : "records"}
                             </span>
                         </div>
                         <div className="overflow-x-auto">
-                            <LocatorSlipTable slips={locator_slips} />
+                            <LocatorSlipTable
+                                slips={slips}
+                                filters={filters}
+                                locator_slips={locator_slips}
+                            />
                         </div>
                     </motion.div>
                 </motion.section>
