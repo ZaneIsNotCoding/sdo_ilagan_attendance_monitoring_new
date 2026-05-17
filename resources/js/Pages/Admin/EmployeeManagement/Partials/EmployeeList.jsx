@@ -8,13 +8,12 @@ import {
     Table,
     TableBody,
     TableCell,
-    TableCaption,
     TableHead,
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { SquarePen, Search, User, Loader2 } from "lucide-react";
+import { SquarePen, Search } from "lucide-react";
 import FloatingInput from "@/components/floating-input";
 import {
     HoverCard,
@@ -32,6 +31,7 @@ import {
     PaginationPrevious,
     PaginationNext,
 } from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
 import EmployeeAvatar from "@/Components/EmployeeAvatar";
 
 const formatEmployeeSearchName = (emp) =>
@@ -40,6 +40,10 @@ const formatEmployeeSearchName = (emp) =>
         .join(" ")
         .replace(/\s+/g, " ")
         .trim();
+
+const formatWorkSchedule = (schedule) =>
+    schedule?.name ||
+    [schedule?.time_in, schedule?.time_out].filter(Boolean).join(" - ");
 
 const EmployeeList = ({
     employees = [],
@@ -175,7 +179,7 @@ const EmployeeList = ({
                     <div className="flex items-start gap-4 ">
                         <div ref={searchBoxRef} className="relative w-full">
                             <FloatingInput
-                                label="Search Employee"
+                                label="Employee Name"
                                 icon={Search}
                                 name="search"
                                 value={searchInput}
@@ -201,18 +205,21 @@ const EmployeeList = ({
 
                                     <div className="max-h-72 overflow-y-auto">
                                         {suggestionsLoading ? (
-                                            <div className="flex items-center gap-3 px-3 py-4 text-sm text-slate-500">
-                                                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                </span>
-                                                <div>
-                                                    <div className="font-medium text-slate-700">
-                                                        Searching employees...
-                                                    </div>
-                                                    <div className="text-xs text-slate-400">
-                                                        Checking names and IDs
-                                                    </div>
-                                                </div>
+                                            <div className="space-y-2 px-3 py-3">
+                                                {Array.from({ length: 2 }).map(
+                                                    (_, index) => (
+                                                        <div
+                                                            key={index}
+                                                            className="flex items-center justify-between gap-3"
+                                                        >
+                                                            <div className="min-w-0 flex-1 space-y-2">
+                                                                <Skeleton className="h-4 w-3/4" />
+                                                                <Skeleton className="h-3 w-1/2" />
+                                                            </div>
+                                                            <Skeleton className="h-6 w-14 rounded-full" />
+                                                        </div>
+                                                    ),
+                                                )}
                                             </div>
                                         ) : suggestionMatches.length > 0 ? (
                                             suggestionMatches.map((emp) => (
@@ -307,7 +314,7 @@ const EmployeeList = ({
                                 Office
                             </TableHead>
                             <TableHead className="text-white text-left w-[15%]">
-                                Work Type
+                                Schedule
                             </TableHead>
                             <TableHead className="text-white text-left px-10 w-[10%]">
                                 Actions
@@ -392,14 +399,35 @@ const EmployeeList = ({
                                             </div>
 
                                             <span className="truncate">
-                                                {emp.office?.name || "-"}
+                                                <span className="block truncate">
+                                                    {emp.office?.name || "-"}
+                                                </span>
+                                                <span className="block truncate text-xs text-gray-500">
+                                                    {[
+                                                        emp.office?.division
+                                                            ?.code,
+                                                        emp.office?.division
+                                                            ?.name,
+                                                    ]
+                                                        .filter(Boolean)
+                                                        .join(" - ") || "-"}
+                                                </span>
                                             </span>
                                         </div>
                                     </TableCell>
 
-                                    {/* WORK TYPE */}
-                                    <TableCell className="p-3 text-gray-700 truncate">
-                                        {emp.work_type || "-"}
+                                    {/* WORK SCHEDULE */}
+                                    <TableCell className="p-3">
+                                        <div className="min-w-0">
+                                            <div className="truncate font-medium text-gray-800">
+                                                {emp.work_type || "-"}
+                                            </div>
+                                            <div className="truncate text-xs text-gray-500">
+                                                {formatWorkSchedule(
+                                                    emp.work_schedule,
+                                                ) || "-"}
+                                            </div>
+                                        </div>
                                     </TableCell>
 
                                     {/* ACTIONS */}

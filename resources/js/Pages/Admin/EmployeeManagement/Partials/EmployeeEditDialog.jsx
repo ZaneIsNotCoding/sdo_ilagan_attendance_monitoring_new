@@ -31,9 +31,8 @@ import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
 import {
     CustomDropdownCheckbox,
     CustomDropdownCheckboxObject,
+    CustomDropdownWorkSchedule,
 } from "@/components/dropdown-menu-main";
-
-const workTypeChoices = ["Full", "Fixed", "Work From Home"];
 
 const EmployeeEditDialog = ({
     editForm,
@@ -42,6 +41,7 @@ const EmployeeEditDialog = ({
     setEditOpen,
     offices = [],
     stations = [],
+    workSchedules = [],
     userStationId,
 }) => {
     const fileInputRef = useRef(null);
@@ -68,6 +68,17 @@ const EmployeeEditDialog = ({
                 (office) => Number(office.id) === Number(safeForm.office_id),
             ),
         [offices, safeForm.office_id],
+    );
+
+    const scheduleItems = useMemo(() => workSchedules, [workSchedules]);
+
+    const selectedWorkSchedule = useMemo(
+        () =>
+            scheduleItems.find(
+                (schedule) =>
+                    Number(schedule.id) === Number(safeForm.work_schedule_id),
+            ),
+        [scheduleItems, safeForm.work_schedule_id],
     );
 
     const currentImageUrl =
@@ -146,6 +157,8 @@ const EmployeeEditDialog = ({
         delete payload.is_unit_head;
         delete payload.is_school_admin;
         delete payload.department;
+        delete payload.work_type;
+        delete payload.work_schedule;
 
         if (!(payload.profile_img instanceof File)) {
             delete payload.profile_img;
@@ -435,20 +448,34 @@ const EmployeeEditDialog = ({
 
                                     <div className="relative w-full">
                                         <FloatingInput
-                                            label="Work Type"
+                                            label="Work Schedule"
                                             icon={Briefcase}
-                                            value={safeForm.work_type || ""}
+                                            value={
+                                                [
+                                                    selectedWorkSchedule
+                                                        ?.work_type?.name,
+                                                    selectedWorkSchedule?.name ||
+                                                        safeForm.work_schedule
+                                                            ?.name,
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(" - ") || ""
+                                            }
+                                            inputClassName="truncate pr-12"
                                             readOnly
                                         />
 
                                         <div className="absolute right-2 top-0 flex h-full items-center">
-                                            <CustomDropdownCheckbox
-                                                label="Select Work Type"
-                                                items={workTypeChoices}
-                                                selected={safeForm.work_type}
+                                            <CustomDropdownWorkSchedule
+                                                label="Select Work Schedule"
+                                                items={scheduleItems}
+                                                selected={
+                                                    safeForm.work_schedule_id ||
+                                                    ""
+                                                }
                                                 onChange={(value) =>
                                                     updateForm(
-                                                        "work_type",
+                                                        "work_schedule_id",
                                                         value,
                                                     )
                                                 }

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
-import { Fingerprint, Loader2, Search, User, X } from "lucide-react";
+import { Fingerprint, Search, User, X } from "lucide-react";
 import {
     AlertDialog,
     AlertDialogTrigger,
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import FloatingInput from "@/components/floating-input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 const clampAvailableFingers = (value) => {
@@ -292,7 +293,7 @@ const EmployeeFingerprintPanel = ({
                 <div className="relative flex items-start gap-3">
                     <div ref={searchBoxRef} className="w-full">
                         <FloatingInput
-                            label="Search Employee"
+                            label="Employee Name"
                             icon={Search}
                             name="fingerprint_employee_search"
                             value={searchValue}
@@ -312,19 +313,22 @@ const EmployeeFingerprintPanel = ({
 
                                 <div className="max-h-52 overflow-y-auto">
                                     {suggestionsLoading ? (
-                                        <div className="flex items-center gap-3 px-3 py-4 text-sm text-slate-500">
-                                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                            </span>
-                                            <div>
-                                                <div className="font-medium text-slate-700">
-                                                    Searching employees...
-                                                </div>
-                                                <div className="text-xs text-slate-400">
-                                                    Checking available
-                                                    fingerprints
-                                                </div>
-                                            </div>
+                                        <div className="space-y-3 px-3 py-3">
+                                            {Array.from({ length: 2 }).map(
+                                                (_, index) => (
+                                                    <div
+                                                        key={index}
+                                                        className="flex items-start justify-between gap-3"
+                                                    >
+                                                        <div className="min-w-0 flex-1 space-y-2">
+                                                            <Skeleton className="h-4 w-3/4" />
+                                                            <Skeleton className="h-3 w-1/2" />
+                                                            <Skeleton className="h-3 w-2/5" />
+                                                        </div>
+                                                        <Skeleton className="h-6 w-14 rounded-full" />
+                                                    </div>
+                                                ),
+                                            )}
                                         </div>
                                     ) : suggestionMatches.length > 0 ? (
                                         <div className="py-1">

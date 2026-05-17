@@ -20,10 +20,10 @@ import {
     Mail,
     LockKeyhole,
     Users,
-    Loader2,
 } from "lucide-react";
 import FloatingInput from "@/components/floating-input";
 import EmployeeAvatar from "@/Components/EmployeeAvatar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AssignStationAdminModal = ({
     open,
@@ -237,10 +237,25 @@ const AssignStationAdminModal = ({
 
                             <div className="h-[20rem] space-y-2 overflow-y-auto p-2">
                                 {employeesLoading ? (
-                                    <div className="flex h-full flex-col items-center justify-center gap-3 text-sm text-slate-500">
-                                        <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                                        <span>Loading employees...</span>
-                                    </div>
+                                    Array.from({ length: 5 }).map(
+                                        (_, index) => (
+                                            <div
+                                                key={index}
+                                                className="flex w-full items-center justify-between rounded-xl px-3 py-2"
+                                            >
+                                                <div className="flex min-w-0 flex-1 items-center gap-3">
+                                                    <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+
+                                                    <div className="min-w-0 flex-1 space-y-2">
+                                                        <Skeleton className="h-4 w-3/4" />
+                                                        <Skeleton className="h-3 w-1/2" />
+                                                    </div>
+                                                </div>
+
+                                                <Skeleton className="ml-3 h-5 w-5 shrink-0 rounded-full" />
+                                            </div>
+                                        ),
+                                    )
                                 ) : employees.length > 0 ? (
                                     employees.map((emp) => {
                                         const fullName =

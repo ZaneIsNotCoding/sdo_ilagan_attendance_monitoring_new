@@ -12,7 +12,6 @@ use App\Http\Controllers\Administrator\{
 use App\Http\Controllers\HumanResource\{
     TardyConvertionController,
     ConvertedTardyRecordsController,
-    EmployeeLeaveCardController,
     VacationLeaveController,
     SickLeaveController,
 };
@@ -78,6 +77,7 @@ Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(functio
     // Daily Time Records
     Route::get('/dailytimerecord', [DailyTimeRecordController::class, 'index'])->name('dailytimerecord');
     Route::get('/dailytimerecord/suggestions', [DailyTimeRecordController::class, 'suggestions'])->name('dailytimerecord.suggestions');
+    Route::get('/dailytimerecord/departments', [DailyTimeRecordController::class, 'departments'])->name('dailytimerecord.departments');
     Route::get('/dailytimerecord/{employeeId}-{first_name}', [DailyTimeRecordController::class, 'show'])->name('dailytimerecord.show');
     Route::get('/dailytimerecord/details/{employeeId}', [DailyTimeRecordController::class, 'details'])->name('dailytimerecord.details');
 
@@ -94,17 +94,9 @@ Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(functio
 
     //Employee Managements
     Route::get('/employeemanagement/suggestions', [EmployeeManagementController::class, 'suggestions'])->name('employees.suggestions');
-    Route::get('/employeemanagement/list', [EmployeeManagementController::class, 'list'])->name('employees.list');
     Route::get('/employeemanagement', [EmployeeManagementController::class, 'index'])->name('employeemanagement');
     Route::post('/employeestore', [EmployeeManagementController::class, 'store'])->name('employees.store');
     Route::put('/employeeedit/{id}', [EmployeeManagementController::class, 'update'])->name('employees.update');
-
-    //Leave Card
-    Route::get('/employeeleavecard', [EmployeeLeaveCardController::class, 'index'])->name('employeeleavecard');
-    Route::get('/employeeleavecard/{id}-{name}', [EmployeeLeaveCardController::class, 'show'])->name('employeeleavecard.show');
-    Route::put('/employeeleavecard/{id}', [EmployeeLeaveCardController::class, 'update'])->name('employeeleavecard.update');
-    Route::put('/vacationleaveupdate', [VacationLeaveController::class, 'update'])->name('vacation-leave.update');
-    Route::put('/sickleaveupdate', [SickLeaveController::class, 'update'])->name('sick-leave.update');
 
     // Department Management
     Route::get('/departmentmanagement', [DepartmentManagementController::class, 'index'])->name('departmentmanagement');

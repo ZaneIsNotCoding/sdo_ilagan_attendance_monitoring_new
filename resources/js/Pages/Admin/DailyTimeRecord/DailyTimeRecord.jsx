@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { router } from "@inertiajs/react";
 import { Head } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { CalendarClock } from "lucide-react";
 
-import EmployeeTable from "./Partials/EmployeeTable";
+import EmployeeList from "./Partials/EmployeeList";
 import PrintDialog from "./Partials/PrintDialog"; // <-- import dialog
+import DepartmentPrintDialog from "./Partials/DepartmentPrintDialog";
+import EmployeePreviewDtr from "./Partials/EmployeePreviewDtr";
 
 const formatSearchDisplay = (value) =>
     String(value || "")
@@ -17,34 +19,75 @@ const Daily_Time_Record = ({
     offices = [],
     search = "",
     office = "all",
+    month,
+    year,
     limit = 10,
+    previewDtrModal = null,
+    printDtrModal = null,
+    departmentPrintModal = null,
 }) => {
+    const currentDate = new Date();
+    const currentMonth = month || currentDate.getMonth() + 1;
+    const currentYear = year || currentDate.getFullYear();
     const employees = Array.isArray(time_record?.data)
         ? time_record.data
         : Array.isArray(time_record)
           ? time_record
           : [];
     const [searchInput, setSearchInput] = useState(formatSearchDisplay(search));
-    const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
     const [selectedOffice, setSelectedOffice] = useState(office || "all");
+    const [selectedMonth, setSelectedMonth] = useState(Number(currentMonth));
+    const [selectedYear, setSelectedYear] = useState(String(currentYear));
     const [selectedEmployees, setSelectedEmployees] = useState({});
-    const [dialogOpen, setDialogOpen] = useState(false); // dialog state
+    const [dialogOpen, setDialogOpen] = useState(Boolean(printDtrModal));
+    const [printEmployees, setPrintEmployees] = useState(
+        printDtrModal?.employee ? [printDtrModal.employee] : [],
+    );
+    const [departmentDialogOpen, setDepartmentDialogOpen] = useState(
+        Boolean(departmentPrintModal),
+    );
+    const initialPrintEmployeeData = useMemo(
+        () =>
+            printDtrModal?.employee && printDtrModal?.details
+                ? {
+                      [printDtrModal.employee.id]: printDtrModal.details,
+                  }
+                : {},
+        [printDtrModal],
+    );
 
     useEffect(() => {
         setSearchInput(formatSearchDisplay(search));
         const matchedOffice = offices.find((item) => item.name === office);
 
         setSelectedOffice(office === "all" ? "all" : matchedOffice?.id || "all");
-    }, [search, office, offices]);
+        setSelectedMonth(Number(currentMonth));
+        setSelectedYear(String(currentYear));
+    }, [search, office, offices, currentMonth, currentYear]);
+
+    useEffect(() => {
+        setDialogOpen(Boolean(printDtrModal));
+        setPrintEmployees(
+            printDtrModal?.employee ? [printDtrModal.employee] : [],
+        );
+    }, [printDtrModal]);
+
+    useEffect(() => {
+        setDepartmentDialogOpen(Boolean(departmentPrintModal));
+    }, [departmentPrintModal]);
 
     const applyFilters = ({
         searchValue = searchInput,
         officeValue = selectedOffice,
+        monthValue = selectedMonth,
+        yearValue = selectedYear,
         pageValue,
         limitValue = limit,
     } = {}) => {
         const query = {
             limit: limitValue,
+            month: monthValue,
+            year: yearValue,
         };
 
         if (searchValue && searchValue.trim()) {
@@ -64,22 +107,121 @@ const Daily_Time_Record = ({
         }
 
         router.get(route("dailytimerecord"), query, {
+            only: ["time_record", "search", "office", "month", "year", "limit"],
             preserveState: true,
             preserveScroll: true,
             replace: true,
         });
     };
 
-    const handleSelectEmployee = (employee) => {
-        router.visit(
-            `/dailytimerecord/${
-                employee.id
-            }-${employee.first_name.toLowerCase()}`,
-            { preserveState: true, preserveScroll: true },
-        );
+    const handlePreviewEmployee = (employee) => {
+        const params = new URLSearchParams(window.location.search);
+
+        params.set("modal", "preview-dtr");
+        params.set("employee_id", employee.id);
+        params.set("name", employee.full_name || employee.first_name || "");
+
+        router.get(route("dailytimerecord"), Object.fromEntries(params), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
     };
 
-    const selectedList = employees.filter((emp) => selectedEmployees[emp.id]);
+    const openPrintDialog = (nextEmployees) => {
+        const nextSelection = {};
+        const firstEmployee = nextEmployees[0];
+
+        nextEmployees.forEach((emp) => {
+            nextSelection[emp.id] = true;
+        });
+
+        setSelectedEmployees(nextSelection);
+        setPrintEmployees(nextEmployees);
+        setDialogOpen(true);
+
+        if (!firstEmployee) {
+            return;
+        }
+
+        const params = new URLSearchParams(window.location.search);
+
+        params.set("modal", "print-dtr");
+        params.set("employee_id", firstEmployee.id);
+        params.set(
+            "name",
+            firstEmployee.full_name || firstEmployee.first_name || "",
+        );
+
+        router.get(route("dailytimerecord"), Object.fromEntries(params), {
+            only: ["printDtrModal"],
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const closePrintDialog = () => {
+        const params = new URLSearchParams(window.location.search);
+
+        params.delete("modal");
+        params.delete("employee_id");
+        params.delete("name");
+
+        setDialogOpen(false);
+        setPrintEmployees([]);
+
+        router.get(route("dailytimerecord"), Object.fromEntries(params), {
+            only: ["printDtrModal"],
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const closePreviewDtr = () => {
+        const params = new URLSearchParams(window.location.search);
+
+        params.delete("modal");
+        params.delete("employee_id");
+        params.delete("name");
+
+        router.get(route("dailytimerecord"), Object.fromEntries(params), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const openDepartmentPrintDialog = () => {
+        const params = new URLSearchParams(window.location.search);
+
+        params.set("modal", "print-department");
+        setDepartmentDialogOpen(true);
+
+        router.get(route("dailytimerecord"), Object.fromEntries(params), {
+            only: ["departmentPrintModal"],
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const closeDepartmentPrintDialog = () => {
+        const params = new URLSearchParams(window.location.search);
+
+        params.delete("modal");
+        params.delete("name");
+
+        setDepartmentDialogOpen(false);
+
+        router.get(route("dailytimerecord"), Object.fromEntries(params), {
+            only: ["departmentPrintModal"],
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
 
     return (
         <AuthenticatedLayout
@@ -92,34 +234,50 @@ const Daily_Time_Record = ({
         >
             <Head title="AMS" />
             <main>
-                {!selectedEmployeeId && (
-                    <>
-                        <EmployeeTable
-                            employees={employees}
-                            pagination={time_record}
-                            onSelect={handleSelectEmployee}
-                            selectedEmployees={selectedEmployees}
-                            setSelectedEmployees={setSelectedEmployees}
-                            search={searchInput}
-                            setSearch={setSearchInput}
-                            offices={offices}
-                            selectedOffice={selectedOffice}
-                            setSelectedOffice={setSelectedOffice}
-                            applyFilters={applyFilters}
-                            selectedCount={selectedList.length}
-                            onPrintSelected={() => setDialogOpen(true)}
-                        />
+                <EmployeeList
+                    employees={employees}
+                    pagination={time_record}
+                    selectedEmployees={selectedEmployees}
+                    setSelectedEmployees={setSelectedEmployees}
+                    search={searchInput}
+                    setSearch={setSearchInput}
+                    offices={offices}
+                    selectedOffice={selectedOffice}
+                    setSelectedOffice={setSelectedOffice}
+                    selectedMonth={selectedMonth}
+                    setSelectedMonth={setSelectedMonth}
+                    selectedYear={selectedYear}
+                    setSelectedYear={setSelectedYear}
+                    applyFilters={applyFilters}
+                    onPreviewEmployee={handlePreviewEmployee}
+                    onPrintEmployee={(employee) => openPrintDialog([employee])}
+                    onPrintDepartment={openDepartmentPrintDialog}
+                />
 
-                        <PrintDialog
-                            open={dialogOpen}
-                            onClose={() => setDialogOpen(false)}
-                            selectedEmployees={selectedList}
-                            attendances={selectedList.flatMap(
-                                (emp) => emp.attendances || [],
-                            )}
-                        />
-                    </>
-                )}
+                <PrintDialog
+                    open={dialogOpen}
+                    onClose={closePrintDialog}
+                    selectedEmployees={printEmployees}
+                    initialEmployeeData={initialPrintEmployeeData}
+                    selectedMonth={selectedMonth}
+                    selectedYear={selectedYear}
+                />
+
+                <DepartmentPrintDialog
+                    open={departmentDialogOpen}
+                    onClose={closeDepartmentPrintDialog}
+                    initialDepartmentName={departmentPrintModal?.name || ""}
+                    selectedMonth={selectedMonth}
+                    selectedYear={selectedYear}
+                />
+
+                <EmployeePreviewDtr
+                    open={!!previewDtrModal}
+                    onClose={closePreviewDtr}
+                    previewDtrModal={previewDtrModal}
+                    selectedMonth={selectedMonth}
+                    selectedYear={selectedYear}
+                />
             </main>
         </AuthenticatedLayout>
     );

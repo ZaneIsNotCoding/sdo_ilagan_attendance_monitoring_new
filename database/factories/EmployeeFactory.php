@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Administrator\Employee;
 use App\Models\Administrator\Office;
+use App\Models\Administrator\WorkSchedule;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -27,7 +28,7 @@ class EmployeeFactory extends Factory
                 'Administrative Officer V',
             ]),
             'office_id' => Office::inRandomOrder()->first()?->id,
-            'work_type' => $this->faker->randomElement(['Full', 'Fixed', 'Work From Home']),
+            'work_schedule_id' => WorkSchedule::inRandomOrder()->first()?->id,
             'active_status' => $this->faker->boolean(90),
             'civil_status' => $this->faker->optional()->randomElement(['Single', 'Married', 'Widowed']),
             'gsis_policy_no' => null,

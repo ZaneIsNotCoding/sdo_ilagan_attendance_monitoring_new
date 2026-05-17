@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
 import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { UserCog } from "lucide-react";
@@ -14,6 +13,7 @@ const defaultFingerprintServiceUrl = `http://${window.location.hostname}:5000`;
 const EmployeeManagement = ({
     filteredEmployeesList,
     offices = [],
+    workSchedules = [],
     stations,
     userStation,
     userStationId,
@@ -52,9 +52,6 @@ const EmployeeManagement = ({
     const [testMessage, setTestMessage] = useState("Waiting for scan...");
     const [testStatus, setTestStatus] = useState("idle");
     const [testSource, setTestSource] = useState(null);
-    const [employeeListData, setEmployeeListData] = useState(
-        filteredEmployeesList,
-    );
 
     const findOfficeByName = (value) =>
         offices.find((office) => office.name === value);
@@ -65,15 +62,11 @@ const EmployeeManagement = ({
     const [statusFilter, setStatusFilter] = useState(status || "Active");
     const statusOptions = ["Active", "Inactive"];
 
-    const filteredEmployees = Array.isArray(employeeListData?.data)
-        ? employeeListData.data
-        : Array.isArray(employeeListData)
-          ? employeeListData
+    const filteredEmployees = Array.isArray(filteredEmployeesList?.data)
+        ? filteredEmployeesList.data
+        : Array.isArray(filteredEmployeesList)
+          ? filteredEmployeesList
           : [];
-
-    useEffect(() => {
-        setEmployeeListData(filteredEmployeesList);
-    }, [filteredEmployeesList]);
 
     useEffect(() => {
         setSearchInput(formatSearchDisplay(search));
@@ -420,26 +413,18 @@ const EmployeeManagement = ({
                 ) || selectedEmployee;
         }
 
-        axios
-            .get(route("employees.list"), { params: query })
-            .then((response) => {
-                setEmployeeListData(response.data.filteredEmployeesList);
-                setSearchInput(formatSearchDisplay(response.data.search));
-                setStatusFilter(response.data.status || "Active");
-
-                const nextOffice = findOfficeByName(response.data.officeName);
-                setSelectedOffice(nextOffice?.id || "all");
-
-                const queryString = new URLSearchParams(query).toString();
-                const nextUrl = `${route("employeemanagement")}${
-                    queryString ? `?${queryString}` : ""
-                }`;
-
-                window.history.replaceState({}, "", nextUrl);
-            })
-            .catch((error) => {
-                console.error("Failed to load employees:", error);
-            });
+        router.get(route("employeemanagement"), query, {
+            only: [
+                "filteredEmployeesList",
+                "search",
+                "status",
+                "officeName",
+                "limit",
+            ],
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
     };
 
     return (
@@ -457,6 +442,7 @@ const EmployeeManagement = ({
                     <EmployeeRegistration
                         userStationId={userStationId}
                         offices={offices}
+                        workSchedules={workSchedules}
                     />
                     <FingerprintRegistrationPanel
                         employees={filteredEmployees}
@@ -485,7 +471,7 @@ const EmployeeManagement = ({
 
                 <EmployeeList
                     filteredEmployees={filteredEmployees}
-                    pagination={employeeListData}
+                    pagination={filteredEmployeesList}
                     isRegistered={isRegistered}
                     handleEdit={handleEdit}
                     searchInput={searchInput}
@@ -511,6 +497,7 @@ const EmployeeManagement = ({
                     }}
                     offices={offices}
                     stations={stations}
+                    workSchedules={workSchedules}
                     userStationId={userStationId}
                 />
             </main>

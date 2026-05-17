@@ -22,14 +22,16 @@ import {
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import {
-    CustomDropdownCheckbox,
     CustomDropdownCheckboxObject,
+    CustomDropdownWorkSchedule,
 } from "@/components/dropdown-menu-main";
 import { router } from "@inertiajs/react";
 
-const work_type_choices = ["Full", "Fixed", "Work From Home"];
-
-const EmployeeRegistration = ({ userStationId, offices = [] }) => {
+const EmployeeRegistration = ({
+    userStationId,
+    offices = [],
+    workSchedules = [],
+}) => {
     const fileInputRef = useRef(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [form, setForm] = useState({
@@ -39,7 +41,7 @@ const EmployeeRegistration = ({ userStationId, offices = [] }) => {
         profile_img: null,
         position: "",
         office_id: "",
-        work_type: "",
+        work_schedule_id: "",
         station_id: "",
     });
 
@@ -118,7 +120,7 @@ const EmployeeRegistration = ({ userStationId, offices = [] }) => {
                     profile_img: null,
                     position: "",
                     office_id: "",
-                    work_type: "",
+                    work_schedule_id: "",
                     station_id: userStationId,
                 });
 
@@ -139,11 +141,19 @@ const EmployeeRegistration = ({ userStationId, offices = [] }) => {
         form.last_name.trim() &&
         form.position.trim() &&
         form.office_id &&
-        form.work_type &&
+        form.work_schedule_id &&
         form.station_id;
 
     const displayOffice =
         offices?.find((office) => office.id === form.office_id)?.name || "";
+    const scheduleItems = workSchedules;
+    const selectedSchedule = scheduleItems.find(
+        (schedule) => Number(schedule.id) === Number(form.work_schedule_id),
+    );
+    const displayWorkSchedule =
+        [selectedSchedule?.work_type?.name, selectedSchedule?.name]
+            .filter(Boolean)
+            .join(" - ");
 
     const initials =
         `${form.first_name?.[0] || ""}${form.last_name?.[0] || ""}`.toUpperCase();
@@ -307,6 +317,7 @@ const EmployeeRegistration = ({ userStationId, offices = [] }) => {
                                     <CustomDropdownCheckboxObject
                                         label="Select Office"
                                         items={offices}
+                                        selected={form.office_id}
                                         onChange={(val) =>
                                             setForm((prev) => ({
                                                 ...prev,
@@ -322,21 +333,21 @@ const EmployeeRegistration = ({ userStationId, offices = [] }) => {
 
                             <div className="relative w-full md:col-span-2">
                                 <FloatingInput
-                                    label="Work Type"
+                                    label="Work Schedule"
                                     icon={Briefcase}
-                                    value={form.work_type || ""}
+                                    value={displayWorkSchedule}
                                     readOnly
                                     onChange={() => {}}
                                 />
                                 <div className="absolute right-2 top-0 flex h-full items-center">
-                                    <CustomDropdownCheckbox
-                                        label="Select Work Type"
-                                        items={work_type_choices}
-                                        selected={form.work_type}
+                                    <CustomDropdownWorkSchedule
+                                        label="Select Work Schedule"
+                                        items={scheduleItems}
+                                        selected={form.work_schedule_id}
                                         onChange={(val) =>
                                             setForm((prev) => ({
                                                 ...prev,
-                                                work_type: val,
+                                                work_schedule_id: val,
                                             }))
                                         }
                                         buttonVariant="white"

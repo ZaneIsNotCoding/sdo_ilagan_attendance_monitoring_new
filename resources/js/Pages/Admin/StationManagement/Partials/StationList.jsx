@@ -39,12 +39,12 @@ const StationList = ({
     stations = {},
     stationStats = {},
     stationLimit = 5,
+    addStationModal = false,
     editStationModal = null,
     deleteStationModal = null,
     onAssignNow,
 }) => {
     const [chartReady, setChartReady] = useState(false);
-    const [openAddStationModal, setOpenAddStationModal] = useState(false);
     const [stationRowsData, setStationRowsData] = useState(stations);
 
     useEffect(() => {
@@ -88,6 +88,22 @@ const StationList = ({
             .catch((error) => {
                 console.error("Failed to load station rows:", error);
             });
+    };
+
+    const openAddStationModal = () => {
+        const params = new URLSearchParams(window.location.search);
+
+        params.delete("admin_id");
+        params.delete("station_id");
+        params.delete("station_role");
+        params.delete("station_source");
+        params.set("modal", "add-station");
+
+        router.get(route("stationmanagement"), Object.fromEntries(params), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
     };
 
     const openStationModal = (modal, station) => {
@@ -216,7 +232,7 @@ const StationList = ({
                     </div>
 
                     <Button
-                        onClick={() => setOpenAddStationModal(true)}
+                        onClick={openAddStationModal}
                         className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
                         + Add Station
@@ -409,8 +425,10 @@ const StationList = ({
             />
 
             <AddStationModal
-                open={openAddStationModal}
-                setOpen={setOpenAddStationModal}
+                open={addStationModal}
+                setOpen={(nextOpen) => {
+                    if (!nextOpen) closeStationModal();
+                }}
             />
 
             <div className="w-[40%] flex flex-col gap-4">

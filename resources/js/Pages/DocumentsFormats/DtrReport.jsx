@@ -1,6 +1,6 @@
 import React from "react";
 
-const DTRReport = React.forwardRef(({ name, dateRange, logs }, ref) => {
+const DTRReport = React.forwardRef(({ name, dateRange, logs, signatory }, ref) => {
     const formattedMonth = new Date(dateRange.start).toLocaleDateString(
         "en-US",
         { month: "long", year: "numeric" }
@@ -260,7 +260,7 @@ const DTRReport = React.forwardRef(({ name, dateRange, logs }, ref) => {
                         </small>
                     </div>
 
-                    {/* Superintendent signature */}
+                    {/* Office head signature */}
                     <div
                         style={{
                             textAlign: "center",
@@ -269,7 +269,9 @@ const DTRReport = React.forwardRef(({ name, dateRange, logs }, ref) => {
                         }}
                     >
                         <div style={{ marginBottom: "4px" }}>
-                            <strong>EDUARDO C. ESCORPISO JR</strong>
+                            <strong>
+                                {(signatory?.name || "NO OFFICE HEAD ASSIGNED").toUpperCase()}
+                            </strong>
                         </div>
                         <div
                             style={{
@@ -279,7 +281,7 @@ const DTRReport = React.forwardRef(({ name, dateRange, logs }, ref) => {
                             }}
                         ></div>
                         <small style={{ display: "block", marginTop: "0" }}>
-                            SCHOOLS DIVISION SUPERINTENDENT
+                            {signatory?.position || "OFFICE HEAD"}
                         </small>
                     </div>
                 </div>

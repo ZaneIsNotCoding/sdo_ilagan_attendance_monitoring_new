@@ -18,12 +18,13 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Trash2, LandPlot, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Trash2, LandPlot, CheckCircle2, XCircle } from "lucide-react";
 import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
 import AssignStationAdminModal from "./AssignStationAdminModal";
 import FloatingInput from "@/components/floating-input";
 import { Search } from "lucide-react";
 import EmployeeAvatar from "@/Components/EmployeeAvatar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const getStationHighlightKey = (station) => {
     if (!station) return null;
@@ -389,18 +390,21 @@ const StationAdminList = ({
 
                             <div className="max-h-72 overflow-y-auto">
                                 {suggestionsLoading ? (
-                                    <div className="flex items-center gap-3 px-3 py-4 text-sm text-slate-500">
-                                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        </span>
-                                        <div>
-                                            <div className="font-medium text-slate-700">
-                                                Searching stations...
-                                            </div>
-                                            <div className="text-xs text-slate-400">
-                                                Checking names and codes
-                                            </div>
-                                        </div>
+                                    <div className="space-y-2 px-3 py-3">
+                                        {Array.from({ length: 2 }).map(
+                                            (_, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="flex items-center justify-between gap-3"
+                                                >
+                                                    <div className="min-w-0 flex-1 space-y-2">
+                                                        <Skeleton className="h-4 w-3/4" />
+                                                        <Skeleton className="h-3 w-1/2" />
+                                                    </div>
+                                                    <Skeleton className="h-6 w-14 rounded-full" />
+                                                </div>
+                                            ),
+                                        )}
                                     </div>
                                 ) : suggestionMatches.length > 0 ? (
                                     suggestionMatches.map((suggestion) => (

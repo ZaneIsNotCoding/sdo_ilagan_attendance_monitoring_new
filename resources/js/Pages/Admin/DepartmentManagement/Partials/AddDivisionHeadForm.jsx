@@ -10,15 +10,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import FloatingInput from "@/components/floating-input";
-import {
-    Building2,
-    Check,
-    Loader2,
-    Search,
-    ShieldCheck,
-    Users,
-} from "lucide-react";
+import { Building2, Check, Search, ShieldCheck, Users } from "lucide-react";
 import EmployeeAvatar from "@/Components/EmployeeAvatar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AddDivisionHeadForm = ({
     open,
@@ -178,10 +172,23 @@ const AddDivisionHeadForm = ({
 
                         <div className="h-[12rem] space-y-2 overflow-y-auto p-2">
                             {loading ? (
-                                <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-500">
-                                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                                    Loading employees...
-                                </div>
+                                Array.from({ length: 3 }).map((_, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex w-full items-center justify-between rounded-xl px-3 py-2"
+                                    >
+                                        <div className="flex min-w-0 flex-1 items-center gap-3">
+                                            <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+
+                                            <div className="min-w-0 flex-1 space-y-2">
+                                                <Skeleton className="h-4 w-3/4" />
+                                                <Skeleton className="h-3 w-1/2" />
+                                            </div>
+                                        </div>
+
+                                        <Skeleton className="ml-3 h-5 w-5 shrink-0 rounded-full" />
+                                    </div>
+                                ))
                             ) : employees.length > 0 ? (
                                 employees.map((emp) => {
                                     const fullName =

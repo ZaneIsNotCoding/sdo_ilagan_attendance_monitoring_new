@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Administrator\Employee;
 use App\Models\Administrator\Attendance;
 use App\Models\Administrator\Office;
-use App\Services\TardinessConvertion\FixedFlexiTardinessService;
-use App\Services\TardinessConvertion\FullFlexiTardinessService;
+use App\Services\Administrator\DailyTimeRecord\FixedFlexiTardinessService;
+use App\Services\Administrator\DailyTimeRecord\FullFlexiTardinessService;
 use App\Models\EmployeeLeave;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -40,7 +40,8 @@ class AttendanceManagementController extends Controller
         }
 
         // ✅ Incomplete Attendances (filtered by station + active employees)
-        $incompleteAttendances = Attendance::with(['employee:id,first_name,last_name,work_type,office_id,station_id,active_status',
+        $incompleteAttendances = Attendance::with(['employee:id,first_name,last_name,work_type_id,office_id,station_id,active_status',
+            'employee.workType:id,name',
             'employee.office:id,division_id,name',
             'employee.office.division:id,code,name',
             'am:id,attendance_id,am_time_in,am_time_out',
@@ -67,10 +68,10 @@ class AttendanceManagementController extends Controller
         ->get();
 
         // ✅ Employees (filtered by station + active)
-        $employees = Employee::with('office.division:id,code,name')
+        $employees = Employee::with(['office.division:id,code,name', 'workType:id,name'])
             ->where('station_id', $stationId)
             ->where('active_status', 1)
-            ->select('id', 'first_name', 'last_name', 'work_type', 'office_id', 'active_status')
+            ->select('id', 'first_name', 'last_name', 'work_type_id', 'office_id', 'active_status')
             ->get();
 
         // ✅ Employee Leaves (filtered by station + active)
