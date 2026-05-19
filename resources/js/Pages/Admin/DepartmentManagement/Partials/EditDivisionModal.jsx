@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
     Dialog,
     DialogContent,
@@ -12,30 +12,20 @@ import InputError from "@/Components/InputError";
 import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
 import { usePage } from "@inertiajs/react";
 import { Building2, Save, ShieldCheck } from "lucide-react";
+import useEditDivisionForm from "../hooks/useEditDivisionForm";
 
 const EditDivisionModal = ({ open, setOpen, division }) => {
     const { errors = {} } = usePage().props;
-    const [code, setCode] = useState("");
-    const [name, setName] = useState("");
-    const [openConfirm, setOpenConfirm] = useState(false);
-
-    useEffect(() => {
-        if (division) {
-            setCode(division.code || "");
-            setName(division.name || "");
-        }
-    }, [division]);
-
-    useEffect(() => {
-        if (!open) setOpenConfirm(false);
-    }, [open]);
-
-    const canSubmit =
-        Boolean(division?.id) &&
-        code.trim().length > 0 &&
-        name.trim().length > 0 &&
-        (code.trim() !== (division?.code || "").trim() ||
-            name.trim() !== (division?.name || "").trim());
+    const {
+        canSubmit,
+        code,
+        handleSuccess,
+        name,
+        openConfirm,
+        setCode,
+        setName,
+        setOpenConfirm,
+    } = useEditDivisionForm({ division, open, setOpen });
 
     return (
         <>
@@ -144,10 +134,7 @@ const EditDivisionModal = ({ open, setOpen, division }) => {
                 confirmText="Update Division"
                 processingText="Updating..."
                 note="The division will be saved immediately after password confirmation."
-                onSuccess={() => {
-                    setOpenConfirm(false);
-                    setOpen(false);
-                }}
+                onSuccess={handleSuccess}
                 onError={() => setOpenConfirm(true)}
                 open={openConfirm}
                 onOpenChange={setOpenConfirm}

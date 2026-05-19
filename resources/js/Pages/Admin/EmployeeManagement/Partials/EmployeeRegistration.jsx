@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import FloatingInput from "@/components/floating-input";
 import {
     UserPlus,
@@ -25,138 +25,33 @@ import {
     CustomDropdownCheckboxObject,
     CustomDropdownWorkSchedule,
 } from "@/components/dropdown-menu-main";
-import { router } from "@inertiajs/react";
+import useEmployeeRegistrationForm from "../hooks/useEmployeeRegistrationForm";
 
 const EmployeeRegistration = ({
     userStationId,
     offices = [],
     workSchedules = [],
 }) => {
-    const fileInputRef = useRef(null);
-    const [previewUrl, setPreviewUrl] = useState(null);
-    const [form, setForm] = useState({
-        first_name: "",
-        middle_name: "",
-        last_name: "",
-        profile_img: null,
-        position: "",
-        office_id: "",
-        work_schedule_id: "",
-        station_id: "",
+    const {
+        clearProfileImage,
+        displayOffice,
+        displayWorkSchedule,
+        fileInputRef,
+        form,
+        handleAddEmployee,
+        handleFormChange,
+        handleProfileImageChange,
+        initials,
+        isDepartmentLocked,
+        isFormComplete,
+        previewUrl,
+        scheduleItems,
+        updateFormValue,
+    } = useEmployeeRegistrationForm({
+        offices,
+        userStationId,
+        workSchedules,
     });
-
-    const isDepartmentLocked = Number(userStationId) !== 1;
-
-    useEffect(() => {
-        setForm((prev) => ({
-            ...prev,
-            station_id: userStationId,
-        }));
-    }, [userStationId]);
-
-    useEffect(() => {
-        return () => {
-            if (previewUrl?.startsWith("blob:")) {
-                URL.revokeObjectURL(previewUrl);
-            }
-        };
-    }, [previewUrl]);
-
-    const handleFormChange = (e) => {
-        const { name, value } = e.target;
-
-        if (["first_name", "middle_name", "last_name"].includes(name)) {
-            const regex = /^[A-Za-z\s-]*$/;
-            if (!regex.test(value)) return;
-        }
-
-        setForm((prev) => ({ ...prev, [name]: value }));
-    };
-
-    const handleProfileImageChange = (e) => {
-        const file = e.target.files?.[0];
-
-        if (!file) return;
-
-        if (previewUrl?.startsWith("blob:")) {
-            URL.revokeObjectURL(previewUrl);
-        }
-
-        setForm((prev) => ({
-            ...prev,
-            profile_img: file,
-        }));
-
-        setPreviewUrl(URL.createObjectURL(file));
-    };
-
-    const clearProfileImage = () => {
-        if (previewUrl?.startsWith("blob:")) {
-            URL.revokeObjectURL(previewUrl);
-        }
-
-        setPreviewUrl(null);
-        setForm((prev) => ({ ...prev, profile_img: null }));
-
-        if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-        }
-    };
-
-    const handleAddEmployee = () => {
-        router.post(route("employees.store"), form, {
-            preserveScroll: true,
-            forceFormData: true,
-            onSuccess: () => {
-                if (previewUrl?.startsWith("blob:")) {
-                    URL.revokeObjectURL(previewUrl);
-                }
-
-                setPreviewUrl(null);
-                setForm({
-                    first_name: "",
-                    middle_name: "",
-                    last_name: "",
-                    profile_img: null,
-                    position: "",
-                    office_id: "",
-                    work_schedule_id: "",
-                    station_id: userStationId,
-                });
-
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = "";
-                }
-
-                router.reload({
-                    only: ["filteredEmployeesList"],
-                });
-            },
-        });
-    };
-
-    const isFormComplete =
-        form.first_name.trim() &&
-        form.middle_name.trim() &&
-        form.last_name.trim() &&
-        form.position.trim() &&
-        form.office_id &&
-        form.work_schedule_id &&
-        form.station_id;
-
-    const displayOffice =
-        offices?.find((office) => office.id === form.office_id)?.name || "";
-    const scheduleItems = workSchedules;
-    const selectedSchedule = scheduleItems.find(
-        (schedule) => Number(schedule.id) === Number(form.work_schedule_id),
-    );
-    const displayWorkSchedule =
-        [selectedSchedule?.work_type?.name, selectedSchedule?.name]
-            .filter(Boolean)
-            .join(" - ");
-
-    const initials =
-        `${form.first_name?.[0] || ""}${form.last_name?.[0] || ""}`.toUpperCase();
 
     return (
         <div className="relative overflow-hidden rounded-2xl border border-blue-100 bg-white md:col-span-2">
@@ -318,12 +213,7 @@ const EmployeeRegistration = ({
                                         label="Select Office"
                                         items={offices}
                                         selected={form.office_id}
-                                        onChange={(val) =>
-                                            setForm((prev) => ({
-                                                ...prev,
-                                                office_id: val,
-                                            }))
-                                        }
+                                        onChange={(val) => updateFormValue("office_id", val)}
                                         buttonVariant="white"
                                         iconOnly
                                         disabled={isDepartmentLocked}
@@ -344,12 +234,7 @@ const EmployeeRegistration = ({
                                         label="Select Work Schedule"
                                         items={scheduleItems}
                                         selected={form.work_schedule_id}
-                                        onChange={(val) =>
-                                            setForm((prev) => ({
-                                                ...prev,
-                                                work_schedule_id: val,
-                                            }))
-                                        }
+                                        onChange={(val) => updateFormValue("work_schedule_id", val)}
                                         buttonVariant="white"
                                         iconOnly
                                     />

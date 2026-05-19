@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
     Dialog,
     DialogContent,
@@ -13,38 +13,22 @@ import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
 import { CustomDropdownCheckboxObject } from "@/components/dropdown-menu-main";
 import { usePage } from "@inertiajs/react";
 import { Building2, Save, ShieldCheck } from "lucide-react";
+import useEditOfficeForm from "../hooks/useEditOfficeForm";
 
 const EditOfficeModal = ({ open, setOpen, office, divisions = [] }) => {
     const { errors = {} } = usePage().props;
-    const [divisionId, setDivisionId] = useState("");
-    const [name, setName] = useState("");
-    const [openConfirm, setOpenConfirm] = useState(false);
-    const divisionOptions = divisions.map((division) => ({
-        ...division,
-        name: [division.code, division.name].filter(Boolean).join(" - "),
-    }));
-    const selectedDivisionLabel =
-        divisionOptions.find(
-            (division) => String(division.id) === String(divisionId),
-        )?.name || "Select division";
-
-    useEffect(() => {
-        if (office) {
-            setDivisionId(office.division_id?.toString?.() || "");
-            setName(office.name || "");
-        }
-    }, [office]);
-
-    useEffect(() => {
-        if (!open) setOpenConfirm(false);
-    }, [open]);
-
-    const canSubmit =
-        Boolean(office?.id) &&
-        divisionId &&
-        name.trim().length > 0 &&
-        (divisionId !== office?.division_id?.toString?.() ||
-            name.trim() !== (office?.name || "").trim());
+    const {
+        canSubmit,
+        divisionId,
+        divisionOptions,
+        handleSuccess,
+        name,
+        openConfirm,
+        selectedDivisionLabel,
+        setDivisionId,
+        setName,
+        setOpenConfirm,
+    } = useEditOfficeForm({ divisions, office, open, setOpen });
 
     return (
         <>
@@ -147,10 +131,7 @@ const EditOfficeModal = ({ open, setOpen, office, divisions = [] }) => {
                 confirmText="Update Office"
                 processingText="Updating..."
                 note="The office will be saved immediately after password confirmation."
-                onSuccess={() => {
-                    setOpenConfirm(false);
-                    setOpen(false);
-                }}
+                onSuccess={handleSuccess}
                 onError={() => setOpenConfirm(true)}
                 open={openConfirm}
                 onOpenChange={setOpenConfirm}

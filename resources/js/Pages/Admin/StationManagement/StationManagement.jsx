@@ -1,10 +1,11 @@
-import React, { useRef, useState } from "react";
-import { Head, router } from "@inertiajs/react";
+import React from "react";
+import { Head } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { LandPlot } from "lucide-react";
 
 import StationList from "./Partials/StationList";
 import StationAdminList from "./Partials/StationAdminList";
+import useStationManagementFocus from "./hooks/useStationManagementFocus";
 
 const StationManagement = ({
     stations = [],
@@ -19,41 +20,15 @@ const StationManagement = ({
     stationLimit = 5,
     adminLimit = 10,
 }) => {
-    const sectionRef = useRef(null);
-    const [highlightedStationId, setHighlightedStationId] = useState(null);
-    const [highlightRequestKey, setHighlightRequestKey] = useState(0);
-
-    const focusStationRow = (stationId, adminPage = null) => {
-        if (!stationId) return;
-
-        setHighlightedStationId(stationId);
-        setHighlightRequestKey((value) => value + 1);
-
-        if (adminPage) {
-            const params = new URLSearchParams(window.location.search);
-            params.set("admin_page", adminPage);
-            params.set("admin_limit", adminLimit);
-
-            router.get(route("stationmanagement"), Object.fromEntries(params), {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            });
-        }
-
-        sectionRef.current?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-        });
-    };
-    console.log("StationManagement render", {
-        stations,
-        stationAdminRows,
-        stationStats,
-        search,
-        stationLimit,
+    const {
+        focusStationRow,
+        highlightedStationId,
+        highlightRequestKey,
+        sectionRef,
+    } = useStationManagementFocus({
         adminLimit,
     });
+
     return (
         <AuthenticatedLayout
             header={

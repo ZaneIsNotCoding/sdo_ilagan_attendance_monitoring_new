@@ -36,13 +36,13 @@ class WorkScheduleSeeder extends Seeder
             ],
             [
                 'work_type_id' => $workTypes['Fixed'],
-                'name' => 'Fixed 8:00 AM - 5:00 PM',
+                'name' => '8:00 AM - 5:00 PM',
                 'time_in' => '08:00:00',
                 'time_out' => '17:00:00',
             ],
             [
                 'work_type_id' => $workTypes['Work From Home'],
-                'name' => 'Work From Home 8:00 AM - 5:00 PM',
+                'name' => '8:00 AM - 5:00 PM',
                 'time_in' => '08:00:00',
                 'time_out' => '17:00:00',
             ],

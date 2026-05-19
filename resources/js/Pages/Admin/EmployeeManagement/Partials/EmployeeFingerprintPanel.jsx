@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
-import axios from "axios";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Fingerprint, Search, User, X } from "lucide-react";
 import {
@@ -14,18 +13,9 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import FloatingInput from "@/components/floating-input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
-
-const clampAvailableFingers = (value) => {
-    const available = Number(value ?? 3);
-
-    if (Number.isNaN(available)) {
-        return 3;
-    }
-
-    return Math.min(Math.max(available, 0), 3);
-};
+import { SuggestionSkeletonList } from "@/Components/Skeletons";
+import useEmployeeFingerprintPanelUi from "../hooks/useEmployeeFingerprintPanelUi";
+import { clampAvailableFingers } from "../utils";
 
 const statusVisuals = {
     success: {
@@ -90,43 +80,32 @@ const EmployeeFingerprintPanel = ({
     startTestFingerprint,
     getFingerprintColor = () => "text-gray-400",
 }) => {
-    const [searchValue, setSearchValue] = useState("");
-    const [suggestionMatches, setSuggestionMatches] = useState([]);
-    const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-    const [showSuggestions, setShowSuggestions] = useState(false);
-    const searchBoxRef = useRef(null);
-    const suggestionRequestRef = useRef(0);
-    const testStartedRef = useRef(false);
-    const lastScanToastRef = useRef("");
-    const lastTestToastRef = useRef("");
-    const selectedEmployeeRecord =
-        (selectedEmployeeRecordProp &&
-        clampAvailableFingers(selectedEmployeeRecordProp.available_fingers) > 0
-            ? selectedEmployeeRecordProp
-            : null) ||
-        employees.find(
-            (emp) =>
-                String(emp.id) === String(selectedEmployee) &&
-                clampAvailableFingers(emp.available_fingers) > 0,
-        ) ||
-        null;
-    const selectedOfficeName =
-        selectedEmployeeRecord?.office?.name || "Department";
-    const selectedAvailableFingers = clampAvailableFingers(
-        selectedEmployeeRecord?.available_fingers ??
-            availableFingers(selectedEmployee),
-    );
-    const fingerprintStatusLabel = selectedEmployeeRecord
-        ? `Available fingerprints: ${selectedAvailableFingers}/3`
-        : "Choose an employee to begin";
-    const panelMessage =
-        scanStatus === "error"
-            ? scanMessage
-            : scanStatus === "success"
-              ? scanMessage
-              : scanning
-                ? scanMessage
-                : fingerprintStatusLabel;
+    const {
+        panelMessage,
+        searchBoxRef,
+        searchValue,
+        selectedAvailableFingers,
+        selectedEmployeeRecord,
+        selectedOfficeName,
+        setSearchValue,
+        setShowSuggestions,
+        showSuggestions,
+        suggestionMatches,
+        suggestionsLoading,
+    } = useEmployeeFingerprintPanelUi({
+        availableFingers,
+        employees,
+        scanFeedbackKey,
+        scanMessage,
+        scanStatus,
+        scanning,
+        selectedEmployee,
+        selectedEmployeeRecordProp,
+        startTestFingerprint,
+        testMessage,
+        testOpen,
+        testStatus,
+    });
     const fingerprintVisual = selectedEmployeeRecord
         ? fingerprintStatusVisual({
               status: scanStatus,
@@ -138,138 +117,6 @@ const EmployeeFingerprintPanel = ({
         status: testStatus,
         idleRing: "ring-slate-200",
     });
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (
-                searchBoxRef.current &&
-                !searchBoxRef.current.contains(event.target)
-            ) {
-                setShowSuggestions(false);
-            }
-        };
-
-        document.addEventListener("mousedown", handleClickOutside);
-
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, []);
-
-    useEffect(() => {
-        if (!testOpen) {
-            testStartedRef.current = false;
-            return;
-        }
-
-        if (testStartedRef.current) {
-            return;
-        }
-
-        testStartedRef.current = true;
-        startTestFingerprint();
-    }, [testOpen, startTestFingerprint]);
-
-    useEffect(() => {
-        const cleanMessage = String(scanMessage || "").trim();
-
-        if (
-            !selectedEmployeeRecord ||
-            !cleanMessage ||
-            cleanMessage === "Place your fingerprint"
-        ) {
-            return;
-        }
-
-        const toastKey = `${scanFeedbackKey}:${scanStatus}:${cleanMessage}`;
-        if (lastScanToastRef.current === toastKey) {
-            return;
-        }
-
-        lastScanToastRef.current = toastKey;
-
-        if (scanStatus === "success") {
-            toast.success(cleanMessage);
-        } else if (scanStatus === "error") {
-            toast.error(cleanMessage);
-        } else if (scanning) {
-            toast(cleanMessage);
-        }
-    }, [
-        scanStatus,
-        scanMessage,
-        scanFeedbackKey,
-        scanning,
-        selectedEmployeeRecord,
-    ]);
-
-    useEffect(() => {
-        const cleanMessage = String(testMessage || "").trim();
-
-        if (
-            !testOpen ||
-            !cleanMessage ||
-            cleanMessage === "Waiting for scan..." ||
-            cleanMessage === "Place your finger on the scanner..."
-        ) {
-            return;
-        }
-
-        const toastKey = `${testStatus}:${cleanMessage}`;
-        if (lastTestToastRef.current === toastKey) {
-            return;
-        }
-
-        lastTestToastRef.current = toastKey;
-
-        if (testStatus === "success") {
-            toast.success(cleanMessage);
-        } else if (testStatus === "error") {
-            toast.error(cleanMessage);
-        } else {
-            toast(cleanMessage);
-        }
-    }, [testOpen, testStatus, testMessage]);
-
-    useEffect(() => {
-        if (!showSuggestions) {
-            setSuggestionMatches([]);
-            setSuggestionsLoading(false);
-            return;
-        }
-
-        const query = searchValue.trim();
-        setSuggestionsLoading(true);
-        const requestId = suggestionRequestRef.current + 1;
-        suggestionRequestRef.current = requestId;
-
-        const timeout = setTimeout(() => {
-            axios
-                .get(route("employees.suggestions"), {
-                    params: {
-                        search: query,
-                        available_for_fingerprint: 1,
-                    },
-                })
-                .then((response) => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionMatches(response.data || []);
-                })
-                .catch(() => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionMatches([]);
-                })
-                .finally(() => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionsLoading(false);
-                });
-        }, 250);
-
-        return () => clearTimeout(timeout);
-    }, [searchValue, showSuggestions]);
 
     return (
         <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-lg">
@@ -312,24 +159,13 @@ const EmployeeFingerprintPanel = ({
                                 </div>
 
                                 <div className="max-h-52 overflow-y-auto">
-                                    {suggestionsLoading ? (
-                                        <div className="space-y-3 px-3 py-3">
-                                            {Array.from({ length: 2 }).map(
-                                                (_, index) => (
-                                                    <div
-                                                        key={index}
-                                                        className="flex items-start justify-between gap-3"
-                                                    >
-                                                        <div className="min-w-0 flex-1 space-y-2">
-                                                            <Skeleton className="h-4 w-3/4" />
-                                                            <Skeleton className="h-3 w-1/2" />
-                                                            <Skeleton className="h-3 w-2/5" />
-                                                        </div>
-                                                        <Skeleton className="h-6 w-14 rounded-full" />
-                                                    </div>
-                                                ),
-                                            )}
-                                        </div>
+                                    {suggestionsLoading ||
+                                    !searchValue.trim() ? (
+                                        <SuggestionSkeletonList
+                                            lines={3}
+                                            className="space-y-3 px-3 py-3"
+                                            itemClassName="flex items-start justify-between gap-3"
+                                        />
                                     ) : suggestionMatches.length > 0 ? (
                                         <div className="py-1">
                                             {suggestionMatches

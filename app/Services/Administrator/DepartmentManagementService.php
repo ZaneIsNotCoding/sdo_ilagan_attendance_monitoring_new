@@ -29,6 +29,7 @@ class DepartmentManagementService
             'division_search' => $filter->divisionSearch,
             'addDivisionModal' => $this->isModal($request, 'add-division'),
             'addOfficeModal' => $this->isModal($request, 'add-office'),
+            'editDivisionModal' => $this->divisionModal($request, 'edit-division'),
             'editOfficeModal' => $this->officeModal($request, 'edit-office'),
             'deleteOfficeModal' => $this->officeModal($request, 'delete-office'),
             'assignOfficeHeadModal' => $this->assignOfficeHeadModal($request),
@@ -149,6 +150,25 @@ class DepartmentManagementService
             'division_id' => $office->division_id,
             'name' => $office->name,
             'division' => $office->division,
+        ];
+    }
+
+    private function divisionModal(Request $request, string $modal): ?array
+    {
+        if (! $this->isModal($request, $modal)) {
+            return null;
+        }
+
+        $division = $this->repository->divisionModal((int) $request->query('division_id'));
+
+        if (! $division) {
+            return null;
+        }
+
+        return [
+            'id' => $division->id,
+            'code' => $division->code,
+            'name' => $division->name,
         ];
     }
 

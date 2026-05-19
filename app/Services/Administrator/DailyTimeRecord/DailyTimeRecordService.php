@@ -4,6 +4,8 @@ namespace App\Services\Administrator\DailyTimeRecord;
 
 use App\Data\Administrator\DailyTimeRecordListFilter\DailyTimeRecordFilter;
 use App\Models\Administrator\Employee;
+use App\Models\Administrator\WorkSchedule;
+use App\Models\Administrator\WorkType;
 use App\Repositories\Administrator\DailyTimeRecordRepository;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -44,6 +46,14 @@ class DailyTimeRecordService
             'month' => $filter->month,
             'year' => $filter->year,
             'limit' => $filter->limit,
+            'workTypes' => $this->repository->workTypes(),
+            'workSchedules' => $this->repository->workSchedules(),
+            'addWorkTypeModal' => $request->query('modal') === 'add-work-type',
+            'addWorkScheduleModal' => $request->query('modal') === 'add-work-schedule',
+            'editWorkTypeModal' => $this->workTypeModal($request, 'edit-work-type'),
+            'deleteWorkTypeModal' => $this->workTypeModal($request, 'delete-work-type'),
+            'editWorkScheduleModal' => $this->workScheduleModal($request, 'edit-work-schedule'),
+            'deleteWorkScheduleModal' => $this->workScheduleModal($request, 'delete-work-schedule'),
             'previewDtrModal' => $this->previewDtrModal($request, $stationId),
             'printDtrModal' => $this->printDtrModal($request, $stationId),
             'departmentPrintModal' => $this->departmentPrintModal($request),
@@ -60,30 +70,53 @@ class DailyTimeRecordService
             ->all();
     }
 
-    public function showData(int $employeeId): array
+    public function detailsData(int $employeeId, int $stationId): array
     {
-        $timeRecord = $this->repository->employeeTimeRecord($employeeId);
+        $timeRecord = $this->stationEmployeeTimeRecord($employeeId, $stationId);
 
         return [
             'time_record' => $timeRecord,
             'monthly_totals' => $this->monthlyTotalsForEmployee($timeRecord),
             'employee_leaves' => $this->repository->employeeLeaves($employeeId),
-            'signatory' => $this->officeHeadSignatory($timeRecord),
+            'signatory' => $this->defaultSignatory($timeRecord),
             'signatories' => $this->availableSignatories($timeRecord),
         ];
     }
 
-    public function detailsData(int $employeeId): array
+    public function storeWorkType(array $data): void
     {
-        $timeRecord = $this->repository->employeeTimeRecord($employeeId);
+        $this->repository->createWorkType($data);
+    }
 
-        return [
-            'time_record' => $timeRecord,
-            'monthly_totals' => $this->monthlyTotalsForEmployee($timeRecord),
-            'employee_leaves' => $this->repository->employeeLeaves($employeeId),
-            'signatory' => $this->officeHeadSignatory($timeRecord),
-            'signatories' => $this->availableSignatories($timeRecord),
-        ];
+    public function updateWorkType(WorkType $workType, array $data): void
+    {
+        $this->repository->updateWorkType($workType, $data);
+    }
+
+    public function deleteWorkType(WorkType $workType): void
+    {
+        if ($workType->workSchedules()->exists()) {
+            throw new \InvalidArgumentException(
+                'This work type still has schedules. Delete its schedules first.',
+            );
+        }
+
+        $this->repository->deleteWorkType($workType);
+    }
+
+    public function storeWorkSchedule(array $data): void
+    {
+        $this->repository->createWorkSchedule($data);
+    }
+
+    public function updateWorkSchedule(WorkSchedule $workSchedule, array $data): void
+    {
+        $this->repository->updateWorkSchedule($workSchedule, $data);
+    }
+
+    public function deleteWorkSchedule(WorkSchedule $workSchedule): void
+    {
+        $this->repository->deleteWorkSchedule($workSchedule);
     }
 
     public function previewDtrModal(Request $request, int $stationId): ?array
@@ -112,7 +145,7 @@ class DailyTimeRecordService
             'time_record' => $timeRecord,
             'monthly_totals' => $this->monthlyTotalsForEmployee($timeRecord),
             'employee_leaves' => $this->repository->employeeLeaves($employeeId),
-            'signatory' => $this->officeHeadSignatory($timeRecord),
+            'signatory' => $this->defaultSignatory($timeRecord),
             'signatories' => $this->availableSignatories($timeRecord),
         ];
     }
@@ -145,7 +178,7 @@ class DailyTimeRecordService
                 'time_record' => $employee,
                 'monthly_totals' => $this->monthlyTotalsForEmployee($employee),
                 'employee_leaves' => $this->repository->employeeLeaves($employeeId),
-                'signatory' => $this->officeHeadSignatory($employee),
+                'signatory' => $this->defaultSignatory($employee),
                 'signatories' => $this->availableSignatories($employee),
             ],
         ];
@@ -162,12 +195,54 @@ class DailyTimeRecordService
         ];
     }
 
-    public function departmentPrintData(Request $request, int $stationId): array
+    private function workTypeModal(Request $request, string $modal): ?array
+    {
+        if ($request->query('modal') !== $modal) {
+            return null;
+        }
+
+        $workType = $this->repository->workTypeModal((int) $request->query('work_type_id'));
+
+        if (! $workType) {
+            abort(404, 'Work type not found.');
+        }
+
+        return [
+            'id' => $workType->id,
+            'name' => $workType->name,
+        ];
+    }
+
+    private function workScheduleModal(Request $request, string $modal): ?array
+    {
+        if ($request->query('modal') !== $modal) {
+            return null;
+        }
+
+        $workSchedule = $this->repository->workScheduleModal((int) $request->query('work_schedule_id'));
+
+        if (! $workSchedule) {
+            abort(404, 'Work schedule not found.');
+        }
+
+        return [
+            'id' => $workSchedule->id,
+            'work_type_id' => $workSchedule->work_type_id,
+            'work_type' => $workSchedule->workType,
+            'name' => $workSchedule->name,
+            'time_in' => $workSchedule->time_in,
+            'time_out' => $workSchedule->time_out,
+        ];
+    }
+
+    public function officePrintData(Request $request, int $stationId): array
     {
         $month = (int) $request->query('month', now()->month);
         $year = (int) $request->query('year', now()->year);
         $search = trim((string) $request->query('search', ''));
         $selectedDepartment = trim((string) $request->query('department', ''));
+        $employeePage = max((int) $request->query('employee_page', 1), 1);
+        $employeesPerPage = 3;
 
         if ($month < 1 || $month > 12) {
             $month = now()->month;
@@ -178,7 +253,7 @@ class DailyTimeRecordService
         }
 
         $departments = $this->repository
-            ->printDepartmentsForStation($stationId, $search, $month, $year)
+            ->printOfficesForStation($stationId, $search, $month, $year)
             ->map(fn ($office) => [
                 'id' => $office->id,
                 'name' => $office->name,
@@ -190,15 +265,38 @@ class DailyTimeRecordService
             $selectedDepartment = (string) ($departments->first()['name'] ?? '');
         }
 
+        $employees = $selectedDepartment !== ''
+            ? $this->repository
+                ->printEmployeesForOffice(
+                    $stationId,
+                    $selectedDepartment,
+                    $month,
+                    $year,
+                    $employeesPerPage,
+                    $employeePage,
+                )
+                ->through(fn (Employee $employee) => $this->formatPrintEmployee($employee))
+            : null;
+
         return [
             'departments' => $departments->values(),
             'selected_department' => $selectedDepartment,
-            'employees' => $selectedDepartment !== ''
-                ? $this->repository
-                    ->printEmployeesForOffice($stationId, $selectedDepartment, $month, $year)
-                    ->map(fn (Employee $employee) => $this->formatPrintEmployee($employee))
-                    ->values()
-                : [],
+            'employees' => $employees?->items() ?? [],
+            'employee_pagination' => $employees ? [
+                'current_page' => $employees->currentPage(),
+                'last_page' => $employees->lastPage(),
+                'per_page' => $employees->perPage(),
+                'total' => $employees->total(),
+                'from' => $employees->firstItem(),
+                'to' => $employees->lastItem(),
+            ] : [
+                'current_page' => 1,
+                'last_page' => 1,
+                'per_page' => $employeesPerPage,
+                'total' => 0,
+                'from' => null,
+                'to' => null,
+            ],
         ];
     }
 
@@ -223,6 +321,20 @@ class DailyTimeRecordService
         }
     }
 
+    private function stationEmployeeTimeRecord(int $employeeId, int $stationId): Employee
+    {
+        $timeRecord = $this->repository->employeeTimeRecordForStation(
+            $employeeId,
+            $stationId,
+        );
+
+        if (! $timeRecord) {
+            abort(404, 'Daily time record not found.');
+        }
+
+        return $timeRecord;
+    }
+
     private function monthlyTotalsForEmployee(Employee $employee)
     {
         return $employee->attendances
@@ -232,60 +344,41 @@ class DailyTimeRecordService
             ));
     }
 
-    private function officeHeadSignatory(Employee $employee): array
+    private function defaultSignatory(Employee $employee): array
     {
-        $officeHead = $this->repository->officeHeadForOffice($employee->office_id);
-        $employeeIsOfficeHead = (string) $officeHead?->employee_id === (string) $employee->id;
-
-        if ($employeeIsOfficeHead) {
-            $divisionHead = $this->repository->divisionHeadForDivision(
-                $employee->office?->division_id,
-            );
-
-            if (! $divisionHead?->employee) {
-                return [
-                    'name' => 'No Division Head Assigned',
-                    'position' => 'Division Head',
-                    'office' => $employee->office?->name,
-                    'employee' => null,
-                    'type' => 'division_head',
-                    'missing' => true,
-                ];
-            }
-
-            return [
-                'name' => $this->formatEmployeeName($divisionHead->employee),
-                'position' => $divisionHead->employee->position ?: 'Division Head',
-                'office' => $employee->office?->name,
-                'employee' => $this->signatoryEmployee($divisionHead->employee),
-                'type' => 'division_head',
-                'missing' => false,
-            ];
+        if ($this->repository->headRoleForEmployee($employee->id, 'division_head')) {
+            return $this->osdsDivisionHeadSignatory($employee);
         }
 
-        if (! $officeHead?->employee) {
-            return [
-                'name' => 'No Office Head Assigned',
-                'position' => 'Office Head',
-                'office' => $employee->office?->name,
-                'employee' => null,
-                'type' => 'office_head',
-                'missing' => true,
-            ];
+        if ($this->repository->headRoleForEmployee($employee->id, 'unit_head')) {
+            return $this->divisionHeadSignatory($employee);
         }
 
-        return [
-            'name' => $this->formatEmployeeName($officeHead->employee),
-            'position' => $officeHead->employee->position ?: 'Office Head',
-            'office' => $employee->office?->name,
-            'employee' => $this->signatoryEmployee($officeHead->employee),
-            'type' => 'office_head',
-            'missing' => false,
-        ];
+        return $this->directOfficeHeadSignatory($employee);
     }
 
     private function availableSignatories(Employee $employee): array
     {
+        $unitHeadRole = $this->repository->headRoleForEmployee($employee->id, 'unit_head');
+        $divisionHeadRole = $this->repository->headRoleForEmployee($employee->id, 'division_head');
+        $osdsHead = $this->osdsDivisionHeadSignatory($employee);
+
+        if ($divisionHeadRole) {
+            return [
+                'office_head' => $osdsHead,
+                'division_head' => $osdsHead,
+            ];
+        }
+
+        if ($unitHeadRole) {
+            $divisionHead = $this->divisionHeadSignatory($employee);
+
+            return [
+                'office_head' => $divisionHead,
+                'division_head' => $divisionHead,
+            ];
+        }
+
         return [
             'office_head' => $this->directOfficeHeadSignatory($employee),
             'division_head' => $this->divisionHeadSignatory($employee),
@@ -299,7 +392,7 @@ class DailyTimeRecordService
         if (! $officeHead?->employee) {
             return [
                 'name' => 'No Office Head Assigned',
-                'position' => 'Office Head',
+                'position' => '',
                 'office' => $employee->office?->name,
                 'employee' => null,
                 'type' => 'office_head',
@@ -326,7 +419,7 @@ class DailyTimeRecordService
         if (! $divisionHead?->employee) {
             return [
                 'name' => 'No Division Head Assigned',
-                'position' => 'Division Head',
+                'position' => '',
                 'office' => $employee->office?->name,
                 'employee' => null,
                 'type' => 'division_head',
@@ -340,6 +433,33 @@ class DailyTimeRecordService
             'office' => $employee->office?->name,
             'employee' => $this->signatoryEmployee($divisionHead->employee),
             'type' => 'division_head',
+            'missing' => false,
+        ];
+    }
+
+    private function osdsDivisionHeadSignatory(Employee $employee): array
+    {
+        $osdsHead = $this->repository->osdsDivisionHeadForStation($employee->station_id);
+
+        if (! $osdsHead?->employee) {
+            return [
+                'name' => 'No OSDS Head Assigned',
+                'position' => '',
+                'office' => 'OSDS',
+                'employee' => null,
+                'type' => 'office_head',
+                'label' => 'OSDS Head',
+                'missing' => true,
+            ];
+        }
+
+        return [
+            'name' => $this->formatEmployeeName($osdsHead->employee),
+            'position' => $osdsHead->employee->position ?: 'OSDS Head',
+            'office' => $osdsHead->division?->name ?: 'OSDS',
+            'employee' => $this->signatoryEmployee($osdsHead->employee),
+            'type' => 'office_head',
+            'label' => 'OSDS Head',
             'missing' => false,
         ];
     }

@@ -171,6 +171,7 @@ const PositionList = ({
                                                     onClick={() =>
                                                         handleEdit(position)
                                                     }
+                                                    title="Edit Position"
                                                 >
                                                     <SquarePen className="h-4 w-4" />
                                                 </Button>
@@ -181,6 +182,7 @@ const PositionList = ({
                                                         <Button
                                                             size="icon"
                                                             className="rounded-full bg-red-100 text-red-600 hover:bg-red-600 hover:text-white shadow-sm transition-all duration-200"
+                                                            title="Delete Position"
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>

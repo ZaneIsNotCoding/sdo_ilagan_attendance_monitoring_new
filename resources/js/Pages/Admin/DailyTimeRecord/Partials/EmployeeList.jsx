@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import React from "react";
 import {
     Table,
     TableBody,
@@ -18,7 +17,7 @@ import {
 } from "@/components/ui/pagination";
 import {
     Building2,
-    BriefcaseBusiness,
+    AlertTriangle,
     Clock3,
     Eye,
     Printer,
@@ -31,11 +30,16 @@ import {
     CustomDropdownCheckboxObject,
 } from "@/components/dropdown-menu-main";
 import { Button } from "@/Components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-
-const formatWorkSchedule = (schedule) =>
-    schedule?.name ||
-    [schedule?.time_in, schedule?.time_out].filter(Boolean).join(" - ");
+import { SuggestionSkeletonList } from "@/Components/Skeletons";
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import useEmployeeListControls, {
+    formatWorkSchedule,
+    monthOptions,
+} from "../hooks/useEmployeeListControls";
 
 const EmployeeList = ({
     employees,
@@ -54,119 +58,33 @@ const EmployeeList = ({
     onPrintEmployee,
     onPrintDepartment,
 }) => {
-    const [showSuggestions, setShowSuggestions] = useState(false);
-    const [suggestionMatches, setSuggestionMatches] = useState([]);
-    const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-    const suggestionRequestRef = React.useRef(0);
-    const searchBoxRef = React.useRef(null);
-    const currentPage = pagination?.current_page || 1;
-    const totalPages = pagination?.last_page || 1;
-    const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
-    const officeItems = useMemo(
-        () => [{ id: "all", name: "All Offices" }, ...offices],
-        [offices],
-    );
-    const officeButtonLabel =
-        offices.find((office) => Number(office.id) === Number(selectedOffice))
-            ?.name || "All Offices";
     const displayedEmployees = employees;
-    const monthOptions = [
-        { value: 1, label: "January" },
-        { value: 2, label: "February" },
-        { value: 3, label: "March" },
-        { value: 4, label: "April" },
-        { value: 5, label: "May" },
-        { value: 6, label: "June" },
-        { value: 7, label: "July" },
-        { value: 8, label: "August" },
-        { value: 9, label: "September" },
-        { value: 10, label: "October" },
-        { value: 11, label: "November" },
-        { value: 12, label: "December" },
-    ];
-    const selectedMonthLabel =
-        monthOptions.find(
-            (item) => Number(item.value) === Number(selectedMonth),
-        )?.label || monthOptions[new Date().getMonth()].label;
-    const yearOptions = useMemo(() => {
-        const currentYear = new Date().getFullYear();
-
-        return Array.from({ length: 7 }, (_, index) =>
-            String(currentYear - 3 + index),
-        ).reverse();
-    }, []);
-
-    const handlePageChange = (page) => {
-        if (page < 1 || page > totalPages) return;
-        applyFilters({ pageValue: page });
-    };
-
-    const submitSearch = (value) => {
-        applyFilters({ searchValue: value });
-    };
-
-    const selectSuggestion = (suggestion) => {
-        const nextValue = suggestion.search || suggestion.label || "";
-
-        setSearch(nextValue);
-        setShowSuggestions(false);
-        submitSearch(`${suggestion.id} ${nextValue}`.trim());
-    };
-
-    useEffect(() => {
-        const query = (search || "").trim();
-
-        if (!query) {
-            setSuggestionMatches([]);
-            setSuggestionsLoading(false);
-            return;
-        }
-
-        setSuggestionsLoading(true);
-        const requestId = suggestionRequestRef.current + 1;
-        suggestionRequestRef.current = requestId;
-
-        const timeout = setTimeout(() => {
-            axios
-                .get(route("dailytimerecord.suggestions"), {
-                    params: { search: query },
-                })
-                .then((response) => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionMatches(response.data || []);
-                })
-                .catch(() => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionMatches([]);
-                })
-                .finally(() => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionsLoading(false);
-                });
-        }, 250);
-
-        return () => clearTimeout(timeout);
-    }, [search]);
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (
-                searchBoxRef.current &&
-                !searchBoxRef.current.contains(event.target)
-            ) {
-                setShowSuggestions(false);
-            }
-        };
-
-        document.addEventListener("mousedown", handleClickOutside);
-
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, []);
+    const {
+        currentPage,
+        handlePageChange,
+        officeButtonLabel,
+        officeItems,
+        pageNumbers,
+        searchBoxRef,
+        selectSuggestion,
+        selectedMonthLabel,
+        setShowSuggestions,
+        showSuggestions,
+        submitSearch,
+        suggestionMatches,
+        suggestionsLoading,
+        totalPages,
+        yearOptions,
+    } = useEmployeeListControls({
+        applyFilters,
+        offices,
+        pagination,
+        search,
+        selectedMonth,
+        selectedOffice,
+        selectedYear,
+        setSearch,
+    });
 
     return (
         <div className="mt-4 rounded-2xl border border-blue-100 bg-white p-4 shadow-lg">
@@ -181,7 +99,7 @@ const EmployeeList = ({
                         </p>
                     </div>
 
-                    <div className="grid w-full max-w-6xl grid-cols-1 items-center gap-4 xl:grid-cols-[minmax(240px,1fr)_132px_135px_112px_180px]">
+                    <div className="grid w-full grid-cols-1 items-center gap-4 xl:ml-auto xl:w-auto xl:grid-cols-[340px_132px_135px_112px_180px]">
                         <div ref={searchBoxRef} className="relative">
                             <FloatingInput
                                 label="Search Employee"
@@ -210,22 +128,7 @@ const EmployeeList = ({
 
                                     <div className="max-h-72 overflow-y-auto">
                                         {suggestionsLoading ? (
-                                            <div className="space-y-2 px-3 py-3">
-                                                {Array.from({
-                                                    length: 3,
-                                                }).map((_, index) => (
-                                                    <div
-                                                        key={index}
-                                                        className="flex items-center justify-between gap-3"
-                                                    >
-                                                        <div className="min-w-0 flex-1 space-y-2">
-                                                            <Skeleton className="h-4 w-3/4" />
-                                                            <Skeleton className="h-3 w-1/2" />
-                                                        </div>
-                                                        <Skeleton className="h-6 w-14 rounded-full" />
-                                                    </div>
-                                                ))}
-                                            </div>
+                                            <SuggestionSkeletonList count={3} />
                                         ) : suggestionMatches.length > 0 ? (
                                             suggestionMatches.map(
                                                 (suggestion) => (
@@ -359,11 +262,18 @@ const EmployeeList = ({
 
                     <TableBody>
                         {displayedEmployees.length > 0 ? (
-                            displayedEmployees.map((emp) => (
-                                <TableRow
-                                    key={emp.id}
-                                    className="h-[64px] transition hover:bg-blue-50"
-                                >
+                            displayedEmployees.map((emp) => {
+                                const hasWorkType = Boolean(
+                                    emp.work_type ||
+                                        emp.work_schedule?.work_type_id ||
+                                        emp.work_schedule?.work_type,
+                                );
+
+                                return (
+                                    <TableRow
+                                        key={emp.id}
+                                        className="h-[64px] transition hover:bg-blue-50"
+                                    >
                                     <TableCell className="p-3">
                                         <div className="flex min-w-0 items-center gap-3">
                                             <EmployeeAvatar
@@ -373,7 +283,7 @@ const EmployeeList = ({
                                             />
 
                                             <div className="min-w-0">
-                                                <div className="truncate font-medium text-slate-800">
+                                                <div className="truncate font-medium">
                                                     {emp.full_name || "-"}
                                                 </div>
                                             </div>
@@ -382,7 +292,6 @@ const EmployeeList = ({
 
                                     <TableCell className="p-3 text-gray-700">
                                         <div className="flex min-w-0 items-center gap-2">
-                                            <BriefcaseBusiness className="h-4 w-4 shrink-0 text-blue-600" />
                                             <span className="truncate">
                                                 {emp.position || "-"}
                                             </span>
@@ -395,15 +304,21 @@ const EmployeeList = ({
                                                 <Building2 className="h-4 w-4 text-blue-600" />
                                             </div>
 
-                                            <span className="truncate text-gray-700">
-                                                {emp.department || "-"}
-                                            </span>
+                                            <div className="min-w-0">
+                                                <div className="truncate font-medium">
+                                                    {emp.department || "-"}
+                                                </div>
+                                                <div className="truncate text-xs text-gray-500">
+                                                    {emp.office?.division
+                                                        ?.name || "-"}
+                                                </div>
+                                            </div>
                                         </div>
                                     </TableCell>
 
                                     <TableCell className="p-3 text-gray-700">
-                                        <div className="flex min-w-0 items-center gap-2">
-                                            <Clock3 className="h-4 w-4 shrink-0 text-blue-600" />
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <Clock3 className="h-5 w-5 shrink-0 text-blue-600" />
                                             <div className="min-w-0">
                                                 <div className="truncate font-medium text-gray-800">
                                                     {emp.work_type || "-"}
@@ -417,36 +332,70 @@ const EmployeeList = ({
                                         </div>
                                     </TableCell>
 
-                                    <TableCell className="p-3">
-                                        <div className="flex justify-center gap-2">
-                                            <Button
-                                                type="button"
-                                                size="icon"
-                                                variant="outline"
-                                                onClick={() =>
-                                                    onPreviewEmployee?.(emp)
-                                                }
-                                                className="h-8 w-8 border-blue-200 text-blue-700 hover:bg-blue-50"
-                                                title="Preview DTR"
-                                            >
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                size="icon"
-                                                variant="outline"
-                                                onClick={() =>
-                                                    onPrintEmployee?.(emp)
-                                                }
-                                                className="h-8 w-8 border-blue-200 text-blue-700 hover:bg-blue-50"
-                                                title="Print DTR"
-                                            >
-                                                <Printer className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))
+                                        <TableCell className="p-3">
+                                            <div className="flex justify-center gap-2">
+                                                {hasWorkType ? (
+                                                    <>
+                                                        <Button
+                                                            type="button"
+                                                            size="icon"
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                onPreviewEmployee?.(
+                                                                    emp,
+                                                                )
+                                                            }
+                                                            className="h-8 w-8 rounded-full border-blue-200 text-blue-700 hover:bg-blue-50"
+                                                            title="Preview DTR"
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            size="icon"
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                onPrintEmployee?.(
+                                                                    emp,
+                                                                )
+                                                            }
+                                                            className="h-8 w-8 rounded-full border-blue-200 text-blue-700 hover:bg-blue-50"
+                                                            title="Print DTR"
+                                                        >
+                                                            <Printer className="h-4 w-4" />
+                                                        </Button>
+                                                    </>
+                                                ) : (
+                                                    <HoverCard openDelay={150}>
+                                                        <HoverCardTrigger asChild>
+                                                            <Button
+                                                                type="button"
+                                                                size="icon"
+                                                                aria-disabled="true"
+                                                                onClick={(
+                                                                    event,
+                                                                ) =>
+                                                                    event.preventDefault()
+                                                                }
+                                                                className="h-8 w-8 animate-pulse cursor-not-allowed rounded-full border border-amber-300 bg-amber-100 text-amber-700 opacity-100 shadow-[0_0_12px_rgba(245,158,11,0.75)] hover:bg-amber-100"
+                                                            >
+                                                                <AlertTriangle className="h-4 w-4" />
+                                                            </Button>
+                                                        </HoverCardTrigger>
+                                                        <HoverCardContent
+                                                            side="left"
+                                                            align="center"
+                                                            className="w-fit rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 shadow-md"
+                                                        >
+                                                            Work type missing
+                                                        </HoverCardContent>
+                                                    </HoverCard>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })
                         ) : (
                             <TableRow>
                                 <TableCell
@@ -483,7 +432,6 @@ const EmployeeList = ({
                     />
                 </Pagination>
             )}
-
         </div>
     );
 };

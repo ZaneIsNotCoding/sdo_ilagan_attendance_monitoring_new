@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { router } from "@inertiajs/react";
+import React from "react";
 import {
     Table,
     TableBody,
@@ -24,12 +23,13 @@ import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
 import AddDivisionModal from "./AddDivisionModal";
 import AddOfficeModal from "./AddOfficeModal";
 import EditOfficeModal from "./EditOfficeModal";
-import DeleteDepartmentModal from "./DeleteDepartmentModal";
 import EditDivisionModal from "./EditDivisionModal";
+import useDepartmentList, {
+    useDepartmentPagination,
+} from "../hooks/useDepartmentList";
+import { ITEMS_PER_PAGE } from "../utils";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
-
-const ITEMS_PER_PAGE = 6;
 
 const DepartmentList = ({
     divisions = [],
@@ -37,170 +37,43 @@ const DepartmentList = ({
     office_heads = [],
     addDivisionModal = false,
     addOfficeModal = false,
+    editDivisionModal = null,
     editOfficeModal = null,
     deleteOfficeModal = null,
 }) => {
-    const [officePage, setOfficePage] = useState(1);
-    const [divisionPage, setDivisionPage] = useState(1);
-    const [editDivision, setEditDivision] = useState(null);
-
-    const sortedOffices = [...offices].sort((a, b) =>
-        (a?.name || "").localeCompare(b?.name || ""),
-    );
-    const sortedDivisions = [...divisions].sort((a, b) =>
-        (a?.name || "").localeCompare(b?.name || ""),
-    );
-
-    const totalOfficePages = Math.max(
-        Math.ceil(sortedOffices.length / ITEMS_PER_PAGE),
-        1,
-    );
-    const paginatedOffices = sortedOffices.slice(
-        (officePage - 1) * ITEMS_PER_PAGE,
-        officePage * ITEMS_PER_PAGE,
-    );
-    const totalDivisionPages = Math.max(
-        Math.ceil(sortedDivisions.length / ITEMS_PER_PAGE),
-        1,
-    );
-    const paginatedDivisions = sortedDivisions.slice(
-        (divisionPage - 1) * ITEMS_PER_PAGE,
-        divisionPage * ITEMS_PER_PAGE,
-    );
-
-    const assignedCount = sortedOffices.filter((office) =>
-        office_heads.some((h) => h.employee?.office_id === office.id),
-    ).length;
-
-    const missingOffices = sortedOffices.filter(
-        (office) =>
-            !office_heads.some((h) => h.employee?.office_id === office.id),
-    );
-
-    const coverage = Math.round(
-        (assignedCount / (sortedOffices.length || 1)) * 100,
-    );
-
-    const blueBlackPalette = [
-        "#0f172a",
-        "#1d4ed8",
-        "#2563eb",
-        "#475569",
-        "#93c5fd",
-    ];
-
-    const chartData = {
-        labels: ["Assigned", "Missing"],
-        datasets: [
-            {
-                data: [assignedCount, missingOffices.length],
-                backgroundColor: ["#1d4ed8", "#d1d5db"],
-                borderWidth: 0,
-            },
-        ],
-    };
-
-    const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: "60%",
-        plugins: { legend: { display: false } },
-    };
-
-    const divisionAnalytics = useMemo(() => {
-        const grouped = offices.reduce((acc, office) => {
-            const divisionName =
-                office?.division?.code || office?.division?.name || "Unknown";
-            acc[divisionName] = (acc[divisionName] || 0) + 1;
-            return acc;
-        }, {});
-
-        const labels = Object.keys(grouped);
-        const values = Object.values(grouped);
-
-        return {
-            labels,
-            datasets: [
-                {
-                    data: values,
-                    backgroundColor: labels.map(
-                        (_, index) =>
-                            blueBlackPalette[index % blueBlackPalette.length],
-                    ),
-                    borderWidth: 0,
-                },
-            ],
-        };
-    }, [offices]);
-
-    const divisionChartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: "60%",
-        plugins: { legend: { display: false } },
-    };
-
-    const divisionSummary = useMemo(() => {
-        return offices.reduce((acc, office) => {
-            const key =
-                office?.division?.code || office?.division?.name || "Unknown";
-            acc[key] = (acc[key] || 0) + 1;
-            return acc;
-        }, {});
-    }, [offices]);
-
-    const [chartReady, setChartReady] = useState(false);
-
-    useEffect(() => {
-        const timer = setTimeout(() => setChartReady(true), 200);
-        return () => clearTimeout(timer);
-    }, []);
-
-    useEffect(() => {
-        setOfficePage((page) => Math.min(page, totalOfficePages));
-    }, [totalOfficePages]);
-
-    useEffect(() => {
-        setDivisionPage((page) => Math.min(page, totalDivisionPages));
-    }, [totalDivisionPages]);
-
-    const openDepartmentModal = (modal, params = {}) => {
-        const query = new URLSearchParams(window.location.search);
-
-        query.delete("head_id");
-        query.delete("division_id");
-        query.delete("division_name");
-        query.delete("office_id");
-        query.set("modal", modal);
-
-        Object.entries(params).forEach(([key, value]) => {
-            if (value !== undefined && value !== null && value !== "") {
-                query.set(key, value);
-            }
-        });
-
-        router.get(route("departmentmanagement"), Object.fromEntries(query), {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        });
-    };
-
-    const closeDepartmentModal = () => {
-        const query = new URLSearchParams(window.location.search);
-
-        query.delete("modal");
-        query.delete("head_id");
-        query.delete("division_id");
-        query.delete("division_name");
-        query.delete("office_id");
-
-        router.get(route("departmentmanagement"), Object.fromEntries(query), {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        });
-    };
+    const {
+        assignedCount,
+        blueBlackPalette,
+        chartData,
+        chartOptions,
+        chartReady,
+        closeDepartmentModal,
+        coverage,
+        divisionAnalytics,
+        divisionChartOptions,
+        divisionPage,
+        divisionSummary,
+        missingOffices,
+        officePage,
+        openDepartmentModal,
+        setDivisionPage,
+        setOfficePage,
+        sortedOffices,
+    } = useDepartmentList({ offices, office_heads });
+    const {
+        paginatedDivisions,
+        paginatedOffices,
+        sortedDivisions,
+        totalDivisionPages,
+        totalOfficePages,
+    } = useDepartmentPagination({
+        divisionPage,
+        divisions,
+        officePage,
+        setDivisionPage,
+        setOfficePage,
+        sortedOffices,
+    });
 
     return (
         <div className="grid gap-5 xl:grid-cols-2">
@@ -248,11 +121,11 @@ const DepartmentList = ({
                 />
 
                 <EditDivisionModal
-                    open={!!editDivision}
+                    open={!!editDivisionModal}
                     setOpen={(nextOpen) => {
-                        if (!nextOpen) setEditDivision(null);
+                        if (!nextOpen) closeDepartmentModal();
                     }}
-                    division={editDivision}
+                    division={editDivisionModal}
                 />
 
                 <div className="overflow-x-auto border rounded-lg">
@@ -310,6 +183,7 @@ const DepartmentList = ({
                                                         }
                                                         className="h-8 w-8 rounded-full bg-blue-600 text-white hover:bg-blue-800"
                                                         size="icon"
+                                                        title="Edit Office"
                                                     >
                                                         <SquarePen className="h-4 w-4" />
                                                     </Button>
@@ -326,6 +200,7 @@ const DepartmentList = ({
                                                         }
                                                         className="h-8 w-8 rounded-full bg-red-100 text-red-600 hover:bg-red-600 hover:text-white"
                                                         size="icon"
+                                                        title="Delete Office"
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
@@ -613,22 +488,41 @@ const DepartmentList = ({
                                                 <div className="flex justify-center gap-2">
                                                     <Button
                                                         onClick={() =>
-                                                            setEditDivision(
-                                                                division,
+                                                            openDepartmentModal(
+                                                                "edit-division",
+                                                                {
+                                                                    division_id:
+                                                                        division.id,
+                                                                },
                                                             )
                                                         }
                                                         className="h-8 w-8 rounded-full bg-blue-600 text-white hover:bg-blue-800"
                                                         size="icon"
+                                                        title="Edit Division"
                                                     >
                                                         <SquarePen className="h-4 w-4" />
                                                     </Button>
 
-                                                    <DeleteDepartmentModal
-                                                        department={division}
+                                                    <ConfirmPasswordDialog
+                                                        title="Delete Division"
+                                                        description="Please confirm your password before deleting this division."
+                                                        itemLabel="Division"
+                                                        itemName={
+                                                            division.name || ""
+                                                        }
+                                                        note="Offices under this division may be affected after deletion."
+                                                        action={route(
+                                                            "department.destroy",
+                                                            division.id,
+                                                        )}
+                                                        method="delete"
+                                                        confirmText="Delete Division"
+                                                        processingText="Deleting..."
                                                         trigger={
                                                             <Button
                                                                 className="h-8 w-8 rounded-full bg-red-100 text-red-600 hover:bg-red-600 hover:text-white"
                                                                 size="icon"
+                                                                title="Delete Division"
                                                             >
                                                                 <Trash2 className="h-4 w-4" />
                                                             </Button>

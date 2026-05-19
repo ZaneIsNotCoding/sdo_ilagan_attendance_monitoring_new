@@ -1,6 +1,8 @@
 import React from "react";
 
 const DTRReport = React.forwardRef(({ name, dateRange, logs, signatory }, ref) => {
+    const signatoryPosition =
+        signatory && !signatory.missing ? signatory.position : "";
     const formattedMonth = new Date(dateRange.start).toLocaleDateString(
         "en-US",
         { month: "long", year: "numeric" }
@@ -281,7 +283,7 @@ const DTRReport = React.forwardRef(({ name, dateRange, logs, signatory }, ref) =
                             }}
                         ></div>
                         <small style={{ display: "block", marginTop: "0" }}>
-                            {signatory?.position || "OFFICE HEAD"}
+                            {signatoryPosition}
                         </small>
                     </div>
                 </div>

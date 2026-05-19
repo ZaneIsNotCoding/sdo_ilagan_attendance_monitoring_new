@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from "react";
-import { router } from "@inertiajs/react";
+import React from "react";
 import {
     Dialog,
     DialogContent,
@@ -10,32 +9,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LandPlot, Save, Sparkles } from "lucide-react";
+import useAddStationForm from "../hooks/useAddStationForm";
 
 const AddStationModal = ({ open, setOpen }) => {
-    const [code, setCode] = useState("");
-    const [name, setName] = useState("");
-
-    useEffect(() => {
-        if (open) {
-            setCode("");
-            setName("");
-        }
-    }, [open]);
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-
-        router.post(
-            route("stations.store"),
-            {
-                code: code.trim() || null,
-                name: name.trim(),
-            },
-            {
-                onSuccess: () => setOpen(false),
-            },
-        );
-    };
+    const { code, handleSubmit, name, setCode, setName } = useAddStationForm({
+        open,
+        setOpen,
+    });
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>

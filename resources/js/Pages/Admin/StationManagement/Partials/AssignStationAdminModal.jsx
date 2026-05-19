@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
-import axios from "axios";
+import React from "react";
 import {
     Dialog,
     DialogContent,
@@ -9,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import InputError from "@/Components/InputError";
-import { router, usePage } from "@inertiajs/react";
+import { usePage } from "@inertiajs/react";
 import {
     Search,
     Check,
@@ -23,7 +22,9 @@ import {
 } from "lucide-react";
 import FloatingInput from "@/components/floating-input";
 import EmployeeAvatar from "@/Components/EmployeeAvatar";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SelectableEmployeeSkeletonList } from "@/Components/Skeletons";
+import useAssignStationAdmin from "../hooks/useAssignStationAdmin";
+import { getFullName } from "../utils";
 
 const AssignStationAdminModal = ({
     open,
@@ -32,153 +33,26 @@ const AssignStationAdminModal = ({
     stationData = null,
 }) => {
     const { errors = {} } = usePage().props;
-    const selectedStationId = stationData?.station_id || stationData?.id || "";
-    const selectedRole = stationData?.role || "school_admin";
-    const selectedSource = stationData?.source || "station";
-
-    const [selectedEmployee, setSelectedEmployee] = useState(null);
-    const [employees, setEmployees] = useState([]);
-    const [employeeTotal, setEmployeeTotal] = useState(0);
-    const [employeesLoading, setEmployeesLoading] = useState(false);
-    const [search, setSearch] = useState("");
-
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-
-    const passwordChecks = useMemo(
-        () => ({
-            hasMinLength: password.length >= 6,
-            hasUppercase: /[A-Z]/.test(password),
-            hasNumber: /\d/.test(password),
-        }),
-        [password],
-    );
-
-    const isPasswordValid =
-        passwordChecks.hasMinLength &&
-        passwordChecks.hasUppercase &&
-        passwordChecks.hasNumber;
-    const doPasswordsMatch =
-        password.length > 0 &&
-        confirmPassword.length > 0 &&
-        password === confirmPassword;
-
-    // reset when opened
-    useEffect(() => {
-        if (open) {
-            setSelectedEmployee(null);
-            setEmployees([]);
-            setEmployeeTotal(0);
-            setSearch("");
-            setEmail("");
-            setPassword("");
-            setConfirmPassword("");
-        }
-    }, [open]);
-
-    // 🔥 resolve station name properly
-    const stationName = useMemo(() => {
-        return (
-            stationData?.name ||
-            stations.find((s) => {
-                if (selectedSource === "sdo") {
-                    return (
-                        s.source === "sdo" &&
-                        s.station_id == selectedStationId &&
-                        s.role === selectedRole
-                    );
-                }
-                return s.id == selectedStationId;
-            })?.name ||
-            ""
-        );
-    }, [
-        stationData,
-        stations,
-        selectedStationId,
-        selectedRole,
-        selectedSource,
-    ]);
-
-    useEffect(() => {
-        if (!open || !selectedStationId) {
-            setEmployees([]);
-            setEmployeeTotal(0);
-            setEmployeesLoading(false);
-            return;
-        }
-
-        let isCurrentRequest = true;
-
-        setEmployeesLoading(true);
-
-        const timeout = setTimeout(() => {
-            axios
-                .get(route("stationadmin.employees"), {
-                    params: {
-                        station_id: selectedStationId,
-                        search,
-                    },
-                })
-                .then((response) => {
-                    if (!isCurrentRequest) return;
-
-                    setEmployees(response.data?.data || []);
-                    setEmployeeTotal(response.data?.total || 0);
-                })
-                .catch(() => {
-                    if (!isCurrentRequest) return;
-
-                    setEmployees([]);
-                    setEmployeeTotal(0);
-                })
-                .finally(() => {
-                    if (!isCurrentRequest) return;
-
-                    setEmployeesLoading(false);
-                });
-        }, 250);
-
-        return () => {
-            isCurrentRequest = false;
-            clearTimeout(timeout);
-        };
-    }, [open, selectedStationId, search]);
-
-    const handleSubmit = () => {
-        if (
-            !selectedEmployee ||
-            !stationData ||
-            !email ||
-            !isPasswordValid ||
-            !doPasswordsMatch
-        ) {
-            return;
-        }
-
-        router.post(
-            route("stationadmin.store"),
-            {
-                employee_id: selectedEmployee.id,
-
-                station_id:
-                    selectedSource === "sdo"
-                        ? selectedStationId
-                        : selectedStationId,
-
-                role: selectedRole,
-                email,
-                password,
-                password_confirmation: confirmPassword,
-            },
-            {
-                onSuccess: () => {
-                    setOpen(false);
-                },
-            },
-        );
-    };
+    const {
+        confirmPassword,
+        doPasswordsMatch,
+        email,
+        employeeTotal,
+        employees,
+        employeesLoading,
+        handleSubmit,
+        isPasswordValid,
+        password,
+        passwordChecks,
+        search,
+        selectedEmployee,
+        setConfirmPassword,
+        setEmail,
+        setPassword,
+        setSearch,
+        setSelectedEmployee,
+        stationName,
+    } = useAssignStationAdmin({ open, setOpen, stations, stationData });
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -237,31 +111,10 @@ const AssignStationAdminModal = ({
 
                             <div className="h-[20rem] space-y-2 overflow-y-auto p-2">
                                 {employeesLoading ? (
-                                    Array.from({ length: 5 }).map(
-                                        (_, index) => (
-                                            <div
-                                                key={index}
-                                                className="flex w-full items-center justify-between rounded-xl px-3 py-2"
-                                            >
-                                                <div className="flex min-w-0 flex-1 items-center gap-3">
-                                                    <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
-
-                                                    <div className="min-w-0 flex-1 space-y-2">
-                                                        <Skeleton className="h-4 w-3/4" />
-                                                        <Skeleton className="h-3 w-1/2" />
-                                                    </div>
-                                                </div>
-
-                                                <Skeleton className="ml-3 h-5 w-5 shrink-0 rounded-full" />
-                                            </div>
-                                        ),
-                                    )
+                                    <SelectableEmployeeSkeletonList count={5} />
                                 ) : employees.length > 0 ? (
                                     employees.map((emp) => {
-                                        const fullName =
-                                            `${emp.first_name || ""} ${emp.middle_name || ""} ${emp.last_name || ""}`
-                                                .replace(/\s+/g, " ")
-                                                .trim();
+                                        const fullName = getFullName(emp);
                                         const isSelected =
                                             String(selectedEmployee?.id) ===
                                             String(emp.id);

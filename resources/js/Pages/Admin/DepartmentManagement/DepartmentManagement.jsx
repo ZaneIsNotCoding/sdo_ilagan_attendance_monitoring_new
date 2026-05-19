@@ -1,10 +1,11 @@
-import React, { useRef, useState } from "react";
+import React from "react";
 import { Head } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import DepartmentHeadList from "./Partials/DepartmentHeadList";
 import DivisionHeadList from "./Partials/DivisionHeadList";
 import DepartmentList from "./Partials/DepartmentList";
 import { Building2 } from "lucide-react";
+import useDepartmentManagementFocus from "./hooks/useDepartmentManagementFocus";
 
 const DepartmentManagement = ({
     office_heads = [],
@@ -15,6 +16,7 @@ const DepartmentManagement = ({
     office_search = "",
     addDivisionModal = false,
     addOfficeModal = false,
+    editDivisionModal = null,
     editOfficeModal = null,
     deleteOfficeModal = null,
     assignOfficeHeadModal = null,
@@ -22,21 +24,12 @@ const DepartmentManagement = ({
     deleteOfficeHeadModal = null,
     deleteDivisionHeadModal = null,
 }) => {
-    const sectionRef = useRef(null);
-    const [highlightedOfficeId, setHighlightedOfficeId] = useState(null);
-    const [highlightRequestKey, setHighlightRequestKey] = useState(0);
-
-    const focusOfficeRow = (officeId) => {
-        if (!officeId) return;
-
-        setHighlightedOfficeId(officeId);
-        setHighlightRequestKey((value) => value + 1);
-
-        sectionRef.current?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-        });
-    };
+    const {
+        focusOfficeRow,
+        highlightedOfficeId,
+        highlightRequestKey,
+        sectionRef,
+    } = useDepartmentManagementFocus();
 
     return (
         <AuthenticatedLayout
@@ -57,6 +50,7 @@ const DepartmentManagement = ({
                         offices={offices}
                         addDivisionModal={addDivisionModal}
                         addOfficeModal={addOfficeModal}
+                        editDivisionModal={editDivisionModal}
                         editOfficeModal={editOfficeModal}
                         deleteOfficeModal={deleteOfficeModal}
                         onAssignNow={focusOfficeRow}

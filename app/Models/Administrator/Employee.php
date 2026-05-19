@@ -9,6 +9,7 @@ use App\Models\HumanResource\VacationLeave;
 use App\Models\User;
 use Database\Factories\EmployeeFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class Employee extends Model
@@ -47,6 +48,15 @@ class Employee extends Model
     protected static function newFactory()
     {
         return EmployeeFactory::new();
+    }
+
+    public function scopeOrderByName(Builder $query): Builder
+    {
+        return $query
+            ->orderBy('first_name')
+            ->orderBy('middle_name')
+            ->orderBy('last_name')
+            ->orderBy('id');
     }
 
     public function attendances()

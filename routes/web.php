@@ -75,11 +75,20 @@ Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(functio
     Route::delete('/attendance/leave', [EmployeeLeaveController::class, 'destroy']);
 
     // Daily Time Records
-    Route::get('/dailytimerecord', [DailyTimeRecordController::class, 'index'])->name('dailytimerecord');
-    Route::get('/dailytimerecord/suggestions', [DailyTimeRecordController::class, 'suggestions'])->name('dailytimerecord.suggestions');
-    Route::get('/dailytimerecord/departments', [DailyTimeRecordController::class, 'departments'])->name('dailytimerecord.departments');
-    Route::get('/dailytimerecord/{employeeId}-{first_name}', [DailyTimeRecordController::class, 'show'])->name('dailytimerecord.show');
-    Route::get('/dailytimerecord/details/{employeeId}', [DailyTimeRecordController::class, 'details'])->name('dailytimerecord.details');
+    Route::controller(DailyTimeRecordController::class)
+        ->prefix('dailytimerecord')
+        ->group(function () {
+            Route::get('/', 'index')->name('dailytimerecord');
+            Route::get('/suggestions', 'suggestions')->name('dailytimerecord.suggestions');
+            Route::get('/offices', 'offices')->name('dailytimerecord.offices');
+            Route::get('/employees/{employeeId}/details', 'details')->name('dailytimerecord.details');
+            Route::post('/work-types', 'storeWorkType')->name('dailytimerecord.worktypes.store');
+            Route::put('/work-types/{workType}', 'updateWorkType')->name('dailytimerecord.worktypes.update');
+            Route::delete('/work-types/{workType}', 'destroyWorkType')->name('dailytimerecord.worktypes.destroy');
+            Route::post('/work-schedules', 'storeWorkSchedule')->name('dailytimerecord.workschedules.store');
+            Route::put('/work-schedules/{workSchedule}', 'updateWorkSchedule')->name('dailytimerecord.workschedules.update');
+            Route::delete('/work-schedules/{workSchedule}', 'destroyWorkSchedule')->name('dailytimerecord.workschedules.destroy');
+        });
 
     // Admin Tardy Records
     Route::get('/tardysummary', [TardinessRecordController::class, 'index'])->name('tardysummary');
@@ -126,7 +135,6 @@ Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(functio
     Route::delete('/station-assignments/{stationAssignment}', [StationManagementController::class, 'destroyStationAssignment'])->name('stationassignments.destroy');
     Route::put('/stations/{station}', [StationManagementController::class, 'updateStation'])->name('stations.update');
     Route::delete('/stations/{station}', [StationManagementController::class, 'destroyStation'])->name('stations.destroy');
-
 
     Route::middleware(['auth'])->group(function () {
         Route::get('/employee/locator-slip', [LocatorSlipController::class, 'index'])->name('locator-slips');

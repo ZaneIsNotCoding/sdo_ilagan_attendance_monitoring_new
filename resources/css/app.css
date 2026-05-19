@@ -120,3 +120,20 @@
   animation: pulseHighlight 1s ease-out 3;
   border-color: rgb(34 197 94);
 }
+
+@keyframes bellRing {
+  0%, 43%, 100% {
+    transform: rotate(0deg);
+  }
+  4%, 13%, 22%, 31% {
+    transform: rotate(-12deg);
+  }
+  9%, 18%, 27% {
+    transform: rotate(12deg);
+  }
+}
+
+.animate-bell-ring {
+  animation: bellRing 2.65s ease-in-out infinite;
+  transform-origin: 50% 10%;
+}

@@ -7,10 +7,41 @@ use App\Models\Administrator\Attendance;
 use App\Models\Administrator\DivisionHead;
 use App\Models\Administrator\Employee;
 use App\Models\Administrator\Office;
+use App\Models\Administrator\WorkSchedule;
+use App\Models\Administrator\WorkType;
 use App\Models\EmployeeLeave;
 
 class DailyTimeRecordRepository
 {
+    public function workTypes()
+    {
+        return WorkType::withCount('workSchedules')
+            ->select('id', 'name', 'created_at', 'updated_at')
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function workSchedules()
+    {
+        return WorkSchedule::with('workType:id,name')
+            ->select('id', 'work_type_id', 'name', 'time_in', 'time_out', 'created_at', 'updated_at')
+            ->orderBy('work_type_id')
+            ->orderBy('time_in')
+            ->get();
+    }
+
+    public function workTypeModal(int $id): ?WorkType
+    {
+        return WorkType::select('id', 'name')->find($id);
+    }
+
+    public function workScheduleModal(int $id): ?WorkSchedule
+    {
+        return WorkSchedule::with('workType:id,name')
+            ->select('id', 'work_type_id', 'name', 'time_in', 'time_out')
+            ->find($id);
+    }
+
     public function unprocessedAttendancesByWorkTypes(int $stationId, array $workTypes)
     {
         return Attendance::whereHas('employee', function ($query) use ($stationId, $workTypes) {
@@ -20,11 +51,11 @@ class DailyTimeRecordRepository
                 })
                 ->where('active_status', 1);
         })
-            ->doesntHave('tardinessRecord')
             ->with([
                 'am:id,attendance_id,am_time_in,am_time_out',
                 'pm:id,attendance_id,pm_time_in,pm_time_out',
                 'employee:id,work_schedule_id,station_id,active_status',
+                'employee.workSchedule:id,work_type_id,time_in,time_out',
                 'employee.workSchedule.workType:id,name',
             ])
             ->get();
@@ -47,7 +78,11 @@ class DailyTimeRecordRepository
 
     public function paginatedEmployees(DailyTimeRecordFilter $filter)
     {
-        return Employee::with(['office:id,name', 'workSchedule.workType:id,name'])
+        return Employee::with([
+            'office:id,name,division_id',
+            'office.division:id,code,name',
+            'workSchedule.workType:id,name',
+        ])
             ->where('station_id', $filter->stationId)
             ->where('active_status', 1)
             ->when($filter->officeId !== 'all', function ($query) use ($filter) {
@@ -80,8 +115,7 @@ class DailyTimeRecordRepository
                         });
                 });
             })
-            ->orderBy('last_name')
-            ->orderBy('first_name')
+            ->orderByName()
             ->paginate($filter->limit)
             ->withQueryString();
     }
@@ -125,8 +159,7 @@ class DailyTimeRecordRepository
                         $officeQuery->where('name', 'like', "%{$search}%");
                     });
             })
-            ->orderBy('last_name')
-            ->orderBy('first_name')
+            ->orderByName()
             ->limit(8)
             ->get();
     }
@@ -134,17 +167,6 @@ class DailyTimeRecordRepository
     public function employeeLeaves(int $employeeId)
     {
         return EmployeeLeave::where('employee_id', $employeeId)->get();
-    }
-
-    public function employeeTimeRecord(int $employeeId): Employee
-    {
-        return Employee::with([
-            'office:id,name,division_id',
-            'office.division:id,code,name',
-            'attendances.am',
-            'attendances.pm',
-            'attendances.tardinessRecord',
-        ])->findOrFail($employeeId);
     }
 
     public function employeeTimeRecordForStation(int $employeeId, int $stationId): ?Employee
@@ -160,7 +182,7 @@ class DailyTimeRecordRepository
             ->find($employeeId);
     }
 
-    public function printDepartmentsForStation(int $stationId, string $search, int $month, int $year)
+    public function printOfficesForStation(int $stationId, string $search, int $month, int $year)
     {
         return Office::with('division:id,code,name')
             ->select('id', 'division_id', 'name')
@@ -196,7 +218,14 @@ class DailyTimeRecordRepository
             ->get();
     }
 
-    public function printEmployeesForOffice(int $stationId, string $officeName, int $month, int $year)
+    public function printEmployeesForOffice(
+        int $stationId,
+        string $officeName,
+        int $month,
+        int $year,
+        int $perPage = 3,
+        int $page = 1,
+    )
     {
         return Employee::with(['office:id,name,division_id', 'office.division:id,code,name'])
             ->where('station_id', $stationId)
@@ -208,9 +237,8 @@ class DailyTimeRecordRepository
                 $query->whereYear('date', $year)
                     ->whereMonth('date', $month);
             })
-            ->orderBy('last_name')
-            ->orderBy('first_name')
-            ->get();
+            ->orderByName()
+            ->paginate($perPage, ['*'], 'page', $page);
     }
 
     public function officeHeadForOffice(?int $officeId): ?DivisionHead
@@ -228,6 +256,18 @@ class DailyTimeRecordRepository
             ->first();
     }
 
+    public function headRoleForEmployee(int $employeeId, string $type): ?DivisionHead
+    {
+        return DivisionHead::with([
+            'division:id,code,name',
+            'office:id,name,division_id',
+        ])
+            ->where('employee_id', $employeeId)
+            ->where('type', $type)
+            ->latest()
+            ->first();
+    }
+
     public function divisionHeadForDivision(?int $divisionId): ?DivisionHead
     {
         if (! $divisionId) {
@@ -241,5 +281,57 @@ class DailyTimeRecordRepository
             ->where('division_id', $divisionId)
             ->latest()
             ->first();
+    }
+
+    public function osdsDivisionHeadForStation(?int $stationId): ?DivisionHead
+    {
+        if (! $stationId) {
+            return null;
+        }
+
+        return DivisionHead::with([
+            'employee:id,first_name,middle_name,last_name,profile_img,position,office_id,station_id,active_status',
+            'division:id,code,name',
+        ])
+            ->where('type', 'division_head')
+            ->whereHas('division', function ($query) {
+                $query->where('code', 'OSDS');
+            })
+            ->whereHas('employee', function ($query) use ($stationId) {
+                $query->where('station_id', $stationId)
+                    ->where('active_status', 1);
+            })
+            ->latest()
+            ->first();
+    }
+
+    public function createWorkType(array $data): WorkType
+    {
+        return WorkType::create($data);
+    }
+
+    public function updateWorkType(WorkType $workType, array $data): void
+    {
+        $workType->update($data);
+    }
+
+    public function deleteWorkType(WorkType $workType): void
+    {
+        $workType->delete();
+    }
+
+    public function createWorkSchedule(array $data): WorkSchedule
+    {
+        return WorkSchedule::create($data);
+    }
+
+    public function updateWorkSchedule(WorkSchedule $workSchedule, array $data): void
+    {
+        $workSchedule->update($data);
+    }
+
+    public function deleteWorkSchedule(WorkSchedule $workSchedule): void
+    {
+        $workSchedule->delete();
     }
 }

@@ -189,8 +189,7 @@ class AttendanceMonitoringController extends Controller
                         ["%{$search}%"],
                     );
             })
-            ->orderBy('last_name')
-            ->orderBy('first_name')
+            ->orderByName()
             ->limit(8)
             ->get()
             ->map(function ($employee) {

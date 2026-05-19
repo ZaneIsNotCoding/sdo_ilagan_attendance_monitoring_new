@@ -1,6 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
-import { router } from "@inertiajs/react";
+import React from "react";
 import {
     Dialog,
     DialogContent,
@@ -12,7 +10,9 @@ import { Button } from "@/components/ui/button";
 import FloatingInput from "@/components/floating-input";
 import { Building2, Check, Search, ShieldCheck, Users } from "lucide-react";
 import EmployeeAvatar from "@/Components/EmployeeAvatar";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SelectableEmployeeSkeletonList } from "@/Components/Skeletons";
+import useAssignHeadForm from "../hooks/useAssignHeadForm";
+import { getFullName } from "../utils";
 
 const AddDivisionHeadForm = ({
     open,
@@ -20,92 +20,28 @@ const AddDivisionHeadForm = ({
     divisions = [],
     preselectedDivision = null,
 }) => {
-    const [divisionId, setDivisionId] = useState("");
-    const [employeeId, setEmployeeId] = useState("");
-    const [employees, setEmployees] = useState([]);
-    const [employeeTotal, setEmployeeTotal] = useState(0);
-    const [search, setSearch] = useState("");
-    const [loading, setLoading] = useState(false);
-    const requestRef = useRef(0);
-
-    useEffect(() => {
-        if (open) {
-            setDivisionId(preselectedDivision || "");
-            setEmployeeId("");
-            setSearch("");
-        }
-    }, [open, preselectedDivision]);
-
-    const selectedDivision = useMemo(
-        () =>
-            divisions.find(
-                (division) => String(division.id) === String(divisionId),
-            ),
-        [divisions, divisionId],
-    );
-
-    const selectedEmployee = useMemo(
-        () => employees.find((emp) => String(emp.id) === String(employeeId)),
-        [employees, employeeId],
-    );
-
-    useEffect(() => {
-        if (!open || !divisionId) {
-            setEmployees([]);
-            setEmployeeTotal(0);
-            setLoading(false);
-            return;
-        }
-
-        const requestId = requestRef.current + 1;
-        requestRef.current = requestId;
-        setLoading(true);
-
-        const timeout = setTimeout(() => {
-            axios
-                .get(route("department.employees"), {
-                    params: {
-                        division_id: divisionId,
-                        search: search.trim(),
-                    },
-                })
-                .then((response) => {
-                    if (requestRef.current !== requestId) return;
-
-                    setEmployees(response.data?.data || []);
-                    setEmployeeTotal(response.data?.total || 0);
-                })
-                .catch(() => {
-                    if (requestRef.current !== requestId) return;
-
-                    setEmployees([]);
-                    setEmployeeTotal(0);
-                })
-                .finally(() => {
-                    if (requestRef.current !== requestId) return;
-
-                    setLoading(false);
-                });
-        }, 250);
-
-        return () => clearTimeout(timeout);
-    }, [open, divisionId, search]);
-
-    const canSubmit = Boolean(employeeId && divisionId);
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!employeeId || !divisionId) return;
-
-        router.post(
-            route("divisionhead.storeDivisionHead"),
-            {
-                employee_id: employeeId,
-                division_id: divisionId,
-            },
-            { onSuccess: () => setOpen(false) },
-        );
-    };
+    const {
+        canSubmit,
+        employeeId,
+        employees,
+        employeeTotal,
+        handleSubmit,
+        loading,
+        search,
+        selectedEmployee,
+        selectedTarget: selectedDivision,
+        setEmployeeId,
+        setSearch,
+    } = useAssignHeadForm({
+        collection: divisions,
+        idKey: "id",
+        open,
+        preselectedId: preselectedDivision,
+        requestParam: "division_id",
+        setOpen,
+        storePayloadKey: "division_id",
+        storeRoute: "divisionhead.storeDivisionHead",
+    });
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -172,29 +108,10 @@ const AddDivisionHeadForm = ({
 
                         <div className="h-[12rem] space-y-2 overflow-y-auto p-2">
                             {loading ? (
-                                Array.from({ length: 3 }).map((_, index) => (
-                                    <div
-                                        key={index}
-                                        className="flex w-full items-center justify-between rounded-xl px-3 py-2"
-                                    >
-                                        <div className="flex min-w-0 flex-1 items-center gap-3">
-                                            <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
-
-                                            <div className="min-w-0 flex-1 space-y-2">
-                                                <Skeleton className="h-4 w-3/4" />
-                                                <Skeleton className="h-3 w-1/2" />
-                                            </div>
-                                        </div>
-
-                                        <Skeleton className="ml-3 h-5 w-5 shrink-0 rounded-full" />
-                                    </div>
-                                ))
+                                <SelectableEmployeeSkeletonList />
                             ) : employees.length > 0 ? (
                                 employees.map((emp) => {
-                                    const fullName =
-                                        `${emp.first_name || ""} ${emp.middle_name || ""} ${emp.last_name || ""}`
-                                            .replace(/\s+/g, " ")
-                                            .trim();
+                                    const fullName = getFullName(emp);
                                     const isSelected =
                                         String(employeeId) === String(emp.id);
 

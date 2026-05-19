@@ -61,10 +61,7 @@ class EmployeeManagementRepository
                 $query->where('office_id', (int) $filter->officeId);
             })
             ->where('active_status', $filter->status === 'Active' ? 1 : 0)
-            ->orderBy('first_name')
-            ->orderBy('middle_name')
-            ->orderBy('last_name')
-            ->orderBy('id')
+            ->orderByName()
             ->paginate($filter->limit)
             ->withQueryString();
     }
@@ -105,8 +102,7 @@ class EmployeeManagementRepository
                         );
                 });
             })
-            ->orderBy('last_name')
-            ->orderBy('first_name')
+            ->orderByName()
             ->limit(10)
             ->get();
     }

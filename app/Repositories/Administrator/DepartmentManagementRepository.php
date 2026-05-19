@@ -99,8 +99,7 @@ class DepartmentManagementRepository
                         );
                 });
             })
-            ->orderBy('last_name')
-            ->orderBy('first_name');
+            ->orderByName();
 
         return [
             'total' => (clone $query)->count(),
@@ -133,6 +132,11 @@ class DepartmentManagementRepository
             ->where('name', $value)
             ->orWhere('code', $value)
             ->first();
+    }
+
+    public function divisionModal(int $divisionId): ?Division
+    {
+        return Division::select('id', 'code', 'name')->find($divisionId);
     }
 
     public function office(int $id): Office

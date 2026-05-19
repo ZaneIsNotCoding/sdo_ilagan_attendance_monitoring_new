@@ -180,8 +180,7 @@ class StationManagementRepository
                         ->orWhere('position', 'like', "%{$filter->search}%");
                 });
             })
-            ->orderBy('last_name')
-            ->orderBy('first_name');
+            ->orderByName();
 
         $total = (clone $employeesQuery)->count();
 
