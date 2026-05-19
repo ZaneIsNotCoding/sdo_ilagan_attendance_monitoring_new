@@ -81,11 +81,36 @@ const useDepartmentPrintData = ({
                         setDepartments(data.departments || []);
                     }
 
-                    setPrintEmployees(data.employees || []);
+                    const employees = data.employees || [];
+                    setPrintEmployees(employees);
                     setEmployeePagination(
                         data.employee_pagination || defaultEmployeePagination,
                     );
                     setSelectedDepartment(nextDepartment);
+
+                    setEmployeeData((current) => {
+                        const next = { ...current };
+
+                        employees.forEach((employee) => {
+                            if (employee.details) {
+                                next[employee.id] = employee.details;
+                            }
+                        });
+
+                        return next;
+                    });
+
+                    const firstEmployeeWithDetails = employees.find(
+                        (employee) => employee.details?.signatories,
+                    );
+
+                    if (firstEmployeeWithDetails?.details?.signatories) {
+                        setDepartmentSignatories((current) => ({
+                            ...current,
+                            [nextDepartment]:
+                                firstEmployeeWithDetails.details.signatories,
+                        }));
+                    }
 
                     const params = new URLSearchParams(window.location.search);
                     params.set("modal", "print-department");
@@ -130,35 +155,6 @@ const useDepartmentPrintData = ({
         selectedYear,
         employeePage,
     ]);
-
-    useEffect(() => {
-        if (!open) return;
-
-        const missingEmployees = printEmployees.filter(
-            (employee) => !employeeData[employee.id],
-        );
-
-        missingEmployees.forEach((employee) => {
-            axios
-                .get(route("dailytimerecord.details", employee.id))
-                .then((response) => {
-                    const data = response.data;
-
-                    setEmployeeData((current) => ({
-                        ...current,
-                        [employee.id]: data,
-                    }));
-
-                    if (data?.signatories) {
-                        setDepartmentSignatories((current) => ({
-                            ...current,
-                            [selectedDepartment]: data.signatories,
-                        }));
-                    }
-                })
-                .catch((error) => console.error(error));
-        });
-    }, [open, printEmployees, selectedDepartment]);
 
     const handleDepartmentSearchChange = (event) => {
         setDepartmentSearch(event.target.value);

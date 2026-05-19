@@ -1,5 +1,5 @@
 import React from "react";
-import { Head } from "@inertiajs/react";
+import { Head, router } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { CalendarClock } from "lucide-react";
 
@@ -10,7 +10,10 @@ import EmployeePreviewDtr from "./Partials/EmployeePreviewDtr";
 import WorkScheduleSettings from "./Partials/WorkScheduleSettings/WorkScheduleSettings";
 import useDailyTimeRecordFilters from "./hooks/useDailyTimeRecordFilters";
 import useDailyTimeRecordModals from "./hooks/useDailyTimeRecordModals";
+import usePreservedPageScroll from "./hooks/usePreservedPageScroll";
 import { extractTimeRecordEmployees, resolveCurrentDateParts } from "./utils";
+
+const recomputeScrollKey = "dtr-recompute-scroll-top";
 
 const Daily_Time_Record = ({
     time_record,
@@ -72,6 +75,26 @@ const Daily_Time_Record = ({
         departmentPrintModal,
         printDtrModal,
     });
+    const { rememberPageScroll, restorePageScroll } = usePreservedPageScroll({
+        storageKey: recomputeScrollKey,
+    });
+
+    const handleRecomputeEmployee = (employee) => {
+        rememberPageScroll();
+
+        router.post(
+            route("dailytimerecord.recompute", employee.id),
+            {
+                month: selectedMonth,
+                year: selectedYear,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onFinish: restorePageScroll,
+            },
+        );
+    };
 
     return (
         <AuthenticatedLayout
@@ -113,6 +136,7 @@ const Daily_Time_Record = ({
                     onPreviewEmployee={handlePreviewEmployee}
                     onPrintEmployee={(employee) => openPrintDialog([employee])}
                     onPrintDepartment={openDepartmentPrintDialog}
+                    onRecomputeEmployee={handleRecomputeEmployee}
                 />
 
                 <PrintDialog

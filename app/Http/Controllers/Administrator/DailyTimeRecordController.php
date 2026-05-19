@@ -58,6 +58,23 @@ class DailyTimeRecordController extends Controller
         );
     }
 
+    public function recompute(Request $request, $employeeId)
+    {
+        $validated = $request->validate([
+            'month' => ['required', 'integer', 'between:1,12'],
+            'year' => ['required', 'integer', 'between:2000,2100'],
+        ]);
+
+        $this->dailyTimeRecords->recomputeEmployeeMonth(
+            (int) $employeeId,
+            $this->stationId(),
+            (int) $validated['month'],
+            (int) $validated['year'],
+        );
+
+        return back()->with('success', 'Daily time record recomputed.');
+    }
+
     public function storeWorkType(Request $request)
     {
         $this->dailyTimeRecords->storeWorkType($this->validateWorkType($request));

@@ -82,6 +82,7 @@ Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(functio
             Route::get('/suggestions', 'suggestions')->name('dailytimerecord.suggestions');
             Route::get('/offices', 'offices')->name('dailytimerecord.offices');
             Route::get('/employees/{employeeId}/details', 'details')->name('dailytimerecord.details');
+            Route::post('/employees/{employeeId}/recompute', 'recompute')->name('dailytimerecord.recompute');
             Route::post('/work-types', 'storeWorkType')->name('dailytimerecord.worktypes.store');
             Route::put('/work-types/{workType}', 'updateWorkType')->name('dailytimerecord.worktypes.update');
             Route::delete('/work-types/{workType}', 'destroyWorkType')->name('dailytimerecord.worktypes.destroy');

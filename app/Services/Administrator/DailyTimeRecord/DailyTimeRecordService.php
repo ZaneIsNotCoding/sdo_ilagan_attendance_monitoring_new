@@ -25,9 +25,9 @@ class DailyTimeRecordService
 
     public function pageData(Request $request, int $stationId): array
     {
-        $this->computeStationTardiness($stationId);
-
         $filter = DailyTimeRecordFilter::fromRequest($request, $stationId);
+        $this->computeStationTardiness($filter);
+
         $offices = $this->repository->officesForStation($stationId);
 
         if ($filter->officeName !== '' && $filter->officeName !== 'all') {
@@ -119,6 +119,51 @@ class DailyTimeRecordService
         $this->repository->deleteWorkSchedule($workSchedule);
     }
 
+    public function recomputeEmployeeMonth(
+        int $employeeId,
+        int $stationId,
+        int $month,
+        int $year,
+    ): void {
+        if (! $this->repository->employeeForStation($employeeId, $stationId)) {
+            abort(404, 'Employee not found.');
+        }
+
+        $this->repository->deleteTardinessRecordsForEmployeeMonth(
+            $employeeId,
+            $month,
+            $year,
+        );
+
+        $attendances = $this->repository->employeeAttendancesForMonth(
+            $employeeId,
+            $stationId,
+            $month,
+            $year,
+        );
+
+        if ($attendances->isEmpty()) {
+            return;
+        }
+
+        $workType = $attendances
+            ->first()
+            ?->employee
+            ?->workSchedule
+            ?->workType
+            ?->name;
+
+        if (in_array($workType, ['Fixed', 'Work From Home'], true)) {
+            $this->fixedService->computeForAttendances($attendances);
+
+            return;
+        }
+
+        if ($workType === 'Full') {
+            $this->fullService->computeForAttendances($attendances);
+        }
+    }
+
     public function previewDtrModal(Request $request, int $stationId): ?array
     {
         if ($request->query('modal') !== 'preview-dtr') {
@@ -134,6 +179,8 @@ class DailyTimeRecordService
         $timeRecord = $this->repository->employeeTimeRecordForStation(
             $employeeId,
             $stationId,
+            (int) $request->query('month', now()->month),
+            (int) $request->query('year', now()->year),
         );
 
         if (! $timeRecord) {
@@ -165,6 +212,8 @@ class DailyTimeRecordService
         $employee = $this->repository->employeeTimeRecordForStation(
             $employeeId,
             $stationId,
+            (int) $request->query('month', now()->month),
+            (int) $request->query('year', now()->year),
         );
 
         if (! $employee) {
@@ -275,7 +324,7 @@ class DailyTimeRecordService
                     $employeesPerPage,
                     $employeePage,
                 )
-                ->through(fn (Employee $employee) => $this->formatPrintEmployee($employee))
+                ->through(fn (Employee $employee) => $this->formatPrintEmployeeWithDetails($employee))
             : null;
 
         return [
@@ -300,11 +349,13 @@ class DailyTimeRecordService
         ];
     }
 
-    private function computeStationTardiness(int $stationId): void
+    private function computeStationTardiness(DailyTimeRecordFilter $filter): void
     {
         $fixedAttendances = $this->repository->unprocessedAttendancesByWorkTypes(
-            $stationId,
+            $filter->stationId,
             ['Fixed', 'Work From Home'],
+            $filter->month,
+            $filter->year,
         );
 
         if ($fixedAttendances->isNotEmpty()) {
@@ -312,8 +363,10 @@ class DailyTimeRecordService
         }
 
         $fullAttendances = $this->repository->unprocessedAttendancesByWorkTypes(
-            $stationId,
+            $filter->stationId,
             ['Full'],
+            $filter->month,
+            $filter->year,
         );
 
         if ($fullAttendances->isNotEmpty()) {
@@ -530,5 +583,18 @@ class DailyTimeRecordService
             'department' => $employee->office?->name,
             'office' => $employee->office,
         ];
+    }
+
+    private function formatPrintEmployeeWithDetails(Employee $employee): array
+    {
+        return array_merge($this->formatPrintEmployee($employee), [
+            'details' => [
+                'time_record' => $employee,
+                'monthly_totals' => $this->monthlyTotalsForEmployee($employee),
+                'employee_leaves' => $this->repository->employeeLeaves($employee->id),
+                'signatory' => $this->defaultSignatory($employee),
+                'signatories' => $this->availableSignatories($employee),
+            ],
+        ]);
     }
 }

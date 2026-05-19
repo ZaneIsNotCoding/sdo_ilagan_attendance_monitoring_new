@@ -3,6 +3,7 @@
 namespace App\Services\Administrator\DailyTimeRecord;
 
 use App\Services\Administrator\DailyTimeRecord\Concerns\ComputesTardinessRecords;
+use Carbon\Carbon;
 
 class FullTardinessService
 {
@@ -12,8 +13,14 @@ class FullTardinessService
     {
         foreach ($attendances as $attendance) {
             $times = $this->attendanceTimes($attendance);
+            $scheduleStart = $this->scheduledStartMinutes($attendance);
             $scheduleEnd = $this->scheduledEndMinutes($attendance);
+            $amTardyStart = $this->amTardyStartMinutes(
+                $attendance->date,
+                $scheduleStart,
+            );
 
+            $amTardy = $this->tardyAfter($times['amIn'], $amTardyStart);
             $amUndertime = $this->undertimeBefore(
                 $times['amOut'],
                 self::LUNCH_START_MINUTES,
@@ -27,7 +34,7 @@ class FullTardinessService
 
             $this->saveTardinessRecord(
                 $attendance,
-                0,
+                $amTardy,
                 $pmTardy,
                 $amUndertime + $pmUndertime,
             );
@@ -43,17 +50,31 @@ class FullTardinessService
             return 0;
         }
 
-        $expectedOut = $scheduleEnd;
-
-        if ($amIn) {
-            $expectedOut = max(
-                $scheduleEnd,
-                $this->timeToMinutes($amIn)
-                    + self::REQUIRED_WORK_MINUTES
-                    + self::LUNCH_BREAK_MINUTES,
-            );
+        if (! $amIn) {
+            return $this->undertimeBefore($pmOut, self::DEFAULT_END_MINUTES);
         }
 
+        $expectedOut = $scheduleEnd;
+
+        $expectedOut = min(
+            $scheduleEnd,
+            $this->timeToMinutes($amIn)
+                + self::REQUIRED_WORK_MINUTES
+                + self::LUNCH_BREAK_MINUTES,
+        );
+
         return $this->undertimeBefore($pmOut, $expectedOut);
+    }
+
+    private function amTardyStartMinutes(string $date, int $scheduleStart): int
+    {
+        if (
+            Carbon::parse($date)->isMonday()
+            && $scheduleStart === (8 * 60) + 30
+        ) {
+            return self::DEFAULT_START_MINUTES;
+        }
+
+        return $scheduleStart;
     }
 }

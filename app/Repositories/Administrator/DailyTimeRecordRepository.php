@@ -7,6 +7,7 @@ use App\Models\Administrator\Attendance;
 use App\Models\Administrator\DivisionHead;
 use App\Models\Administrator\Employee;
 use App\Models\Administrator\Office;
+use App\Models\Administrator\TardinessRecord;
 use App\Models\Administrator\WorkSchedule;
 use App\Models\Administrator\WorkType;
 use App\Models\EmployeeLeave;
@@ -42,7 +43,12 @@ class DailyTimeRecordRepository
             ->find($id);
     }
 
-    public function unprocessedAttendancesByWorkTypes(int $stationId, array $workTypes)
+    public function unprocessedAttendancesByWorkTypes(
+        int $stationId,
+        array $workTypes,
+        int $month,
+        int $year,
+    )
     {
         return Attendance::whereHas('employee', function ($query) use ($stationId, $workTypes) {
             $query->where('station_id', $stationId)
@@ -51,6 +57,9 @@ class DailyTimeRecordRepository
                 })
                 ->where('active_status', 1);
         })
+            ->doesntHave('tardinessRecord')
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
             ->with([
                 'am:id,attendance_id,am_time_in,am_time_out',
                 'pm:id,attendance_id,pm_time_in,pm_time_out',
@@ -169,17 +178,73 @@ class DailyTimeRecordRepository
         return EmployeeLeave::where('employee_id', $employeeId)->get();
     }
 
-    public function employeeTimeRecordForStation(int $employeeId, int $stationId): ?Employee
+    public function employeeTimeRecordForStation(
+        int $employeeId,
+        int $stationId,
+        ?int $month = null,
+        ?int $year = null,
+    ): ?Employee
     {
         return Employee::with([
             'office:id,name,division_id',
             'office.division:id,code,name',
-            'attendances.am',
-            'attendances.pm',
-            'attendances.tardinessRecord',
+            'attendances' => function ($query) use ($month, $year) {
+                $query
+                    ->when($year, fn ($query) => $query->whereYear('date', $year))
+                    ->when($month, fn ($query) => $query->whereMonth('date', $month))
+                    ->with([
+                        'am',
+                        'pm',
+                        'tardinessRecord',
+                    ])
+                    ->orderBy('date');
+            },
         ])
             ->where('station_id', $stationId)
             ->find($employeeId);
+    }
+
+    public function employeeForStation(int $employeeId, int $stationId): ?Employee
+    {
+        return Employee::select('id', 'station_id')
+            ->where('station_id', $stationId)
+            ->find($employeeId);
+    }
+
+    public function deleteTardinessRecordsForEmployeeMonth(
+        int $employeeId,
+        int $month,
+        int $year,
+    ): void {
+        TardinessRecord::where('employee_id', $employeeId)
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->delete();
+    }
+
+    public function employeeAttendancesForMonth(
+        int $employeeId,
+        int $stationId,
+        int $month,
+        int $year,
+    )
+    {
+        return Attendance::where('employee_id', $employeeId)
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->whereHas('employee', function ($query) use ($stationId) {
+                $query->where('station_id', $stationId)
+                    ->where('active_status', 1);
+            })
+            ->with([
+                'am:id,attendance_id,am_time_in,am_time_out',
+                'pm:id,attendance_id,pm_time_in,pm_time_out',
+                'employee:id,work_schedule_id,station_id,active_status',
+                'employee.workSchedule:id,work_type_id,time_in,time_out',
+                'employee.workSchedule.workType:id,name',
+            ])
+            ->orderBy('date')
+            ->get();
     }
 
     public function printOfficesForStation(int $stationId, string $search, int $month, int $year)
@@ -227,7 +292,16 @@ class DailyTimeRecordRepository
         int $page = 1,
     )
     {
-        return Employee::with(['office:id,name,division_id', 'office.division:id,code,name'])
+        return Employee::with([
+            'office:id,name,division_id',
+            'office.division:id,code,name',
+            'attendances' => function ($query) use ($month, $year) {
+                $query->whereYear('date', $year)
+                    ->whereMonth('date', $month)
+                    ->with(['am', 'pm', 'tardinessRecord'])
+                    ->orderBy('date');
+            },
+        ])
             ->where('station_id', $stationId)
             ->where('active_status', 1)
             ->whereHas('office', function ($query) use ($officeName) {

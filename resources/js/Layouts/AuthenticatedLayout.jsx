@@ -72,7 +72,7 @@ export default function AuthenticatedLayout({ header, children }) {
                     </header>
 
                     {/* Main */}
-                    <main className="overflow-auto flex-1 p-3">
+                    <main data-page-scroll className="overflow-auto flex-1 p-3">
                         <div className="p-3">
                             {children}
                             <Toaster richColors position="top-right" />

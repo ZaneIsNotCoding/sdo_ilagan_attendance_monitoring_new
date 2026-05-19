@@ -21,6 +21,7 @@ import {
     Clock3,
     Eye,
     Printer,
+    RefreshCw,
     Search,
 } from "lucide-react";
 import EmployeeAvatar from "@/Components/EmployeeAvatar";
@@ -57,6 +58,7 @@ const EmployeeList = ({
     onPreviewEmployee,
     onPrintEmployee,
     onPrintDepartment,
+    onRecomputeEmployee,
 }) => {
     const displayedEmployees = employees;
     const {
@@ -248,13 +250,13 @@ const EmployeeList = ({
                             <TableHead className="w-[20%] text-white">
                                 Position
                             </TableHead>
-                            <TableHead className="w-[24%] text-white">
+                            <TableHead className="w-[23%] text-white">
                                 Office
                             </TableHead>
-                            <TableHead className="w-[19%] text-white">
+                            <TableHead className="w-[17%] text-white">
                                 Work Schedule
                             </TableHead>
-                            <TableHead className="w-[10%] text-center text-white">
+                            <TableHead className="w-[13%] text-center text-white">
                                 Actions
                             </TableHead>
                         </TableRow>
@@ -274,63 +276,63 @@ const EmployeeList = ({
                                         key={emp.id}
                                         className="h-[64px] transition hover:bg-blue-50"
                                     >
-                                    <TableCell className="p-3">
-                                        <div className="flex min-w-0 items-center gap-3">
-                                            <EmployeeAvatar
-                                                employee={emp}
-                                                name={emp.full_name}
-                                                className="h-9 w-9"
-                                            />
+                                        <TableCell className="p-3">
+                                            <div className="flex min-w-0 items-center gap-3">
+                                                <EmployeeAvatar
+                                                    employee={emp}
+                                                    name={emp.full_name}
+                                                    className="h-9 w-9"
+                                                />
 
-                                            <div className="min-w-0">
-                                                <div className="truncate font-medium">
-                                                    {emp.full_name || "-"}
+                                                <div className="min-w-0">
+                                                    <div className="truncate font-medium">
+                                                        {emp.full_name || "-"}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </TableCell>
+                                        </TableCell>
 
-                                    <TableCell className="p-3 text-gray-700">
-                                        <div className="flex min-w-0 items-center gap-2">
-                                            <span className="truncate">
-                                                {emp.position || "-"}
-                                            </span>
-                                        </div>
-                                    </TableCell>
-
-                                    <TableCell className="p-3">
-                                        <div className="flex min-w-0 items-center gap-2">
-                                            <div className="flex h-7 w-7 min-w-[28px] items-center justify-center rounded-full bg-gray-300">
-                                                <Building2 className="h-4 w-4 text-blue-600" />
+                                        <TableCell className="p-3 text-gray-700">
+                                            <div className="flex min-w-0 items-center gap-2">
+                                                <span className="truncate">
+                                                    {emp.position || "-"}
+                                                </span>
                                             </div>
+                                        </TableCell>
 
-                                            <div className="min-w-0">
-                                                <div className="truncate font-medium">
-                                                    {emp.department || "-"}
+                                        <TableCell className="p-3">
+                                            <div className="flex min-w-0 items-center gap-2">
+                                                <div className="flex h-7 w-7 min-w-[28px] items-center justify-center rounded-full bg-gray-300">
+                                                    <Building2 className="h-4 w-4 text-blue-600" />
                                                 </div>
-                                                <div className="truncate text-xs text-gray-500">
-                                                    {emp.office?.division
-                                                        ?.name || "-"}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </TableCell>
 
-                                    <TableCell className="p-3 text-gray-700">
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <Clock3 className="h-5 w-5 shrink-0 text-blue-600" />
-                                            <div className="min-w-0">
-                                                <div className="truncate font-medium text-gray-800">
-                                                    {emp.work_type || "-"}
-                                                </div>
-                                                <div className="truncate text-xs text-gray-500">
-                                                    {formatWorkSchedule(
-                                                        emp.work_schedule,
-                                                    ) || "-"}
+                                                <div className="min-w-0">
+                                                    <div className="truncate font-medium">
+                                                        {emp.department || "-"}
+                                                    </div>
+                                                    <div className="truncate text-xs text-gray-500">
+                                                        {emp.office?.division
+                                                            ?.name || "-"}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </TableCell>
+                                        </TableCell>
+
+                                        <TableCell className="p-3 text-gray-700">
+                                            <div className="flex min-w-0 items-center gap-2">
+                                                <Clock3 className="h-5 w-5 shrink-0 text-blue-600" />
+                                                <div className="min-w-0">
+                                                    <div className="truncate font-medium text-gray-800">
+                                                        {emp.work_type || "-"}
+                                                    </div>
+                                                    <div className="truncate text-xs text-gray-500">
+                                                        {formatWorkSchedule(
+                                                            emp.work_schedule,
+                                                        ) || "-"}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </TableCell>
 
                                         <TableCell className="p-3">
                                             <div className="flex justify-center gap-2">
@@ -363,6 +365,20 @@ const EmployeeList = ({
                                                             title="Print DTR"
                                                         >
                                                             <Printer className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            size="icon"
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                onRecomputeEmployee?.(
+                                                                    emp,
+                                                                )
+                                                            }
+                                                            className="h-8 w-8 rounded-full border-blue-200 text-blue-700 hover:bg-blue-50"
+                                                            title="Recompute DTR for selected month"
+                                                        >
+                                                            <RefreshCw className="h-4 w-4" />
                                                         </Button>
                                                     </>
                                                 ) : (
