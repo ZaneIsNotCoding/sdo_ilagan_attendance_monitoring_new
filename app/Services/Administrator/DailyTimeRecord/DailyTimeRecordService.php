@@ -9,9 +9,12 @@ use App\Models\Administrator\WorkType;
 use App\Repositories\Administrator\DailyTimeRecordRepository;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class DailyTimeRecordService
 {
+    private const RECOMPUTE_UNDO_SESSION_KEY = 'dtr_recompute_undo';
+
     public function __construct(
         private readonly DailyTimeRecordRepository $repository,
         private readonly FixedTardinessService $fixedService,
@@ -119,31 +122,46 @@ class DailyTimeRecordService
         $this->repository->deleteWorkSchedule($workSchedule);
     }
 
-    public function recomputeEmployeeMonth(
+    public function recomputeEmployeeDateRange(
         int $employeeId,
         int $stationId,
-        int $month,
-        int $year,
-    ): void {
+        string $from,
+        string $to,
+    ): string {
         if (! $this->repository->employeeForStation($employeeId, $stationId)) {
             abort(404, 'Employee not found.');
         }
 
-        $this->repository->deleteTardinessRecordsForEmployeeMonth(
+        $undoToken = (string) Str::uuid();
+        $previousRecords = $this->repository
+            ->tardinessRecordsForEmployeeDateRange($employeeId, $from, $to)
+            ->map(fn ($record) => $record->getAttributes())
+            ->all();
+
+        session()->put(self::RECOMPUTE_UNDO_SESSION_KEY . ".{$undoToken}", [
+            'employee_id' => $employeeId,
+            'station_id' => $stationId,
+            'from' => $from,
+            'to' => $to,
+            'records' => $previousRecords,
+            'expires_at' => now()->addSeconds(8)->toIso8601String(),
+        ]);
+
+        $this->repository->deleteTardinessRecordsForEmployeeDateRange(
             $employeeId,
-            $month,
-            $year,
+            $from,
+            $to,
         );
 
-        $attendances = $this->repository->employeeAttendancesForMonth(
+        $attendances = $this->repository->employeeAttendancesForDateRange(
             $employeeId,
             $stationId,
-            $month,
-            $year,
+            $from,
+            $to,
         );
 
         if ($attendances->isEmpty()) {
-            return;
+            return $undoToken;
         }
 
         $workType = $attendances
@@ -156,12 +174,39 @@ class DailyTimeRecordService
         if (in_array($workType, ['Fixed', 'Work From Home'], true)) {
             $this->fixedService->computeForAttendances($attendances);
 
-            return;
+            return $undoToken;
         }
 
         if ($workType === 'Full') {
             $this->fullService->computeForAttendances($attendances);
         }
+
+        return $undoToken;
+    }
+
+    public function undoRecomputeEmployeeDateRange(int $employeeId, int $stationId, string $token): void
+    {
+        $sessionKey = self::RECOMPUTE_UNDO_SESSION_KEY . ".{$token}";
+        $snapshot = session()->pull($sessionKey);
+
+        if (! $snapshot) {
+            abort(404, 'Undo window expired.');
+        }
+
+        if (
+            (int) $snapshot['employee_id'] !== $employeeId ||
+            (int) $snapshot['station_id'] !== $stationId ||
+            now()->greaterThan(Carbon::parse($snapshot['expires_at']))
+        ) {
+            abort(404, 'Undo window expired.');
+        }
+
+        $this->repository->restoreTardinessRecordsForEmployeeDateRange(
+            $employeeId,
+            $snapshot['from'],
+            $snapshot['to'],
+            $snapshot['records'] ?? [],
+        );
     }
 
     public function previewDtrModal(Request $request, int $stationId): ?array

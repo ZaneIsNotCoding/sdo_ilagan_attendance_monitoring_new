@@ -320,16 +320,28 @@ const EmployeeList = ({
 
                                         <TableCell className="p-3 text-gray-700">
                                             <div className="flex min-w-0 items-center gap-2">
-                                                <Clock3 className="h-5 w-5 shrink-0 text-blue-600" />
+                                                {hasWorkType ? (
+                                                    <Clock3 className="h-5 w-5 shrink-0 text-blue-600" />
+                                                ) : null}
                                                 <div className="min-w-0">
-                                                    <div className="truncate font-medium text-gray-800">
-                                                        {emp.work_type || "-"}
-                                                    </div>
-                                                    <div className="truncate text-xs text-gray-500">
-                                                        {formatWorkSchedule(
-                                                            emp.work_schedule,
-                                                        ) || "-"}
-                                                    </div>
+                                                    {hasWorkType ? (
+                                                        <>
+                                                            <div className="truncate font-medium text-gray-800">
+                                                                {emp.work_type ||
+                                                                    "-"}
+                                                            </div>
+                                                            <div className="truncate text-xs text-gray-500">
+                                                                {formatWorkSchedule(
+                                                                    emp.work_schedule,
+                                                                ) || "-"}
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <div className="w-fit rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                                                            Missing work
+                                                            schedule
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </TableCell>
@@ -376,7 +388,7 @@ const EmployeeList = ({
                                                                 )
                                                             }
                                                             className="h-8 w-8 rounded-full border-blue-200 text-blue-700 hover:bg-blue-50"
-                                                            title="Recompute DTR for selected month"
+                                                            title="Recompute DTR"
                                                         >
                                                             <RefreshCw className="h-4 w-4" />
                                                         </Button>

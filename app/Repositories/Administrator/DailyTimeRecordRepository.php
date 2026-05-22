@@ -211,27 +211,62 @@ class DailyTimeRecordRepository
             ->find($employeeId);
     }
 
-    public function deleteTardinessRecordsForEmployeeMonth(
+    public function deleteTardinessRecordsForEmployeeDateRange(
         int $employeeId,
-        int $month,
-        int $year,
+        string $from,
+        string $to,
     ): void {
         TardinessRecord::where('employee_id', $employeeId)
-            ->whereYear('date', $year)
-            ->whereMonth('date', $month)
+            ->whereBetween('date', [$from, $to])
             ->delete();
     }
 
-    public function employeeAttendancesForMonth(
+    public function tardinessRecordsForEmployeeDateRange(
+        int $employeeId,
+        string $from,
+        string $to,
+    ) {
+        return TardinessRecord::where('employee_id', $employeeId)
+            ->whereBetween('date', [$from, $to])
+            ->orderBy('date')
+            ->get([
+                'employee_id',
+                'attendance_id',
+                'date',
+                'am_tardy',
+                'pm_tardy',
+                'undertime',
+                'total_tardy',
+                'converted_tardy',
+                'created_at',
+                'updated_at',
+            ]);
+    }
+
+    public function restoreTardinessRecordsForEmployeeDateRange(
+        int $employeeId,
+        string $from,
+        string $to,
+        array $records,
+    ): void {
+        $this->deleteTardinessRecordsForEmployeeDateRange($employeeId, $from, $to);
+
+        if ($records === []) {
+            return;
+        }
+
+        TardinessRecord::insert($records);
+    }
+
+    public function employeeAttendancesForDateRange(
         int $employeeId,
         int $stationId,
-        int $month,
-        int $year,
+        string $from,
+        string $to,
     )
     {
         return Attendance::where('employee_id', $employeeId)
-            ->whereYear('date', $year)
-            ->whereMonth('date', $month)
+            ->whereBetween('date', [$from, $to])
             ->whereHas('employee', function ($query) use ($stationId) {
                 $query->where('station_id', $stationId)
                     ->where('active_status', 1);

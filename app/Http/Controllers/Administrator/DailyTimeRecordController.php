@@ -61,18 +61,36 @@ class DailyTimeRecordController extends Controller
     public function recompute(Request $request, $employeeId)
     {
         $validated = $request->validate([
-            'month' => ['required', 'integer', 'between:1,12'],
-            'year' => ['required', 'integer', 'between:2000,2100'],
+            'from' => ['required', 'date'],
+            'to' => ['required', 'date', 'after_or_equal:from'],
         ]);
 
-        $this->dailyTimeRecords->recomputeEmployeeMonth(
+        $undoToken = $this->dailyTimeRecords->recomputeEmployeeDateRange(
             (int) $employeeId,
             $this->stationId(),
-            (int) $validated['month'],
-            (int) $validated['year'],
+            $validated['from'],
+            $validated['to'],
         );
 
-        return back()->with('success', 'Daily time record recomputed.');
+        return back()->with('recomputeUndo', [
+            'token' => $undoToken,
+            'employee_id' => (int) $employeeId,
+        ]);
+    }
+
+    public function undoRecompute(Request $request, $employeeId)
+    {
+        $validated = $request->validate([
+            'token' => ['required', 'string'],
+        ]);
+
+        $this->dailyTimeRecords->undoRecomputeEmployeeDateRange(
+            (int) $employeeId,
+            $this->stationId(),
+            $validated['token'],
+        );
+
+        return back();
     }
 
     public function storeWorkType(Request $request)
