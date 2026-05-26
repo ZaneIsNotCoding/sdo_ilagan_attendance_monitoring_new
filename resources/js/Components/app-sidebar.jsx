@@ -274,30 +274,6 @@ export function AppSidebar({ active, user, ...props }) {
                                             </Link>
                                         </SidebarMenuSubButton>
                                     </SidebarMenuSubItem>
-<<<<<<< HEAD
-=======
-                                    <SidebarMenuSubItem>
-                                        <SidebarMenuSubButton
-                                            asChild
-                                            isActive={url.startsWith(
-                                                "/position",
-                                            )}
-                                        >
-                                            <Link
-                                                href={route("position.index")}
-                                                className="flex items-center gap-2 text-xs text-white hover:bg-blue-900 hover:text-blue-100"
-                                            >
-                                                <Network
-                                                    className={`h-4 w-4 ${
-                                                        active === "/position"
-                                                            ? "!text-black"
-                                                            : "!text-white"
-                                                    }`}
-                                                />
-                                                List of Positions
-                                            </Link>
-                                        </SidebarMenuSubButton>
-                                    </SidebarMenuSubItem>
 
                                     <SidebarMenuSubItem>
                                         <SidebarMenuSubButton
@@ -325,12 +301,10 @@ export function AppSidebar({ active, user, ...props }) {
                                             </Link>
                                         </SidebarMenuSubButton>
                                     </SidebarMenuSubItem>
->>>>>>> 07b22ce6f55605b2e9d59b67a5b2ededb69facb2
                                 </SidebarMenuSub>
                             )}
                         </SidebarMenuItem>
 
-                        {/* Human Resource */}
                         <SidebarMenuItem>
                             <Button
                                 variant="ghost"
