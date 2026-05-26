@@ -126,3 +126,4 @@ const HrSummaryofTardinessReport = React.forwardRef(
 );
 
 export default HrSummaryofTardinessReport;
+

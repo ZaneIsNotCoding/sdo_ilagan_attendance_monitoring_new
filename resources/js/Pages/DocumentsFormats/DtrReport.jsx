@@ -1,8 +1,29 @@
 import React from "react";
 
-const DTRReport = React.forwardRef(({ name, dateRange, logs, signatory }, ref) => {
+const formatWorkHour = (time) => {
+    if (!time) {
+        return "";
+    }
+
+    const [hours = "0", minutes = "0"] = String(time).split(":");
+    const date = new Date();
+    date.setHours(Number(hours), Number(minutes), 0, 0);
+
+    return date
+        .toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+        })
+        .toLowerCase();
+};
+
+const DTRReport = React.forwardRef(
+    ({ name, dateRange, logs, signatory, workSchedule }, ref) => {
     const signatoryPosition =
         signatory && !signatory.missing ? signatory.position : "";
+    const officialTimeIn = formatWorkHour(workSchedule?.time_in) || "08:00 am";
+    const officialTimeOut = formatWorkHour(workSchedule?.time_out) || "05:00 pm";
     const formattedMonth = new Date(dateRange.start).toLocaleDateString(
         "en-US",
         { month: "long", year: "numeric" }
@@ -132,10 +153,10 @@ const DTRReport = React.forwardRef(({ name, dateRange, logs, signatory }, ref) =
                             <span className="underline">{formattedMonth} </span>
                         </p>
                         <p>
-                            Official Hour for arrival: <u>08:00 am</u>
+                            Official Hour for arrival: <u>{officialTimeIn}</u>
                         </p>
                         <p>
-                            And Departure (Reg. Days): <u>05:00 pm</u>
+                            And Departure (Reg. Days): <u>{officialTimeOut}</u>
                         </p>
                     </div>
                 </div>
@@ -290,6 +311,8 @@ const DTRReport = React.forwardRef(({ name, dateRange, logs, signatory }, ref) =
             </div>
         </div>
     );
-});
+    },
+);
 
 export default DTRReport;
+

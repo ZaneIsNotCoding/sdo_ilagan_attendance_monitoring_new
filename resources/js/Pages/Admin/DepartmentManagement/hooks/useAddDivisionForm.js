@@ -32,3 +32,4 @@ const useAddDivisionForm = ({ open, setOpen }) => {
 };
 
 export default useAddDivisionForm;
+

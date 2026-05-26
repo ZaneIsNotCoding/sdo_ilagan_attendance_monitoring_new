@@ -100,3 +100,4 @@ const AddDivisionModal = ({ open, setOpen }) => {
 };
 
 export default AddDivisionModal;
+

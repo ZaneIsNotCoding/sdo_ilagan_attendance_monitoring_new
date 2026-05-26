@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { router } from "@inertiajs/react";
 import {
-    getFullName,
     getStationHighlightKey,
     getWidePagination,
 } from "../utils";
+import { getEmployeeName, sortAlphabetically } from "@/lib/utils";
 
 const useStationAdminList = ({
     adminLimit,
@@ -65,14 +65,18 @@ const useStationAdminList = ({
                     if (suggestionRequestRef.current !== requestId) return;
 
                     setSuggestionMatches(
-                        (response.data || []).map((station) => ({
-                            id: `${station.source || "station"}:${
-                                station.record_id || station.id
-                            }`,
-                            label: station.name,
-                            meta: station.code ? `${station.code}` : "No code",
-                            search: station.name,
-                        })),
+                        sortAlphabetically(response.data || [], "name").map(
+                            (station) => ({
+                                id: `${station.source || "station"}:${
+                                    station.record_id || station.id
+                                }`,
+                                label: station.name,
+                                meta: station.code
+                                    ? `${station.code}`
+                                    : "No code",
+                                search: station.name,
+                            }),
+                        ),
                     );
                 })
                 .catch(() => {
@@ -287,7 +291,7 @@ const useStationAdminList = ({
         closeAssignModal,
         closeRemoveAdminModal,
         endIndex,
-        getFullName,
+        getEmployeeName,
         handlePageChange,
         openAssignModal,
         openRemoveAdminModal,
@@ -309,3 +313,4 @@ const useStationAdminList = ({
 };
 
 export default useStationAdminList;
+

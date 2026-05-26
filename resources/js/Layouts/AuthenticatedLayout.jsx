@@ -83,3 +83,4 @@ export default function AuthenticatedLayout({ header, children }) {
         </SidebarProvider>
     );
 }
+

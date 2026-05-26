@@ -49,3 +49,4 @@ export default function useFlashToast(options = {}) {
         }
     }, [props.success, props.error, duration, showCloseButton, richColors]);
 }
+

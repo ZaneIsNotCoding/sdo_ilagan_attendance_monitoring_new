@@ -10,6 +10,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import EditAttendanceDialog from "./EditAttendanceDialog";
+import { getEmployeeName } from "@/lib/utils";
 
 const NoAttendanceTable = ({ employees, selectedDate }) => {
     const selectedDateObj = dayjs(selectedDate, "YYYY-MM-DD");
@@ -46,7 +47,7 @@ const NoAttendanceTable = ({ employees, selectedDate }) => {
                     displayEmployees.map((emp) => (
                         <TableRow key={emp.id}>
                             <TableCell>
-                                {emp.first_name} {emp.last_name}
+                                {getEmployeeName(emp)}
                             </TableCell>
                         <TableCell>{emp.office?.name || "-"}</TableCell>
                             <TableCell>
@@ -88,3 +89,4 @@ const NoAttendanceTable = ({ employees, selectedDate }) => {
 };
 
 export default NoAttendanceTable;
+

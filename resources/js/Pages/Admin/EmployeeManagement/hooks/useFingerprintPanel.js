@@ -4,6 +4,7 @@ import {
     clampAvailableFingers,
     formatFingerprintRegistrationParam,
 } from "../utils";
+import { getEmployeeName } from "@/lib/utils";
 
 const useFingerprintPanel = ({
     filteredEmployees,
@@ -200,12 +201,11 @@ const useFingerprintPanel = ({
                 if (!data || Object.keys(data).length === 0) return;
 
                 if (data.success && data.employee) {
-                    const { first_name, last_name, position, office } =
-                        data.employee;
+                    const { position, office } = data.employee;
 
                     setTestStatus("success");
                     setTestMessage(
-                        `Match: ${first_name} ${last_name} (${office?.name || "No office"} - ${position})`,
+                        `Match: ${getEmployeeName(data.employee)} (${office?.name || "No office"} - ${position})`,
                     );
 
                     setTimeout(() => {
@@ -305,3 +305,4 @@ const useFingerprintPanel = ({
 };
 
 export default useFingerprintPanel;
+

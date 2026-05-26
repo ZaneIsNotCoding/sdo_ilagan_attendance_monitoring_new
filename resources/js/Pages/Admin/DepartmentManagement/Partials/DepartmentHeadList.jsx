@@ -37,7 +37,7 @@ const DepartmentHeadList = ({
         closeDepartmentModal,
         currentPage,
         endIndex,
-        getFullName,
+        getEmployeeName,
         handlePageChange,
         handleSearch,
         isSearchFocused,
@@ -63,9 +63,9 @@ const DepartmentHeadList = ({
         <div className="rounded-xl">
             <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
-                    <h2 className="text-lg font-bold">Office Head List</h2>
+                    <h2 className="text-lg font-bold">Section / Unit Head</h2>
                     <p className="text-sm text-gray-500">
-                        Manage office head assignments
+                        Manage section / unit head assignments
                     </p>
                 </div>
 
@@ -152,13 +152,13 @@ const DepartmentHeadList = ({
                             <TableHead className="text-white text-left px-10 w-[25%]">
                                 Employee Name
                             </TableHead>
-                            <TableHead className="text-white p-3 w-[15%]">
+                            <TableHead className="text-white p-3 w-[20%]">
                                 Position
                             </TableHead>
                             <TableHead className="text-white p-3 w-[25%]">
                                 Office
                             </TableHead>
-                            <TableHead className="text-white p-3 w-[15%]">
+                            <TableHead className="text-white p-3 w-[10%]">
                                 Status
                             </TableHead>
                             <TableHead className="text-white p-3 w-[10%]">
@@ -174,7 +174,7 @@ const DepartmentHeadList = ({
                         {paginatedRows.length > 0 ? (
                             paginatedRows.map((row) => {
                                 const emp = row.head?.employee;
-                                const fullName = getFullName(emp);
+                                const fullName = getEmployeeName(emp);
                                 const isHighlighted =
                                     String(row.office.id) ===
                                     String(animatedOfficeId);
@@ -204,8 +204,11 @@ const DepartmentHeadList = ({
                                                 </div>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="p-3">
-                                            <span className="truncate">
+                                        <TableCell className="min-w-0 p-3">
+                                            <span
+                                                className="block max-w-full truncate"
+                                                title={emp?.position || "-"}
+                                            >
                                                 {emp?.position || "-"}
                                             </span>
                                         </TableCell>

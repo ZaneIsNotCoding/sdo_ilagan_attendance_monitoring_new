@@ -4,7 +4,7 @@ use App\Http\Controllers\Administrator\{
     AttendanceController,
     DailyTimeRecordController,
     EmployeeManagementController,
-    TardinessRecordController,
+    TardinessSummaryManagementController,
     AttendanceManagementController,
     DepartmentManagementController,
     StationManagementController
@@ -91,7 +91,7 @@ Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(functio
         });
 
     // Admin Tardy Records
-    Route::get('/tardysummary', [TardinessRecordController::class, 'index'])->name('tardysummary');
+    Route::get('/tardysummary', [TardinessSummaryManagementController::class, 'index'])->name('tardysummary');
 
     // HR Tardy Records
     Route::get('/tardyarchieve', [ConvertedTardyRecordsController::class, 'index'])->name('tardyarchieve');

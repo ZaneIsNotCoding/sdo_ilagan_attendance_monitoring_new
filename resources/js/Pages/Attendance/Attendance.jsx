@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Fingerprint, User2, Search } from "lucide-react";
 import { AttendanceTable } from "./Partials/AttendanceTable";
+import { getEmployeeName } from "@/lib/utils";
 
 const defaultFingerprintServiceUrl = `http://${window.location.hostname}:5000`;
 
@@ -431,7 +432,7 @@ const Attendance = ({
                                         <CardContent className="flex items-center justify-center gap-2 text-lg font-semibold text-gray-800">
                                             <User2 className="w-5 h-5 text-gray-500" />
                                             {employee
-                                                ? `${employee.first_name} ${employee.middle_name} ${employee.last_name}`
+                                                ? getEmployeeName(employee)
                                                 : "No Employee Detected"}
                                         </CardContent>
                                     </Card>
@@ -590,4 +591,5 @@ const Attendance = ({
 };
 
 export default Attendance;
+
 

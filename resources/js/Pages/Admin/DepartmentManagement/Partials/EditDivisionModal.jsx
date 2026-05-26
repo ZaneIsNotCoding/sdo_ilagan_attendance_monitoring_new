@@ -144,3 +144,4 @@ const EditDivisionModal = ({ open, setOpen, division }) => {
 };
 
 export default EditDivisionModal;
+

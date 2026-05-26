@@ -531,3 +531,4 @@ export default function ApplicationLeaveForm({ onClose, employee }) {
         </div>
     );
 }
+

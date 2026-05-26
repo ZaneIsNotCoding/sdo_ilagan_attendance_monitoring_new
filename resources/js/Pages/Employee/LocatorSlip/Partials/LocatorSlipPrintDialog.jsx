@@ -14,6 +14,7 @@ import {
 import { Button } from "@/Components/ui/button";
 import { Printer } from "lucide-react";
 import LocatorSlipReport from "@/Pages/DocumentsFormats/LocatorSlipReport";
+import { getRecordEmployeeName } from "@/lib/utils";
 
 const LocatorSlipPrintDialog = ({ open, onClose, slip }) => {
     const previewRef = useRef(null);
@@ -30,9 +31,8 @@ const LocatorSlipPrintDialog = ({ open, onClose, slip }) => {
         await html2pdf()
             .set({
                 margin: 0,
-                filename: `Locator_Slip_${(slip.employee
-                    ? `${slip.employee.first_name ?? ""} ${slip.employee.last_name ?? ""}`.trim()
-                    : "Employee"
+                filename: `Locator_Slip_${(
+                    getRecordEmployeeName(slip) || "Employee"
                 ).replace(/\s+/g, "_")}.pdf`,
                 image: { type: "jpeg", quality: 1 },
                 html2canvas: {
@@ -56,15 +56,10 @@ const LocatorSlipPrintDialog = ({ open, onClose, slip }) => {
 
     if (!open || !slip) return null;
 
-    const fullName = slip.employee
-        ? `${slip.employee.first_name ?? ""} ${slip.employee.middle_name ?? ""} ${slip.employee.last_name ?? ""}`
-              .replace(/\s+/g, " ")
-              .trim()
-        : "";
     const toCaps = (value) => String(value || "").toUpperCase();
 
     const reportProps = {
-        name: toCaps(slip.employee_name || fullName),
+        name: toCaps(getRecordEmployeeName(slip)),
         position: toCaps(slip.position || slip.employee?.position),
         station: toCaps(
             slip.permanent_station ||
@@ -139,3 +134,4 @@ const LocatorSlipPrintDialog = ({ open, onClose, slip }) => {
 };
 
 export default LocatorSlipPrintDialog;
+

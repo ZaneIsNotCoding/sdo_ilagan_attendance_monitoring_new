@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Head } from "@inertiajs/react";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { UserCog } from "lucide-react";
@@ -15,6 +15,7 @@ import {
     extractEmployeeRows,
     statusOptions,
 } from "./utils";
+import { sortAlphabetically, sortEmployeesAlphabetically } from "@/lib/utils";
 
 const EmployeeManagement = ({
     filteredEmployeesList,
@@ -31,13 +32,23 @@ const EmployeeManagement = ({
     testFingerprintModal = false,
     fingerprintServiceUrl = defaultFingerprintServiceUrl,
 }) => {
-    const filteredEmployees = extractEmployeeRows(filteredEmployeesList);
-    const {
-        closeEditEmployeeModal,
-        editForm,
-        handleEdit,
-        setEditForm,
-    } = useEmployeeEditModal(editEmployeeModal);
+    const filteredEmployees = useMemo(
+        () =>
+            sortEmployeesAlphabetically(
+                extractEmployeeRows(filteredEmployeesList),
+            ),
+        [filteredEmployeesList],
+    );
+    const sortedOffices = useMemo(
+        () => sortAlphabetically(offices, "name"),
+        [offices],
+    );
+    const sortedStations = useMemo(
+        () => sortAlphabetically(stations || [], "name"),
+        [stations],
+    );
+    const { closeEditEmployeeModal, editForm, handleEdit, setEditForm } =
+        useEmployeeEditModal(editEmployeeModal);
 
     const {
         availableFingers,
@@ -78,7 +89,7 @@ const EmployeeManagement = ({
         filteredEmployees,
         limit,
         officeName,
-        offices,
+        offices: sortedOffices,
         search,
         selectedEmployee,
         selectedFingerprintEmployee,
@@ -99,7 +110,7 @@ const EmployeeManagement = ({
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <EmployeeRegistration
                         userStationId={userStationId}
-                        offices={offices}
+                        offices={sortedOffices}
                         workSchedules={workSchedules}
                     />
                     <FingerprintRegistrationPanel
@@ -137,7 +148,7 @@ const EmployeeManagement = ({
                     applySearch={(value) => {
                         applyEmployeeFilters({ searchValue: value });
                     }}
-                    offices={offices}
+                    offices={sortedOffices}
                     selectedOffice={selectedOffice}
                     setSelectedOffice={setSelectedOffice}
                     statusOptions={statusOptions}
@@ -153,8 +164,8 @@ const EmployeeManagement = ({
                     setEditOpen={(nextOpen) => {
                         if (!nextOpen) closeEditEmployeeModal();
                     }}
-                    offices={offices}
-                    stations={stations}
+                    offices={sortedOffices}
+                    stations={sortedStations}
                     workSchedules={workSchedules}
                     userStationId={userStationId}
                 />

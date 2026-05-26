@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { EMPLOYEES_PER_PAGE } from "../utils";
+import {
+    sortAlphabetically,
+    sortEmployeesAlphabetically,
+} from "@/lib/utils";
 
 const defaultEmployeePagination = {
     current_page: 1,
@@ -78,10 +82,14 @@ const useDepartmentPrintData = ({
                     const nextDepartment = data.selected_department || "";
 
                     if (shouldReloadDepartments) {
-                        setDepartments(data.departments || []);
+                        setDepartments(
+                            sortAlphabetically(data.departments || [], "name"),
+                        );
                     }
 
-                    const employees = data.employees || [];
+                    const employees = sortEmployeesAlphabetically(
+                        data.employees || [],
+                    );
                     setPrintEmployees(employees);
                     setEmployeePagination(
                         data.employee_pagination || defaultEmployeePagination,
@@ -194,3 +202,4 @@ const useDepartmentPrintData = ({
 };
 
 export default useDepartmentPrintData;
+

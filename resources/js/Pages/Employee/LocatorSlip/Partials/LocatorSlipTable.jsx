@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import FloatingInput from "@/components/floating-input";
 import { Search } from "lucide-react";
 import LocatorSlipPrintDialog from "./LocatorSlipPrintDialog";
+import { getRecordEmployeeName } from "@/lib/utils";
 
 const itemVariants = {
     hidden: { opacity: 0, y: 18 },
@@ -29,17 +30,9 @@ const formatDate = (value, options = {}) =>
           })
         : "-";
 
-const getEmployeeName = (record) =>
-    record.employee_name ||
-    (record.employee
-        ? `${record.employee.first_name ?? ""} ${record.employee.middle_name ?? ""} ${record.employee.last_name ?? ""}`
-              .replace(/\s+/g, " ")
-              .trim()
-        : "");
-
 const getSearchText = (record) =>
     [
-        getEmployeeName(record),
+        getRecordEmployeeName(record),
         record.position,
         record.permanent_station,
         record.employee?.position,
@@ -130,8 +123,8 @@ const LocatorSlipTable = ({
             .filter((slip) => getSearchText(slip).includes(query))
             .map((slip) => ({
                 id: slip.id,
-                value: getEmployeeName(slip) || slip.destination || "",
-                title: getEmployeeName(slip) || "Unnamed employee",
+                value: getRecordEmployeeName(slip) || slip.destination || "",
+                title: getRecordEmployeeName(slip) || "Unnamed employee",
                 subtitle: slip.destination || slip.purpose_of_travel || "",
             }))
             .filter((item) => {
@@ -350,7 +343,7 @@ const LocatorSlipTable = ({
                                     className="transition hover:bg-gray-50"
                                 >
                                     <td className="px-6 py-3">
-                                        {getEmployeeName(slip) || "-"}
+                                        {getRecordEmployeeName(slip) || "-"}
                                     </td>
                                     <td className="px-6 py-3">
                                         {slip.purpose_of_travel || "-"}
@@ -440,3 +433,4 @@ const LocatorSlipTable = ({
 };
 
 export default LocatorSlipTable;
+

@@ -241,3 +241,4 @@ const EditPositionForm = ({ open, setOpen, position }) => {
 };
 
 export default EditPositionForm;
+

@@ -156,3 +156,4 @@ const AdminSummaryofTardinessReport = React.forwardRef(
 );
 
 export default AdminSummaryofTardinessReport;
+

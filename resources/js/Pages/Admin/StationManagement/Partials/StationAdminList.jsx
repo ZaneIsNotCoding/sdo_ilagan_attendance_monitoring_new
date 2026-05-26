@@ -41,7 +41,7 @@ const StationAdminList = ({
         closeAssignModal,
         closeRemoveAdminModal,
         endIndex,
-        getFullName,
+        getEmployeeName,
         handlePageChange,
         openAssignModal,
         openRemoveAdminModal,
@@ -199,14 +199,14 @@ const StationAdminList = ({
                                             <div className="flex items-center gap-3">
                                                 <EmployeeAvatar
                                                     employee={emp}
-                                                    name={getFullName(emp)}
+                                                    name={getEmployeeName(emp)}
                                                     className="h-8 w-8"
                                                 />
 
                                                 <div className="min-w-0">
                                                     <div className="font-medium truncate">
                                                         {emp
-                                                            ? getFullName(emp)
+                                                            ? getEmployeeName(emp)
                                                             : "No Admin Assigned"}
                                                     </div>
                                                     {emp && (
@@ -389,3 +389,4 @@ const StationAdminList = ({
 };
 
 export default StationAdminList;
+

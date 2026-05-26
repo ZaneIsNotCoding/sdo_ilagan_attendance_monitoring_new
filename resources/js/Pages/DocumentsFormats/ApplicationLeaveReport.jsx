@@ -580,3 +580,4 @@ const ApplicationLeaveReport = React.forwardRef(
 );
 
 export default ApplicationLeaveReport;
+

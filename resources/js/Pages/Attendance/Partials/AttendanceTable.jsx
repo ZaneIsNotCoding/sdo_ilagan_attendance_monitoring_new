@@ -156,3 +156,4 @@ export const AttendanceTable = ({ dailyAttendance, session, search }) => {
         </div>
     );
 };
+

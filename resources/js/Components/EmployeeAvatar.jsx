@@ -22,3 +22,4 @@ const EmployeeAvatar = ({ employee, name, className = "h-9 w-9" }) => (
 );
 
 export default EmployeeAvatar;
+

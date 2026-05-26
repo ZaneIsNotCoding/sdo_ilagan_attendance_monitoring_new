@@ -5,6 +5,7 @@ import { router } from "@inertiajs/react";
 import FloatingInput from "@/components/floating-input";
 import { Search } from "lucide-react";
 import TravelOrderPrintDialog from "./TravelOrderPrintDialog";
+import { getRecordEmployeeName } from "@/lib/utils";
 
 const formatDate = (value, options = {}) =>
     value
@@ -16,19 +17,9 @@ const formatDate = (value, options = {}) =>
           })
         : "-";
 
-const getEmployeeName = (record) =>
-    record.employee_name ||
-    record.employee?.full_name ||
-    record.employee?.name ||
-    (record.employee
-        ? `${record.employee.first_name ?? ""} ${record.employee.middle_name ?? ""} ${record.employee.last_name ?? ""}`
-              .replace(/\s+/g, " ")
-              .trim()
-        : "");
-
 const getSearchText = (record) =>
     [
-        getEmployeeName(record),
+        getRecordEmployeeName(record),
         record.position,
         record.permanent_station,
         record.employee?.position,
@@ -121,8 +112,8 @@ const TravelOrderTable = ({
             .filter((order) => getSearchText(order).includes(query))
             .map((order) => ({
                 id: order.id,
-                value: getEmployeeName(order) || order.destination || "",
-                title: getEmployeeName(order) || "Unnamed employee",
+                value: getRecordEmployeeName(order) || order.destination || "",
+                title: getRecordEmployeeName(order) || "Unnamed employee",
                 subtitle: order.destination || order.purpose_of_travel || "",
             }))
             .filter((item) => {
@@ -339,7 +330,7 @@ const TravelOrderTable = ({
                                     className="transition hover:bg-gray-50"
                                 >
                                     <td className="px-6 py-3">
-                                        {getEmployeeName(order) || "-"}
+                                        {getRecordEmployeeName(order) || "-"}
                                     </td>
                                     <td className="px-6 py-3">
                                         {order.purpose_of_travel || "-"}
@@ -420,3 +411,4 @@ const TravelOrderTable = ({
 };
 
 export default TravelOrderTable;
+

@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { router } from "@inertiajs/react";
 import {
     closeDepartmentModalParams,
-    getFullName,
     HEAD_ITEMS_PER_PAGE,
 } from "../utils";
+import { getEmployeeName, sortAlphabetically } from "@/lib/utils";
 
 const getOfficeSearchText = (office) =>
     [
@@ -31,8 +31,7 @@ const useDepartmentHeadList = ({
     const [animatedOfficeId, setAnimatedOfficeId] = useState(null);
     const animationTimeoutRef = useRef(null);
     const rows = useMemo(() => {
-        return [...offices]
-            .sort((a, b) => a.name.localeCompare(b.name))
+        return sortAlphabetically(offices, "name")
             .map((office) => ({
                 office,
                 head:
@@ -97,7 +96,7 @@ const useDepartmentHeadList = ({
             }
         });
 
-        return results.slice(0, 6);
+        return sortAlphabetically(results, "officeName").slice(0, 6);
     }, [offices, searchInput]);
 
     useEffect(() => {
@@ -197,7 +196,7 @@ const useDepartmentHeadList = ({
         closeDepartmentModal,
         currentPage,
         endIndex,
-        getFullName,
+        getEmployeeName,
         handlePageChange,
         handleSearch,
         isSearchFocused,
@@ -215,3 +214,4 @@ const useDepartmentHeadList = ({
 };
 
 export default useDepartmentHeadList;
+

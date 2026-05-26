@@ -38,3 +38,4 @@ const useWorkTypeFormModal = ({ mode, open, onClose, workType }) => {
 };
 
 export default useWorkTypeFormModal;
+

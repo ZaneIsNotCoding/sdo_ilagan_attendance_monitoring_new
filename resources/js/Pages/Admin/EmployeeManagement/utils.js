@@ -32,3 +32,4 @@ export const clampAvailableFingers = (value) => {
 
     return Math.min(Math.max(available, 0), 3);
 };
+

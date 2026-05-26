@@ -372,3 +372,4 @@ const EmployeeFingerprintPanel = ({
 };
 
 export default EmployeeFingerprintPanel;
+

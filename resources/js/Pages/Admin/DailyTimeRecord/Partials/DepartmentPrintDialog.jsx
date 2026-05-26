@@ -200,3 +200,4 @@ const DepartmentPrintDialog = ({
 };
 
 export default DepartmentPrintDialog;
+

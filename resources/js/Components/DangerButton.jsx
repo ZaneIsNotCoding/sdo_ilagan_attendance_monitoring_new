@@ -9,3 +9,4 @@ export default function DangerButton({ className = "", ...props }) {
         />
     );
 }
+

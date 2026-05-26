@@ -22,6 +22,10 @@ import {
     PaginationPrevious,
     PaginationNext,
 } from "@/components/ui/pagination";
+import {
+    sortAlphabetically,
+    sortEmployeesAlphabetically,
+} from "@/lib/utils";
 
 dayjs.extend(localeData);
 
@@ -43,6 +47,10 @@ const AttendanceManagement = ({
     const [noAttendancePage, setNoAttendancePage] = useState(1);
     const [leavePage, setLeavePage] = useState(1);
     const recordsPerPage = 7;
+    const sortedOffices = useMemo(
+        () => sortAlphabetically(offices, "name"),
+        [offices],
+    );
 
     const years = useMemo(
         () =>
@@ -77,7 +85,7 @@ const AttendanceManagement = ({
     // --- Filtered attendance records ---
     const filteredRecords = useMemo(
         () =>
-            incomplete_attendances.filter((att) => {
+            sortAlphabetically(incomplete_attendances, "employee.full_name").filter((att) => {
                 const matchesOffice =
                     selectedOffice === "all" ||
                     att.employee?.office_id === selectedOffice;
@@ -125,7 +133,7 @@ const AttendanceManagement = ({
     }, [employee_leaves]);
 
     const employeesWithoutAttendance = useMemo(() => {
-        return employees.filter((emp) => {
+        return sortEmployeesAlphabetically(employees).filter((emp) => {
             const lookupKey = `${emp.id}_${selectedDateKey}`;
             const selectedDateObj = dayjs(selectedDateKey, "YYYY-MM-DD");
             const isWeekend = [0, 6].includes(selectedDateObj.day());
@@ -149,7 +157,7 @@ const AttendanceManagement = ({
     ]);
 
     const employeesWithLeave = useMemo(() => {
-        return employees
+        return sortEmployeesAlphabetically(employees)
             .map((emp) => {
                 const lookupKey = `${emp.id}_${selectedDateKey}`;
                 const leaveType = leaveLookup.get(lookupKey) || null;
@@ -208,10 +216,10 @@ const AttendanceManagement = ({
                 <div className="flex items-center justify-between gap-4 mb-4">
                     <CustomDropdownCheckboxObject
                         label="Select Office"
-                        items={offices}
+                        items={sortedOffices}
                         selected={selectedOffice}
                         buttonLabel={
-                            offices.find((office) => office.id === selectedOffice)
+                            sortedOffices.find((office) => office.id === selectedOffice)
                                 ?.name || "All Offices"
                         }
                         onChange={(val) => {
@@ -383,3 +391,4 @@ const AttendanceManagement = ({
 };
 
 export default AttendanceManagement;
+

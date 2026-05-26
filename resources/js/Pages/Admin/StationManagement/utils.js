@@ -67,12 +67,3 @@ export const getWidePagination = (activePage, totalPages) => {
     return pages;
 };
 
-export const getFullName = (employee) => {
-    if (!employee) return "-";
-
-    return `${employee.first_name || ""} ${employee.middle_name || ""} ${
-        employee.last_name || ""
-    }`
-        .replace(/\s+/g, " ")
-        .trim();
-};

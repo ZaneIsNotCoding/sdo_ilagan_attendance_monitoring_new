@@ -557,3 +557,4 @@ const LocatorSlipReport = React.forwardRef(
 );
 
 export default LocatorSlipReport;
+

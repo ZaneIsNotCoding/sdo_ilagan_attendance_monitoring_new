@@ -151,3 +151,4 @@ const useEmployeeFingerprintPanelUi = ({
 };
 
 export default useEmployeeFingerprintPanelUi;
+

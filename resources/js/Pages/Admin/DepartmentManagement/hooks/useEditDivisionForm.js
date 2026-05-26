@@ -40,3 +40,4 @@ const useEditDivisionForm = ({ division, open, setOpen }) => {
 };
 
 export default useEditDivisionForm;
+

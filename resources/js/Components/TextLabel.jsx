@@ -8,3 +8,4 @@ export default function TextLabel({ label, value = '\u00A0' }) {
         </div>
     );
 }
+

@@ -109,3 +109,4 @@ export const DepartmentSkeletonList = ({ count = 4 }) => (
         ))}
     </div>
 );
+

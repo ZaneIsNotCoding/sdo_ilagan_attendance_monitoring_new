@@ -34,6 +34,7 @@ import {
     CustomDropdownCheckboxObject,
     CustomDropdownWorkSchedule,
 } from "@/components/dropdown-menu-main";
+import { getEmployeeName } from "@/lib/utils";
 
 const EmployeeEditDialog = ({
     editForm,
@@ -451,7 +452,7 @@ const EmployeeEditDialog = ({
                                     title="Confirm Employee Update"
                                     description="You are about to update this employee's information."
                                     itemLabel="Employee"
-                                    itemName={`${safeForm.first_name || ""} ${safeForm.last_name || ""}`.trim()}
+                                    itemName={getEmployeeName(safeForm)}
                                 />
                             )}
                         </DialogFooter>
@@ -463,3 +464,4 @@ const EmployeeEditDialog = ({
 };
 
 export default EmployeeEditDialog;
+

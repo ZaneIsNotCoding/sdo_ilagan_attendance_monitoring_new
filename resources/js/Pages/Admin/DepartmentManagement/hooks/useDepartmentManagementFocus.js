@@ -26,3 +26,4 @@ const useDepartmentManagementFocus = () => {
 };
 
 export default useDepartmentManagementFocus;
+

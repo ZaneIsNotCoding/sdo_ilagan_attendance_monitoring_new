@@ -18,3 +18,4 @@ export const resolveCurrentDateParts = ({ month, year }) => {
         currentYear: year || currentDate.getFullYear(),
     };
 };
+

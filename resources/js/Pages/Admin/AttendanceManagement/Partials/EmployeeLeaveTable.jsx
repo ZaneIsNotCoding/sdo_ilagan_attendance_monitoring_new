@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { getEmployeeName } from "@/lib/utils";
 
 const EmployeeLeaveTable = ({ employees, selectedDate, syncLeave }) => {
     const [leaveTypes, setLeaveTypes] = useState({});
@@ -130,7 +131,7 @@ const EmployeeLeaveTable = ({ employees, selectedDate, syncLeave }) => {
                         return (
                             <TableRow key={emp.id}>
                                 <TableCell>
-                                    {emp.first_name} {emp.last_name}
+                                    {getEmployeeName(emp)}
                                 </TableCell>
                                 <TableCell>
                                                 {emp.office?.name || "-"}
@@ -177,8 +178,7 @@ const EmployeeLeaveTable = ({ employees, selectedDate, syncLeave }) => {
                                                     <strong>
                                                         {currentValue}
                                                     </strong>{" "}
-                                                    to {emp.first_name}{" "}
-                                                    {emp.last_name} on{" "}
+                                                    to {getEmployeeName(emp)} on{" "}
                                                     {dayjs(selectedDate).format(
                                                         "DD MMMM YYYY",
                                                     )}
@@ -217,3 +217,4 @@ const EmployeeLeaveTable = ({ employees, selectedDate, syncLeave }) => {
 };
 
 export default EmployeeLeaveTable;
+

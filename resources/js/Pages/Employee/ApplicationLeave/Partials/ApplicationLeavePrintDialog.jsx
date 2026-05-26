@@ -244,3 +244,4 @@ const ApplicationLeavePrintDialog = ({ open, onClose, application }) => {
 };
 
 export default ApplicationLeavePrintDialog;
+

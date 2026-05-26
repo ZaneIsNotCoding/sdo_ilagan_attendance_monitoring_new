@@ -197,3 +197,4 @@ export default function TravelAuthorityForm({ onClose, employee }) {
         </div>
     );
 }
+

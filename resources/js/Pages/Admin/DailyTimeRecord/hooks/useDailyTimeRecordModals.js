@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { router } from "@inertiajs/react";
+import { getEmployeeName } from "@/lib/utils";
 
 const clearDtrModalParams = (params) => {
     params.delete("modal");
     params.delete("employee_id");
     params.delete("name");
 };
-
-const employeeDisplayName = (employee) =>
-    employee?.full_name || employee?.first_name || "";
 
 const useDailyTimeRecordModals = ({
     departmentPrintModal,
@@ -48,7 +46,7 @@ const useDailyTimeRecordModals = ({
 
         params.set("modal", "preview-dtr");
         params.set("employee_id", employee.id);
-        params.set("name", employeeDisplayName(employee));
+        params.set("name", getEmployeeName(employee));
 
         router.get(route("dailytimerecord"), Object.fromEntries(params), {
             preserveState: true,
@@ -77,7 +75,7 @@ const useDailyTimeRecordModals = ({
 
         params.set("modal", "print-dtr");
         params.set("employee_id", firstEmployee.id);
-        params.set("name", employeeDisplayName(firstEmployee));
+        params.set("name", getEmployeeName(firstEmployee));
 
         router.get(route("dailytimerecord"), Object.fromEntries(params), {
             only: ["printDtrModal"],
@@ -160,3 +158,4 @@ const useDailyTimeRecordModals = ({
 };
 
 export default useDailyTimeRecordModals;
+

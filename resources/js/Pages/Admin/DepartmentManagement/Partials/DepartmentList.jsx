@@ -80,7 +80,7 @@ const DepartmentList = ({
             <div className="rounded-xl p-4 border-2 shadow-lg">
                 <div className="mb-4 flex items-center justify-between gap-3">
                     <div>
-                        <h2 className="text-lg font-bold">Office List</h2>
+                        <h2 className="text-lg font-bold">Section / Unit</h2>
                         <p className="text-sm text-gray-500">
                             Manage offices under each division
                         </p>
@@ -613,3 +613,4 @@ const DepartmentList = ({
 };
 
 export default DepartmentList;
+

@@ -75,3 +75,4 @@ const SignatoriesSummary = ({
 );
 
 export default SignatoriesSummary;
+

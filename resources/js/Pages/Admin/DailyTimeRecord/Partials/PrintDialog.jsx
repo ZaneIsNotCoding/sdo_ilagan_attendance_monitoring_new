@@ -259,6 +259,7 @@ const PrintDialog = ({
                                         selectedYear,
                                     )}
                                     monthlyTotals={data.monthly_totals}
+                                    workSchedule={employee.work_schedule}
                                     signatory={resolveSignatory(
                                         employee,
                                         employeeData,
@@ -303,3 +304,4 @@ const PrintDialog = ({
 };
 
 export default PrintDialog;
+

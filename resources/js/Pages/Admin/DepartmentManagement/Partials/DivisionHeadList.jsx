@@ -36,7 +36,7 @@ const DivisionHeadList = ({
         closeDepartmentModal,
         currentPage,
         endIndex,
-        getFullName,
+        getEmployeeName,
         openDepartmentModal,
         paginatedRows,
         setCurrentPage,
@@ -54,7 +54,7 @@ const DivisionHeadList = ({
         <div className="rounded-xl">
             <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
-                    <h2 className="text-lg font-bold">Division Head List</h2>
+                    <h2 className="text-lg font-bold">Division Head</h2>
                     <p className="text-sm text-gray-500">
                         Manage division head assignments
                     </p>
@@ -79,13 +79,13 @@ const DivisionHeadList = ({
                             <TableHead className="w-[25%] px-10 text-white">
                                 Employee Name
                             </TableHead>
-                            <TableHead className="w-[15%] p-3 text-white">
+                            <TableHead className="w-[20%] p-3 text-white">
                                 Position
                             </TableHead>
                             <TableHead className="w-[25%] p-3 text-white">
                                 Division
                             </TableHead>
-                            <TableHead className="w-[15%] p-3 text-white">
+                            <TableHead className="w-[10%] p-3 text-white">
                                 Status
                             </TableHead>
                             <TableHead className="w-[10%] p-3 text-white">
@@ -124,7 +124,9 @@ const DivisionHeadList = ({
                                                 <div className="min-w-0">
                                                     <div className="truncate font-medium">
                                                         {emp
-                                                            ? getFullName(emp)
+                                                            ? getEmployeeName(
+                                                                  emp,
+                                                              )
                                                             : "No Head Assigned"}
                                                     </div>
                                                     {emp && (
@@ -136,8 +138,13 @@ const DivisionHeadList = ({
                                             </div>
                                         </TableCell>
 
-                                        <TableCell className="p-3 text-gray-700 truncate">
-                                            {emp?.position || "-"}
+                                        <TableCell className="min-w-0 p-3 text-gray-700">
+                                            <span
+                                                className="block max-w-full truncate"
+                                                title={emp?.position || "-"}
+                                            >
+                                                {emp?.position || "-"}
+                                            </span>
                                         </TableCell>
                                         <TableCell className="p-3">
                                             <div className="flex items-start gap-2 min-w-0">

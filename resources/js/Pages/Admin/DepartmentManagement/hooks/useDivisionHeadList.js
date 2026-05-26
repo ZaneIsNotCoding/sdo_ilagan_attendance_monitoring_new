@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { router } from "@inertiajs/react";
 import {
     closeDepartmentModalParams,
-    getFullName,
     HEAD_ITEMS_PER_PAGE,
 } from "../utils";
+import { getEmployeeName } from "@/lib/utils";
 
 const useDivisionHeadList = ({
     division_heads,
@@ -117,7 +117,7 @@ const useDivisionHeadList = ({
         closeDepartmentModal,
         currentPage,
         endIndex,
-        getFullName,
+        getEmployeeName,
         openDepartmentModal,
         paginatedRows,
         setCurrentPage,
@@ -128,3 +128,4 @@ const useDivisionHeadList = ({
 };
 
 export default useDivisionHeadList;
+

@@ -11,6 +11,7 @@ import { Button } from "@/Components/ui/button";
 import { toast } from "sonner";
 import html2pdf from "html2pdf.js";
 import HrSummaryofTardinessReport from "@/Pages/DocumentsFormats/HrSummaryofTardinessReport";
+import { sortAlphabetically, sortWithPinnedFirst } from "@/lib/utils";
 
 import {
     Table,
@@ -69,8 +70,14 @@ const TardyConvertion = ({
         useState("All Departments");
 
     const departments = useMemo(() => {
-        const depts = Array.from(new Set(records.map((r) => r.dept)));
-        return ["All Departments", ...depts];
+        const depts = Array.from(
+            new Set(records.map((r) => r.dept).filter(Boolean))
+        );
+
+        return sortWithPinnedFirst(
+            ["All Departments", ...depts],
+            ["All Departments"]
+        );
     }, [records]);
 
     // Filter records based on department and month range
@@ -108,7 +115,7 @@ const TardyConvertion = ({
             grouped[key].totalMinutes += minutes;
         });
 
-        return Object.values(grouped).map((emp) => {
+        const employees = Object.values(grouped).map((emp) => {
             let { totalHours, totalMinutes } = emp;
 
             if (totalMinutes >= 60) {
@@ -135,6 +142,8 @@ const TardyConvertion = ({
                 total_equi: equi_hours + equi_mins,
             };
         });
+
+        return sortAlphabetically(employees, "name");
     }, [filteredRecords, conversionHours, conversionMinutes]);
 
     // Month range label
@@ -330,3 +339,4 @@ const TardyConvertion = ({
 };
 
 export default TardyConvertion;
+

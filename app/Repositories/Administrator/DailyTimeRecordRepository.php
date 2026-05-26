@@ -188,6 +188,8 @@ class DailyTimeRecordRepository
         return Employee::with([
             'office:id,name,division_id',
             'office.division:id,code,name',
+            'workSchedule:id,work_type_id,name,time_in,time_out',
+            'workSchedule.workType:id,name',
             'attendances' => function ($query) use ($month, $year) {
                 $query
                     ->when($year, fn ($query) => $query->whereYear('date', $year))
@@ -330,6 +332,8 @@ class DailyTimeRecordRepository
         return Employee::with([
             'office:id,name,division_id',
             'office.division:id,code,name',
+            'workSchedule:id,work_type_id,name,time_in,time_out',
+            'workSchedule.workType:id,name',
             'attendances' => function ($query) use ($month, $year) {
                 $query->whereYear('date', $year)
                     ->whereMonth('date', $month)

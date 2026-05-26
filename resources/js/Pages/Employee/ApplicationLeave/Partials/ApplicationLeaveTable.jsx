@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import FloatingInput from "@/components/floating-input";
 import { Search } from "lucide-react";
 import ApplicationLeavePrintDialog from "./ApplicationLeavePrintDialog";
+import { getRecordEmployeeName } from "@/lib/utils";
 
 const itemVariants = {
     hidden: { opacity: 0, y: 18 },
@@ -26,19 +27,9 @@ const formatDate = (value, options = {}) =>
           })
         : "-";
 
-const getEmployeeName = (record) =>
-    record.employee_name ||
-    record.employee?.full_name ||
-    record.employee?.name ||
-    (record.employee
-        ? `${record.employee.first_name ?? ""} ${record.employee.middle_name ?? ""} ${record.employee.last_name ?? ""}`
-              .replace(/\s+/g, " ")
-              .trim()
-        : "");
-
 const getSearchText = (record) =>
     [
-        getEmployeeName(record),
+        getRecordEmployeeName(record),
         record.office_department,
         record.position,
         record.employee?.position,
@@ -135,10 +126,11 @@ const ApplicationLeaveTable = ({
             .map((application) => ({
                 id: application.id,
                 value:
-                    getEmployeeName(application) ||
+                    getRecordEmployeeName(application) ||
                     application.type_of_leave ||
                     "",
-                title: getEmployeeName(application) || "Unnamed employee",
+                title:
+                    getRecordEmployeeName(application) || "Unnamed employee",
                 subtitle:
                     application.type_of_leave ||
                     application.office_department ||
@@ -363,7 +355,7 @@ const ApplicationLeaveTable = ({
                                     className="transition hover:bg-gray-50"
                                 >
                                     <td className="px-6 py-3">
-                                        {getEmployeeName(application) || "-"}
+                                        {getRecordEmployeeName(application) || "-"}
                                     </td>
                                     <td className="px-6 py-3">
                                         {application.type_of_leave || "-"}
@@ -446,3 +438,4 @@ const ApplicationLeaveTable = ({
 };
 
 export default ApplicationLeaveTable;
+

@@ -54,3 +54,4 @@ const StatusSwitchCell = ({ emp, onStatusUpdated }) => {
 };
 
 export default StatusSwitchCell;
+

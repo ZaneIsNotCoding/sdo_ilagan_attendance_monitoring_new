@@ -1,16 +1,6 @@
 export const ITEMS_PER_PAGE = 6;
 export const HEAD_ITEMS_PER_PAGE = 10;
 
-export const getFullName = (employee) => {
-    if (!employee) return "-";
-
-    return `${employee.first_name || ""} ${employee.middle_name || ""} ${
-        employee.last_name || ""
-    }`
-        .replace(/\s+/g, " ")
-        .trim();
-};
-
 export const getOfficeHeadKey = (office) => {
     if (!office) return null;
 
@@ -38,3 +28,4 @@ export const closeDepartmentModalParams = (query) => {
     query.delete("division_name");
     query.delete("office_id");
 };
+

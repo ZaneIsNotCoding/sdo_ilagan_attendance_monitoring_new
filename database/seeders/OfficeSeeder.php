@@ -23,11 +23,16 @@ class OfficeSeeder extends Seeder
                 'Accounting Unit',
                 'Budget Unit',
                 'Administrative Unit',
+                'Legal Unit',
+                'Procurement Unit',
+                'ICT Unit',
                 'Supply and Property Unit',
                 'Records Unit',
                 'Human Resource Management Unit',
                 'Cash Unit',
                 'SDS',
+                'ASDS',
+                'General Services'
             ],
 
             'SGOD' => [

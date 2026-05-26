@@ -56,3 +56,4 @@ const SearchInput = ({url, queryParams:rawParams, label}) => {
 }
 
 export default SearchInput
+

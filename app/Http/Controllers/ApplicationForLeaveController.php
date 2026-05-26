@@ -12,7 +12,6 @@ class ApplicationForLeaveController extends Controller
 {
     public function index(Request $request)
     {
-        /** @var User|null $user */
         $user = Auth::user();
         $employee = $user?->employee()->with('station', 'office')->first();
 
@@ -26,7 +25,6 @@ class ApplicationForLeaveController extends Controller
 
     public function store(Request $request)
     {
-        /** @var User|null $user */
         $user = Auth::user();
         $employee = $user?->employee;
 

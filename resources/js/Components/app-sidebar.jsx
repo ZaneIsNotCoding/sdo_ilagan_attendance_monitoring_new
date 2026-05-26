@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import {
     Sidebar,
     SidebarContent,
+    SidebarFooter,
     SidebarGroup,
     SidebarHeader,
     SidebarMenu,
@@ -43,18 +44,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import ApplicationLogo from "./ApplicationLogo";
+import EmployeeAvatar from "./EmployeeAvatar";
+import { getEmployeeName } from "@/lib/utils";
 
 export function AppSidebar({ active, user, ...props }) {
     const [isAdminOpen, setAdminOpen] = useState(true);
     const [isHROpen, setHROpen] = useState(true);
 
-    const { url } = usePage();
-
-    const { auth } = usePage().props;
-
-    console.log("Auth object:", auth);
-    console.log("Logged in user:", auth?.user);
-    console.log("Employee:", auth?.user?.employee);
+    const { url, props: pageProps } = usePage();
+    const authUser = user || pageProps.auth?.user;
+    const employee = authUser?.employee;
+    const employeeName = getEmployeeName(employee) || authUser?.email || "Administrator";
+    const stationName = employee?.station?.name || "No Station";
+    const roleLabel = employee?.position || "Administrator";
 
     return (
         <Sidebar {...props}>
@@ -93,8 +95,7 @@ export function AppSidebar({ active, user, ...props }) {
                     <div className="border-b border-blue-400 pb-5">
                         <div className="flex items-center gap-2 text-sm font-semibold text-left text-white px-3 py-2 rounded-md">
                             <MapPin className="h-5 w-5 text-blue-200" />
-                            {auth?.user?.employee?.station?.name ||
-                                "No Station"}
+                            {stationName}
                         </div>
                     </div>
                 </div>
@@ -391,18 +392,34 @@ export function AppSidebar({ active, user, ...props }) {
                     </SidebarMenu>
                 </SidebarGroup>
 
-                {user && (
-                    <SidebarGroup className="mt-auto">
+                {authUser && (
+                    <SidebarFooter className="mt-auto border-t border-blue-400/80 px-5 py-4">
                         <SidebarMenu>
                             <SidebarMenuItem>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button
                                             variant="ghost"
-                                            className="w-full justify-center items-center gap-2 hover:bg-blue-900 hover:text-blue-100"
+                                            className="h-auto w-full justify-start gap-3 rounded-md px-2 py-2 text-left hover:bg-blue-900 hover:text-blue-100"
                                         >
-                                            <User className="h-4 w-4" />
-                                            {user.name}
+                                            <EmployeeAvatar
+                                                employee={employee}
+                                                name={employeeName}
+                                                className="h-10 w-10"
+                                            />
+                                            <span className="min-w-0 flex-1">
+                                                <span className="block truncate text-sm font-semibold text-white">
+                                                    {employeeName}
+                                                </span>
+                                                <span className="block truncate text-[11px] text-blue-100/85">
+                                                    {roleLabel}
+                                                </span>
+                                                {authUser.email && (
+                                                    <span className="block truncate text-[10px] text-blue-100/70">
+                                                        {authUser.email}
+                                                    </span>
+                                                )}
+                                            </span>
                                         </Button>
                                     </DropdownMenuTrigger>
 
@@ -432,7 +449,7 @@ export function AppSidebar({ active, user, ...props }) {
                                 </DropdownMenu>
                             </SidebarMenuItem>
                         </SidebarMenu>
-                    </SidebarGroup>
+                    </SidebarFooter>
                 )}
             </SidebarContent>
         </Sidebar>
@@ -440,3 +457,4 @@ export function AppSidebar({ active, user, ...props }) {
 }
 
 export default AppSidebar;
+

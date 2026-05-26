@@ -191,3 +191,4 @@ const TardyRecordBatch = ({ batch, records }) => {
 };
 
 export default TardyRecordBatch;
+

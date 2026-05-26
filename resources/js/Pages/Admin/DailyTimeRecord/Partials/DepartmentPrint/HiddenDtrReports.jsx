@@ -45,6 +45,7 @@ const HiddenDtrReports = ({
                         selectedYear,
                     )}
                     monthlyTotals={data.monthly_totals}
+                    workSchedule={employee.work_schedule}
                     signatory={selectedEmployeeSignatory(employee)}
                 />
             );
@@ -53,3 +54,4 @@ const HiddenDtrReports = ({
 );
 
 export default HiddenDtrReports;
+

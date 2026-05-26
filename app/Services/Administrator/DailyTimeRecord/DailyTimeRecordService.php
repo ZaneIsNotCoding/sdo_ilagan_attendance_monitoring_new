@@ -627,6 +627,7 @@ class DailyTimeRecordService
             'position' => $employee->position,
             'department' => $employee->office?->name,
             'office' => $employee->office,
+            'work_schedule' => $employee->workSchedule,
         ];
     }
 

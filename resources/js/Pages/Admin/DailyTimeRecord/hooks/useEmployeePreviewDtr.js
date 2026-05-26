@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import dayjs from "dayjs";
+import { getEmployeeName } from "@/lib/utils";
 
 const formatTime = (time) => {
     if (!time) return "-";
@@ -71,14 +72,6 @@ const generateLogs = (
         };
     });
 
-const employeeFullName = (employee) =>
-    employee?.full_name ||
-    [employee?.first_name, employee?.middle_name, employee?.last_name]
-        .filter(Boolean)
-        .join(" ")
-        .replace(/\s+/g, " ")
-        .trim();
-
 const useEmployeePreviewDtr = ({
     previewDtrModal,
     selectedMonth,
@@ -86,7 +79,7 @@ const useEmployeePreviewDtr = ({
 }) =>
     useMemo(() => {
         const timeRecord = previewDtrModal?.time_record;
-        const fullName = employeeFullName(timeRecord);
+        const fullName = getEmployeeName(timeRecord);
         const previewMonth = String(selectedMonth).padStart(2, "0");
         const previewYear = String(selectedYear);
         const logs = timeRecord
@@ -116,3 +109,4 @@ const useEmployeePreviewDtr = ({
     }, [previewDtrModal, selectedMonth, selectedYear]);
 
 export default useEmployeePreviewDtr;
+

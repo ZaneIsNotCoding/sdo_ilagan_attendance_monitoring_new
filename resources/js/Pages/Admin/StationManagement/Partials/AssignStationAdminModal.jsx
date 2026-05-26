@@ -24,7 +24,7 @@ import FloatingInput from "@/components/floating-input";
 import EmployeeAvatar from "@/Components/EmployeeAvatar";
 import { SelectableEmployeeSkeletonList } from "@/Components/Skeletons";
 import useAssignStationAdmin from "../hooks/useAssignStationAdmin";
-import { getFullName } from "../utils";
+import { getEmployeeName } from "@/lib/utils";
 
 const AssignStationAdminModal = ({
     open,
@@ -114,7 +114,7 @@ const AssignStationAdminModal = ({
                                     <SelectableEmployeeSkeletonList count={5} />
                                 ) : employees.length > 0 ? (
                                     employees.map((emp) => {
-                                        const fullName = getFullName(emp);
+                                        const fullName = getEmployeeName(emp);
                                         const isSelected =
                                             String(selectedEmployee?.id) ===
                                             String(emp.id);
@@ -174,8 +174,7 @@ const AssignStationAdminModal = ({
 
                                     <div>
                                         <div className="text-sm font-semibold">
-                                            {selectedEmployee.first_name}{" "}
-                                            {selectedEmployee.last_name}
+                                            {getEmployeeName(selectedEmployee)}
                                         </div>
                                         <div className="text-xs text-gray-500">
                                             {selectedEmployee.position}
@@ -377,3 +376,4 @@ const AssignStationAdminModal = ({
 };
 
 export default AssignStationAdminModal;
+

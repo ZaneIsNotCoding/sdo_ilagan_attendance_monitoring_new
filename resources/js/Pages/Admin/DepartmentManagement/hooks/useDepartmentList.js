@@ -6,16 +6,14 @@ import {
     ITEMS_PER_PAGE,
     paginateItems,
 } from "../utils";
+import { sortAlphabetically } from "@/lib/utils";
 
 const useDepartmentList = ({ offices, office_heads }) => {
     const [officePage, setOfficePage] = useState(1);
     const [divisionPage, setDivisionPage] = useState(1);
     const [chartReady, setChartReady] = useState(false);
     const sortedOffices = useMemo(
-        () =>
-            [...offices].sort((a, b) =>
-                (a?.name || "").localeCompare(b?.name || ""),
-            ),
+        () => sortAlphabetically(offices, "name"),
         [offices],
     );
     const assignedCount = sortedOffices.filter((office) =>
@@ -52,7 +50,7 @@ const useDepartmentList = ({ offices, office_heads }) => {
             return acc;
         }, {});
 
-        const labels = Object.keys(grouped);
+        const labels = sortAlphabetically(Object.keys(grouped), (item) => item);
 
         return {
             labels,
@@ -145,10 +143,7 @@ export const useDepartmentPagination = ({
     sortedOffices,
 }) => {
     const sortedDivisions = useMemo(
-        () =>
-            [...divisions].sort((a, b) =>
-                (a?.name || "").localeCompare(b?.name || ""),
-            ),
+        () => sortAlphabetically(divisions, "name"),
         [divisions],
     );
     const totalOfficePages = Math.max(
@@ -188,3 +183,4 @@ export const useDepartmentPagination = ({
 };
 
 export default useDepartmentList;
+

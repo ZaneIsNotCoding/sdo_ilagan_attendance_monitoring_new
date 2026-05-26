@@ -3,15 +3,7 @@ import { Head, router } from "@inertiajs/react";
 
 import Header from "./Partials/Header";
 import EmployeeList from "./Partials/EmployeeList";
-
-const getName = (employee) =>
-    [employee?.first_name, employee?.middle_name, employee?.last_name]
-        .filter(Boolean)
-        .join(" ")
-        .replace(/\s+/g, " ")
-        .trim() ||
-    employee?.name ||
-    "Unknown Employee";
+import { getEmployeeName, sortAlphabetically } from "@/lib/utils";
 
 const toArray = (value) => {
     if (Array.isArray(value)) return value;
@@ -21,20 +13,23 @@ const toArray = (value) => {
 };
 
 const createRows = (employees) => {
-    return toArray(employees?.data || employees).map((employee) => ({
-        id: employee.id,
-        employee_id: employee.employee_id || employee.id,
-        name: getName(employee),
-        station: employee.station?.name || "Division Office",
-        station_id: employee.station?.id || null,
-        position: employee.position || "Employee",
-        profile_img: employee.profile_img || null,
-        am_in: employee.am_in || "",
-        am_out: employee.am_out || "",
-        pm_in: employee.pm_in || "",
-        pm_out: employee.pm_out || "",
-        status: employee.status || "Absent",
-    }));
+    return sortAlphabetically(
+        toArray(employees?.data || employees).map((employee) => ({
+            id: employee.id,
+            employee_id: employee.employee_id || employee.id,
+            name: getEmployeeName(employee) || "Unknown Employee",
+            station: employee.station?.name || "Division Office",
+            station_id: employee.station?.id || null,
+            position: employee.position || "Employee",
+            profile_img: employee.profile_img || null,
+            am_in: employee.am_in || "",
+            am_out: employee.am_out || "",
+            pm_in: employee.pm_in || "",
+            pm_out: employee.pm_out || "",
+            status: employee.status || "Absent",
+        })),
+        "name",
+    );
 };
 
 const AttendanceMonitoring = ({
@@ -42,7 +37,10 @@ const AttendanceMonitoring = ({
     filters = {},
     stations = [],
 }) => {
-    const stationList = useMemo(() => toArray(stations), [stations]);
+    const stationList = useMemo(
+        () => sortAlphabetically(toArray(stations), "name"),
+        [stations],
+    );
     const rows = useMemo(() => createRows(employees), [employees]);
     const [search, setSearch] = useState(filters.search || "");
     const [stationSearch, setStationSearch] = useState("");
@@ -148,3 +146,4 @@ const AttendanceMonitoring = ({
 };
 
 export default AttendanceMonitoring;
+

@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
-import axios from "axios";
+import React, { useState } from "react";
 import { Loader2, Search, X } from "lucide-react";
 import FloatingInput from "@/components/floating-input";
+import useSearchSuggestions from "../hooks/useSearchSuggestions";
 
 const SchoolList = ({
     selectedStation,
@@ -11,67 +11,17 @@ const SchoolList = ({
     stations,
 }) => {
     const [selectedSuggestion, setSelectedSuggestion] = useState(null);
-    const [suggestionMatches, setSuggestionMatches] = useState([]);
-    const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-    const [showSuggestions, setShowSuggestions] = useState(false);
-    const suggestionRequestRef = useRef(0);
-    const searchBoxRef = useRef(null);
-
-    useEffect(() => {
-        const query = stationSearch.trim();
-
-        if (!query) {
-            setSelectedSuggestion(null);
-            setSuggestionMatches([]);
-            setSuggestionsLoading(false);
-            return;
-        }
-
-        setSuggestionsLoading(true);
-        const requestId = suggestionRequestRef.current + 1;
-        suggestionRequestRef.current = requestId;
-
-        const timeout = setTimeout(() => {
-            axios
-                .get(route("attendance-monitoring.stations.suggestions"), {
-                    params: { search: query },
-                })
-                .then((response) => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionMatches(response.data || []);
-                })
-                .catch(() => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionMatches([]);
-                })
-                .finally(() => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionsLoading(false);
-                });
-        }, 250);
-
-        return () => clearTimeout(timeout);
-    }, [stationSearch]);
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (
-                searchBoxRef.current &&
-                !searchBoxRef.current.contains(event.target)
-            ) {
-                setShowSuggestions(false);
-            }
-        };
-
-        document.addEventListener("mousedown", handleClickOutside);
-
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, []);
+    const {
+        searchBoxRef,
+        showSuggestions,
+        setShowSuggestions,
+        suggestionMatches,
+        setSuggestionMatches,
+        suggestionsLoading,
+    } = useSearchSuggestions({
+        query: stationSearch,
+        routeName: "attendance-monitoring.stations.suggestions",
+    });
 
     const stationTabs = selectedSuggestion ? [selectedSuggestion] : stations;
     const stationGroups = stationTabs.length > 5 ? [0, 1] : [0];
@@ -251,3 +201,4 @@ const SchoolList = ({
 };
 
 export default SchoolList;
+

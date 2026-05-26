@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { router } from "@inertiajs/react";
+import { sortEmployeesAlphabetically } from "@/lib/utils";
 
 const useAssignHeadForm = ({
     collection,
@@ -63,7 +64,9 @@ const useAssignHeadForm = ({
                 .then((response) => {
                     if (requestRef.current !== requestId) return;
 
-                    setEmployees(response.data?.data || []);
+                    setEmployees(
+                        sortEmployeesAlphabetically(response.data?.data || []),
+                    );
                     setEmployeeTotal(response.data?.total || 0);
                 })
                 .catch(() => {
@@ -113,3 +116,4 @@ const useAssignHeadForm = ({
 };
 
 export default useAssignHeadForm;
+

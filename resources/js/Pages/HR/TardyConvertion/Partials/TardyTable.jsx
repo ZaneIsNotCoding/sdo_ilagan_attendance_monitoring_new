@@ -36,3 +36,4 @@ export const TardyTable = ({ groupedByEmployee, monthRangeLabel }) => (
         </TableBody>
     </Table>
 );
+

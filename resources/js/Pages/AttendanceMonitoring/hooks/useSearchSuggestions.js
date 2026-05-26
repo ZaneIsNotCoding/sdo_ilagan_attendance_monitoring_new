@@ -1,18 +1,61 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 
-const useEmployeeSearchSuggestions = ({
-    enabled = true,
-    params = {},
+const useSearchSuggestions = ({
     query,
-    routeName = "employees.suggestions",
+    routeName,
+    params = {},
+    delay = 250,
+    enabled = true,
 }) => {
-    const [showSuggestions, setShowSuggestions] = useState(false);
     const [suggestionMatches, setSuggestionMatches] = useState([]);
     const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-    const searchBoxRef = useRef(null);
+    const [showSuggestions, setShowSuggestions] = useState(false);
     const suggestionRequestRef = useRef(0);
-    const paramsKey = JSON.stringify(params);
+    const searchBoxRef = useRef(null);
+    const paramsKey = useMemo(() => JSON.stringify(params), [params]);
+
+    useEffect(() => {
+        const trimmedQuery = query.trim();
+
+        if (!enabled || !trimmedQuery) {
+            suggestionRequestRef.current += 1;
+            setSuggestionMatches([]);
+            setSuggestionsLoading(false);
+            return;
+        }
+
+        setSuggestionsLoading(true);
+        const requestId = suggestionRequestRef.current + 1;
+        suggestionRequestRef.current = requestId;
+
+        const timeout = setTimeout(() => {
+            axios
+                .get(route(routeName), {
+                    params: {
+                        search: trimmedQuery,
+                        ...JSON.parse(paramsKey),
+                    },
+                })
+                .then((response) => {
+                    if (suggestionRequestRef.current !== requestId) return;
+
+                    setSuggestionMatches(response.data || []);
+                })
+                .catch(() => {
+                    if (suggestionRequestRef.current !== requestId) return;
+
+                    setSuggestionMatches([]);
+                })
+                .finally(() => {
+                    if (suggestionRequestRef.current !== requestId) return;
+
+                    setSuggestionsLoading(false);
+                });
+        }, delay);
+
+        return () => clearTimeout(timeout);
+    }, [delay, enabled, paramsKey, query, routeName]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -31,61 +74,14 @@ const useEmployeeSearchSuggestions = ({
         };
     }, []);
 
-    useEffect(() => {
-        if (!enabled || !showSuggestions) {
-            setSuggestionMatches([]);
-            setSuggestionsLoading(false);
-            return;
-        }
-
-        const search = String(query || "").trim();
-
-        if (!search) {
-            setSuggestionMatches([]);
-            setSuggestionsLoading(false);
-            return;
-        }
-
-        setSuggestionsLoading(true);
-        const requestId = suggestionRequestRef.current + 1;
-        suggestionRequestRef.current = requestId;
-
-        const timeout = setTimeout(() => {
-            axios
-                .get(route(routeName), {
-                    params: {
-                        search,
-                        ...JSON.parse(paramsKey || "{}"),
-                    },
-                })
-                .then((response) => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionMatches(response.data || []);
-                })
-                .catch(() => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionMatches([]);
-                })
-                .finally(() => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionsLoading(false);
-                });
-        }, 250);
-
-        return () => clearTimeout(timeout);
-    }, [enabled, paramsKey, query, routeName, showSuggestions]);
-
     return {
         searchBoxRef,
-        setShowSuggestions,
         showSuggestions,
+        setShowSuggestions,
         suggestionMatches,
+        setSuggestionMatches,
         suggestionsLoading,
     };
 };
 
-export default useEmployeeSearchSuggestions;
-
+export default useSearchSuggestions;

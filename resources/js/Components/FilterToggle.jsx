@@ -126,3 +126,4 @@ const FilterToggle = ({ queryParams, visibleFilters = [], url }) => {
 };
 
 export default FilterToggle;
+

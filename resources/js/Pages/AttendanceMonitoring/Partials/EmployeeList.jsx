@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
-import axios from "axios";
+import React from "react";
 import {
     CheckCircle2,
     Clock3,
@@ -19,6 +18,7 @@ import {
 import FloatingInput from "@/components/floating-input";
 import EmployeeAvatar from "@/Components/EmployeeAvatar";
 import SchoolList from "./SchoolList";
+import useSearchSuggestions from "../hooks/useSearchSuggestions";
 
 const EmployeeCard = ({ row }) => {
     const status = row.status || "Absent";
@@ -114,76 +114,27 @@ const EmployeeList = ({
     stationSearch,
     stations,
 }) => {
-    const [suggestionMatches, setSuggestionMatches] = useState([]);
-    const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-    const [showSuggestions, setShowSuggestions] = useState(false);
-    const suggestionRequestRef = useRef(0);
-    const searchBoxRef = useRef(null);
+    const {
+        searchBoxRef,
+        showSuggestions,
+        setShowSuggestions,
+        suggestionMatches,
+        setSuggestionMatches,
+        suggestionsLoading,
+    } = useSearchSuggestions({
+        query: search,
+        routeName: "attendance-monitoring.employees.suggestions",
+        params: {
+            station_code: selectedStationCode,
+            station_name: selectedStationName,
+        },
+    });
     const page = employees?.current_page || 1;
     const pageCount = employees?.last_page || 1;
     const perPage = employees?.per_page || 12;
     const total = employees?.total || 0;
     const startIndex = employees?.from || 0;
     const endIndex = employees?.to || 0;
-
-    useEffect(() => {
-        const query = search.trim();
-
-        if (!query) {
-            setSuggestionMatches([]);
-            setSuggestionsLoading(false);
-            return;
-        }
-
-        setSuggestionsLoading(true);
-        const requestId = suggestionRequestRef.current + 1;
-        suggestionRequestRef.current = requestId;
-
-        const timeout = setTimeout(() => {
-            axios
-                .get(route("attendance-monitoring.employees.suggestions"), {
-                    params: {
-                        search: query,
-                        station_code: selectedStationCode,
-                        station_name: selectedStationName,
-                    },
-                })
-                .then((response) => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionMatches(response.data || []);
-                })
-                .catch(() => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionMatches([]);
-                })
-                .finally(() => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionsLoading(false);
-                });
-        }, 250);
-
-        return () => clearTimeout(timeout);
-    }, [search, selectedStationCode, selectedStationName]);
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (
-                searchBoxRef.current &&
-                !searchBoxRef.current.contains(event.target)
-            ) {
-                setShowSuggestions(false);
-            }
-        };
-
-        document.addEventListener("mousedown", handleClickOutside);
-
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, []);
 
     const selectSuggestion = (suggestion) => {
         const nextValue = suggestion.name || "";
@@ -391,3 +342,4 @@ const EmployeeList = ({
 };
 
 export default EmployeeList;
+

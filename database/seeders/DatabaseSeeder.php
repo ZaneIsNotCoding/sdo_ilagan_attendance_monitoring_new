@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             OfficeSeeder::class,
             WorkTypeSeeder::class,
             WorkScheduleSeeder::class,
+            EmployeeSeeder::class,
         ]);
 
         Role::firstOrCreate(['name' => 'sdo_admin']);
@@ -61,15 +62,15 @@ class DatabaseSeeder extends Seeder
                     'employee_id' => $adminEmployee->id,
                     'type' => 'sdo_admin',
                 ]);
+
+                continue;
             }
 
             Employee::factory()
-                ->count($station->id == 1 ? 50 : 20)
+                ->count(20)
                 ->state(fn () => [
                     'station_id' => $station->id,
-                    'office_id' => $station->id == 1
-                        ? $offices->random()?->id
-                        : null,
+                    'office_id' => null,
                 ])
                 ->create();
         }

@@ -12,7 +12,7 @@ import { Building2, Check, Search, ShieldCheck, Users } from "lucide-react";
 import EmployeeAvatar from "@/Components/EmployeeAvatar";
 import { SelectableEmployeeSkeletonList } from "@/Components/Skeletons";
 import useAssignHeadForm from "../hooks/useAssignHeadForm";
-import { getFullName } from "../utils";
+import { getEmployeeName } from "@/lib/utils";
 
 const AddDivisionHeadForm = ({
     open,
@@ -111,7 +111,7 @@ const AddDivisionHeadForm = ({
                                 <SelectableEmployeeSkeletonList />
                             ) : employees.length > 0 ? (
                                 employees.map((emp) => {
-                                    const fullName = getFullName(emp);
+                                    const fullName = getEmployeeName(emp);
                                     const isSelected =
                                         String(employeeId) === String(emp.id);
 
@@ -165,14 +165,13 @@ const AddDivisionHeadForm = ({
                             <div className="flex items-center gap-3">
                                 <EmployeeAvatar
                                     employee={selectedEmployee}
-                                    name={`${selectedEmployee.first_name || ""} ${selectedEmployee.last_name || ""}`.trim()}
+                                    name={getEmployeeName(selectedEmployee)}
                                     className="h-10 w-10"
                                 />
 
                                 <div className="min-w-0 flex-1">
                                     <div className="truncate text-sm font-semibold text-slate-900">
-                                        {selectedEmployee.first_name}{" "}
-                                        {selectedEmployee.last_name}
+                                        {getEmployeeName(selectedEmployee)}
                                     </div>
                                     <div className="truncate text-xs text-slate-500">
                                         {selectedEmployee.position || "-"}
@@ -213,3 +212,4 @@ const AddDivisionHeadForm = ({
 };
 
 export default AddDivisionHeadForm;
+

@@ -10,3 +10,4 @@ export default function SecondaryButton({ className = "", type = "button", ...pr
         />
     );
 }
+

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Head, router } from "@inertiajs/react";
 import { toast } from "sonner";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
@@ -14,6 +14,10 @@ import useDailyTimeRecordFilters from "./hooks/useDailyTimeRecordFilters";
 import useDailyTimeRecordModals from "./hooks/useDailyTimeRecordModals";
 import usePreservedPageScroll from "./hooks/usePreservedPageScroll";
 import { extractTimeRecordEmployees, resolveCurrentDateParts } from "./utils";
+import {
+    sortAlphabetically,
+    sortEmployeesAlphabetically,
+} from "@/lib/utils";
 
 const recomputeScrollKey = "dtr-recompute-scroll-top";
 
@@ -41,7 +45,17 @@ const Daily_Time_Record = ({
         month,
         year,
     });
-    const employees = extractTimeRecordEmployees(time_record);
+    const employees = useMemo(
+        () =>
+            sortEmployeesAlphabetically(
+                extractTimeRecordEmployees(time_record),
+            ),
+        [time_record],
+    );
+    const sortedOffices = useMemo(
+        () => sortAlphabetically(offices, "name"),
+        [offices],
+    );
     const {
         applyFilters,
         searchInput,
@@ -57,7 +71,7 @@ const Daily_Time_Record = ({
         currentYear,
         limit,
         office,
-        offices,
+        offices: sortedOffices,
         search,
     });
     const {
@@ -204,7 +218,7 @@ const Daily_Time_Record = ({
                     setSelectedEmployees={setSelectedEmployees}
                     search={searchInput}
                     setSearch={setSearchInput}
-                    offices={offices}
+                    offices={sortedOffices}
                     selectedOffice={selectedOffice}
                     setSelectedOffice={setSelectedOffice}
                     selectedMonth={selectedMonth}
@@ -256,3 +270,4 @@ const Daily_Time_Record = ({
 };
 
 export default Daily_Time_Record;
+

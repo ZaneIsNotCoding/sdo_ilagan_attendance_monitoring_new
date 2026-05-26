@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
+import { sortAlphabetically } from "@/lib/utils";
 
 export const monthOptions = [
     { value: 1, label: "January" },
@@ -39,7 +40,10 @@ const useEmployeeListControls = ({
     const totalPages = pagination?.last_page || 1;
     const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
     const officeItems = useMemo(
-        () => [{ id: "all", name: "All Offices" }, ...offices],
+        () => [
+            { id: "all", name: "All Offices" },
+            ...sortAlphabetically(offices, "name"),
+        ],
         [offices],
     );
     const officeButtonLabel =
@@ -150,3 +154,4 @@ const useEmployeeListControls = ({
 };
 
 export default useEmployeeListControls;
+

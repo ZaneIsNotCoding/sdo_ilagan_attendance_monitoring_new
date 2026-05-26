@@ -1,12 +1,6 @@
 import { useMemo } from "react";
 import useEmployeeSearchSuggestions from "./useEmployeeSearchSuggestions";
-
-export const formatEmployeeSearchName = (emp) =>
-    [emp.first_name, emp.middle_name, emp.last_name]
-        .filter(Boolean)
-        .join(" ")
-        .replace(/\s+/g, " ")
-        .trim();
+import { sortAlphabetically } from "@/lib/utils";
 
 export const formatWorkSchedule = (schedule) =>
     schedule?.name ||
@@ -30,7 +24,10 @@ const useEmployeeListControls = ({
         query: searchInput,
     });
     const officeItems = useMemo(
-        () => [{ id: "all", name: "All Offices" }, ...offices],
+        () => [
+            { id: "all", name: "All Offices" },
+            ...sortAlphabetically(offices, "name"),
+        ],
         [offices],
     );
     const currentPage = pagination?.current_page || 1;
@@ -88,3 +85,4 @@ const useEmployeeListControls = ({
 };
 
 export default useEmployeeListControls;
+

@@ -33,9 +33,9 @@ import {
 import EmployeeAvatar from "@/Components/EmployeeAvatar";
 import { SuggestionSkeletonList } from "@/Components/Skeletons";
 import useEmployeeListControls, {
-    formatEmployeeSearchName,
     formatWorkSchedule,
 } from "../hooks/useEmployeeListControls";
+import { getEmployeeName } from "@/lib/utils";
 
 const EmployeeList = ({
     employees = [],
@@ -231,17 +231,13 @@ const EmployeeList = ({
                                                 {/* Avatar */}
                                                 <EmployeeAvatar
                                                     employee={emp}
-                                                    name={formatEmployeeSearchName(
-                                                        emp,
-                                                    )}
+                                                    name={getEmployeeName(emp)}
                                                 />
 
                                                 {/* Name + badge */}
                                                 <div className="flex items-center gap-2 min-w-0">
                                                     <span className="font-medium truncate max-w-[150px]">
-                                                        {formatEmployeeSearchName(
-                                                            emp,
-                                                        )}
+                                                        {getEmployeeName(emp)}
                                                     </span>
 
                                                     <HoverCard openDelay={150}>
@@ -417,3 +413,4 @@ const EmployeeList = ({
 };
 
 export default EmployeeList;
+
