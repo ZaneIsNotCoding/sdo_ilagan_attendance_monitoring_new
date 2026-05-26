@@ -16,10 +16,9 @@ import {
     User,
     MapPin,
     LandPlot,
-    Plane,
     Building2,
-    MapPinned,
     Network,
+    ClipboardList,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -48,8 +47,6 @@ import ApplicationLogo from "./ApplicationLogo";
 export function AppSidebar({ active, user, ...props }) {
     const [isAdminOpen, setAdminOpen] = useState(true);
     const [isHROpen, setHROpen] = useState(true);
-    const [isEmployeeOpen, setEmployeeOpen] = useState(true);
-    const [isServicesOpen, setServicesOpen] = useState(true);
 
     const { url } = usePage();
 
@@ -277,6 +274,58 @@ export function AppSidebar({ active, user, ...props }) {
                                             </Link>
                                         </SidebarMenuSubButton>
                                     </SidebarMenuSubItem>
+<<<<<<< HEAD
+=======
+                                    <SidebarMenuSubItem>
+                                        <SidebarMenuSubButton
+                                            asChild
+                                            isActive={url.startsWith(
+                                                "/position",
+                                            )}
+                                        >
+                                            <Link
+                                                href={route("position.index")}
+                                                className="flex items-center gap-2 text-xs text-white hover:bg-blue-900 hover:text-blue-100"
+                                            >
+                                                <Network
+                                                    className={`h-4 w-4 ${
+                                                        active === "/position"
+                                                            ? "!text-black"
+                                                            : "!text-white"
+                                                    }`}
+                                                />
+                                                List of Positions
+                                            </Link>
+                                        </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+
+                                    <SidebarMenuSubItem>
+                                        <SidebarMenuSubButton
+                                            asChild
+                                            isActive={
+                                                active ===
+                                                "slip-monitoring.index"
+                                            }
+                                        >
+                                            <Link
+                                                href={route(
+                                                    "slip-monitoring.index",
+                                                )}
+                                                className="flex items-center gap-2 text-xs text-white hover:bg-blue-900 hover:text-blue-100"
+                                            >
+                                                <ClipboardList
+                                                    className={`h-4 w-4 ${
+                                                        active ===
+                                                        "slip-monitoring.index"
+                                                            ? "!text-black"
+                                                            : "!text-white"
+                                                    }`}
+                                                />
+                                                Slip Monitoring
+                                            </Link>
+                                        </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+>>>>>>> 07b22ce6f55605b2e9d59b67a5b2ededb69facb2
                                 </SidebarMenuSub>
                             )}
                         </SidebarMenuItem>

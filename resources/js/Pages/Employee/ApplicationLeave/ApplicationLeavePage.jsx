@@ -1,26 +1,24 @@
 "use client";
 
 import React, { useState } from "react";
-import LocatorSlipForm from "./Partials/LocatorSlipForm";
-import LocatorSlipPrintDialog from "./Partials/LocatorSlipPrintDialog";
 import { Head, Link } from "@inertiajs/react";
 import { motion } from "framer-motion";
 import {
     ArrowLeft,
     ClipboardPlus,
     History,
-    MapPinned,
     Printer,
     ShieldCheck,
+    Umbrella,
 } from "lucide-react";
+import ApplicationLeaveForm from "./Partials/ApplicationLeaveForm";
+import ApplicationLeavePrintDialog from "./Partials/ApplicationLeavePrintDialog";
 
 const pageVariants = {
     hidden: { opacity: 0 },
     visible: {
         opacity: 1,
-        transition: {
-            staggerChildren: 0.08,
-        },
+        transition: { staggerChildren: 0.08 },
     },
 };
 
@@ -33,9 +31,9 @@ const itemVariants = {
     },
 };
 
-export default function LocatorSlipPage({
+export default function ApplicationLeavePage({
     employee = null,
-    created_slip = null,
+    created_application = null,
     success_message,
 }) {
     const [showForm, setShowForm] = useState(false);
@@ -43,7 +41,7 @@ export default function LocatorSlipPage({
 
     return (
         <>
-            <Head title="Locator Slips" />
+            <Head title="Application for Leave" />
 
             <main className="min-h-screen bg-slate-50 text-slate-950">
                 <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -71,13 +69,16 @@ export default function LocatorSlipPage({
                     animate="visible"
                     className="mx-auto max-w-7xl px-5 py-8 sm:py-10"
                 >
-                    {success_message && (
+                    {(success_message || created_application) && (
                         <motion.div
                             variants={itemVariants}
                             className="mb-5 flex flex-col gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-800 sm:flex-row sm:items-center sm:justify-between"
                         >
-                            <span>{success_message}</span>
-                            {created_slip && (
+                            <span>
+                                {success_message ||
+                                    "Application for Leave is ready for PDF download."}
+                            </span>
+                            {created_application && (
                                 <button
                                     type="button"
                                     onClick={() => setPrintOpen(true)}
@@ -97,17 +98,18 @@ export default function LocatorSlipPage({
                         <div className="grid gap-0 lg:grid-cols-[1fr_360px]">
                             <div className="p-6 sm:p-8">
                                 <div className="mb-5 inline-flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">
-                                    <MapPinned className="h-4 w-4" />
-                                    Locator slip request
+                                    <Umbrella className="h-4 w-4" />
+                                    Leave application request
                                 </div>
 
                                 <h1 className="max-w-3xl text-4xl font-black leading-tight text-slate-950 sm:text-5xl">
-                                    Locator Slip
+                                    Application for Leave
                                 </h1>
 
                                 <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">
-                                    Create and review movement records through a
-                                    focused public form.
+                                    Prepare and review Civil Service Form No. 6
+                                    leave applications through a focused public
+                                    form.
                                 </p>
 
                                 <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -119,7 +121,7 @@ export default function LocatorSlipPage({
                                         className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-blue-700 px-5 text-sm font-bold text-white shadow-lg shadow-blue-700/20 transition hover:bg-blue-800"
                                     >
                                         <ClipboardPlus className="h-4 w-4" />
-                                        Add Locator Slip
+                                        Add Leave Application
                                     </motion.button>
 
                                     <div className="inline-flex h-12 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-600">
@@ -157,16 +159,16 @@ export default function LocatorSlipPage({
                     </motion.div>
 
                     {showForm && (
-                        <LocatorSlipForm
+                        <ApplicationLeaveForm
                             onClose={() => setShowForm(false)}
                             employee={employee}
                         />
                     )}
 
-                    <LocatorSlipPrintDialog
+                    <ApplicationLeavePrintDialog
                         open={printOpen}
                         onClose={() => setPrintOpen(false)}
-                        slip={created_slip}
+                        application={created_application}
                     />
                 </motion.section>
             </main>

@@ -18,16 +18,10 @@ class TravelOrderController extends Controller
         $user = Auth::user();
         $employee = $user?->employee()->with('station')->first();
 
-        $travel_orders = TravelOrder::with('employee.station')
-            ->when($employee, function ($query) use ($employee) {
-                $query->where('employee_id', $employee->id);
-            })
-            ->latest()
-            ->get();
 
         return Inertia::render('Employee/TravelOrder/TravelOrderPage', [
-            'travel_orders' => $travel_orders,
             'employee' => $employee,
+            'created_order' => session('created_order'),
             'success_message' => session('success_message'),
             'error_message' => session('error_message'),
         ]);
@@ -47,10 +41,7 @@ class TravelOrderController extends Controller
     public function store(Request $request)
     {
         $user = Auth::user();
-
-        if (!$user) {
-            return redirect()->route('login');
-        }
+        $employee = $user?->employee;
 
         $validated = $request->validate([
             'employee_name' => 'required|string|max:255',
@@ -63,20 +54,15 @@ class TravelOrderController extends Controller
             'fund_source' => 'nullable|string|max:255',
         ]);
 
-        $employee = $user->employee;
-
-        if (!$employee) {
-            abort(404, 'Employee record not found for this user.');
-        }
-
-        TravelOrder::create([
-            'employee_id' => $employee->id,
+        $travelOrder = TravelOrder::create([
+            'employee_id' => $employee?->id,
             ...$validated
         ]);
 
         return redirect()
             ->route('travelorder')
-            ->with('success_message', 'Travel Order created successfully.');
+            ->with('success_message', 'Travel Order created successfully.')
+            ->with('created_order', $travelOrder->load('employee.station')->toArray());
     }
 
     /**

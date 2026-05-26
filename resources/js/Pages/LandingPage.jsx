@@ -11,6 +11,7 @@ import {
     MapPinned,
     Plane,
     ShieldCheck,
+    Umbrella,
 } from "lucide-react";
 import ApplicationLogo from "@/Components/ApplicationLogo";
 
@@ -47,6 +48,14 @@ const services = [
         routeName: "locator-slips",
         icon: MapPinned,
         accent: "bg-emerald-600 text-white",
+    },
+    {
+        title: "Application for Leave",
+        description:
+            "Prepare Civil Service Form No. 6 leave applications and print clean PDF copies.",
+        routeName: "application-leave",
+        icon: Umbrella,
+        accent: "bg-amber-600 text-white",
     },
 ];
 
@@ -246,7 +255,7 @@ export default function LandingPage() {
                                             Public Services
                                         </p>
                                         <p className="mt-1 text-2xl font-black text-slate-950">
-                                            2
+                                            3
                                         </p>
                                     </div>
                                     <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-700 text-white">
@@ -281,6 +290,14 @@ export default function LandingPage() {
                                             Official travel
                                         </p>
                                     </div>
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">
+                                            Leave Form
+                                        </p>
+                                        <p className="mt-1 text-sm font-bold">
+                                            Form No. 6
+                                        </p>
+                                    </div>
                                 </div>
                             </motion.div>
                         </div>
@@ -309,7 +326,7 @@ export default function LandingPage() {
                                     </p>
                                 </motion.div>
 
-                                <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="grid gap-3 sm:grid-cols-3">
                                     <motion.div
                                         animate={{ y: [0, -4, 0] }}
                                         transition={{
@@ -341,6 +358,22 @@ export default function LandingPage() {
                                         </p>
                                         <p className="mt-1 font-bold text-slate-950">
                                             Movement documentation
+                                        </p>
+                                    </motion.div>
+                                    <motion.div
+                                        animate={{ y: [0, -4, 0] }}
+                                        transition={{
+                                            duration: 5.5,
+                                            repeat: Infinity,
+                                            ease: "easeInOut",
+                                        }}
+                                        className="rounded-lg bg-white/95 p-4 shadow-sm"
+                                    >
+                                        <p className="text-sm font-semibold text-slate-500">
+                                            Application for Leave
+                                        </p>
+                                        <p className="mt-1 font-bold text-slate-950">
+                                            Printable Form 6
                                         </p>
                                     </motion.div>
                                 </div>

@@ -2,17 +2,15 @@
 
 import React, { useState } from "react";
 import TravelAuthorityForm from "./Partials/TravelOrderForm";
-import TravelAuthorityTable from "./Partials/TravelOrderTable";
+import TravelOrderPrintDialog from "./Partials/TravelOrderPrintDialog";
 import { Head, Link } from "@inertiajs/react";
 import { motion } from "framer-motion";
 import {
     ArrowLeft,
-    BriefcaseBusiness,
-    CalendarDays,
     ClipboardPlus,
     History,
-    MapPinned,
     Plane,
+    Printer,
     ShieldCheck,
 } from "lucide-react";
 
@@ -35,42 +33,13 @@ const itemVariants = {
     },
 };
 
-const statCards = [
-    {
-        label: "Total Orders",
-        icon: BriefcaseBusiness,
-        color: "text-blue-700",
-        getValue: ({ orderCount }) => orderCount,
-    },
-    {
-        label: "Latest Date",
-        icon: CalendarDays,
-        color: "text-emerald-700",
-        getValue: ({ latestDate }) => latestDate,
-    },
-    {
-        label: "Latest Destination",
-        icon: MapPinned,
-        color: "text-amber-600",
-        getValue: ({ latestOrder }) => latestOrder?.destination || "No destination",
-    },
-];
-
 export default function TravelOrderPage({
-    travel_orders = [],
     employee = null,
+    created_order = null,
     success_message,
 }) {
     const [showForm, setShowForm] = useState(false);
-    const orderCount = travel_orders.length;
-    const latestOrder = travel_orders[0];
-    const latestDate = latestOrder?.inclusive_dates
-        ? new Date(latestOrder.inclusive_dates).toLocaleDateString("en-PH", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-          })
-        : "No records";
+    const [printOpen, setPrintOpen] = useState(false);
 
     return (
         <>
@@ -105,9 +74,19 @@ export default function TravelOrderPage({
                     {success_message && (
                         <motion.div
                             variants={itemVariants}
-                            className="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-800"
+                            className="mb-5 flex flex-col gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-800 sm:flex-row sm:items-center sm:justify-between"
                         >
-                            {success_message}
+                            <span>{success_message}</span>
+                            {created_order && (
+                                <button
+                                    type="button"
+                                    onClick={() => setPrintOpen(true)}
+                                    className="inline-flex w-fit items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-blue-800"
+                                >
+                                    <Printer className="h-4 w-4" />
+                                    Print / Download PDF
+                                </button>
+                            )}
                         </motion.div>
                     )}
 
@@ -157,50 +136,24 @@ export default function TravelOrderPage({
                                             <History className="h-5 w-5" />
                                         </div>
                                         <p className="mt-5 text-sm font-semibold text-slate-300">
-                                            Current Orders
+                                            Admin Monitoring
                                         </p>
                                         <p className="mt-1 text-5xl font-black">
-                                            {orderCount}
+                                            Private
                                         </p>
                                     </div>
 
                                     <div className="mt-8 rounded-lg border border-white/10 bg-white/10 p-4">
                                         <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">
-                                            Latest destination
+                                            Submitted records
                                         </p>
-                                        <p className="mt-2 truncate text-lg font-bold text-white">
-                                            {latestOrder?.destination ||
-                                                "No destination yet"}
+                                        <p className="mt-2 text-lg font-bold text-white">
+                                            Available in Slip Monitoring
                                         </p>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </motion.div>
-
-                    <motion.div
-                        variants={itemVariants}
-                        className="mt-8 grid gap-4 md:grid-cols-3"
-                    >
-                        {statCards.map(({ label, icon: Icon, color, getValue }) => (
-                            <motion.div
-                                key={label}
-                                whileHover={{ y: -4 }}
-                                className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
-                            >
-                                <Icon className={`h-5 w-5 ${color}`} />
-                                <p className="mt-4 text-sm font-semibold text-slate-500">
-                                    {label}
-                                </p>
-                                <p className="mt-1 truncate text-2xl font-black text-slate-950 sm:text-3xl">
-                                    {getValue({
-                                        orderCount,
-                                        latestDate,
-                                        latestOrder,
-                                    })}
-                                </p>
-                            </motion.div>
-                        ))}
                     </motion.div>
 
                     {showForm && (
@@ -210,29 +163,11 @@ export default function TravelOrderPage({
                         />
                     )}
 
-                    <motion.div
-                        variants={itemVariants}
-                        className="mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
-                    >
-                        <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <h2 className="text-lg font-bold text-slate-950">
-                                    Travel Order Records
-                                </h2>
-                                <p className="text-sm text-slate-500">
-                                    Recently submitted travel authority records
-                                    appear here.
-                                </p>
-                            </div>
-                            <span className="inline-flex w-fit items-center rounded-lg bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-                                {orderCount}{" "}
-                                {orderCount === 1 ? "record" : "records"}
-                            </span>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <TravelAuthorityTable travelOrders={travel_orders} />
-                        </div>
-                    </motion.div>
+                    <TravelOrderPrintDialog
+                        open={printOpen}
+                        onClose={() => setPrintOpen(false)}
+                        order={created_order}
+                    />
                 </motion.section>
             </main>
         </>

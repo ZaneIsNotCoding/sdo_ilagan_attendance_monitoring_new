@@ -16,11 +16,11 @@ use App\Http\Controllers\HumanResource\{
     SickLeaveController,
 };
 use App\Http\Controllers\AttendanceMonitoringController;
+use App\Http\Controllers\ApplicationForLeaveController;
 use App\Http\Controllers\EmployeeLeaveController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ProfileController;
-use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\SlipMonitoringController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\LocatorSlipController;
@@ -32,23 +32,17 @@ use App\Http\Controllers\TravelOrderController;
 */
 
 Route::get('/', function () {
-    if (Auth::check()) {
-        return redirect()->route('employeemanagement');
-    }
-    return Inertia::render('Auth/Login', [
-        'canRegister'      => Route::has('register'),
-        'canResetPassword' => Route::has('password.request'),
-        'laravelVersion'   => Application::VERSION,
-        'phpVersion'       => PHP_VERSION,
-    ]);
-});
+    return Inertia::render('LandingPage');
+})->name('landing');
 
 Route::get('/landing', fn () => Inertia::render('LandingPage'))->name('landing');
 
 Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance');
+
 Route::get('/attendance-monitoring', [AttendanceMonitoringController::class, 'index'])->name('attendance-monitoring');
 Route::get('/attendance-monitoring/stations/suggestions', [AttendanceMonitoringController::class, 'stationSuggestions'])->name('attendance-monitoring.stations.suggestions');
 Route::get('/attendance-monitoring/employees/suggestions', [AttendanceMonitoringController::class, 'employeeSuggestions'])->name('attendance-monitoring.employees.suggestions');
+
 
 Route::get('/employee/locator-slip', [LocatorSlipController::class, 'index'])
     ->name('locator-slips');
@@ -58,7 +52,11 @@ Route::get('/travel-order', [TravelOrderController::class, 'index'])
     ->name('travelorder');
 Route::post('/employee/travel-order', [TravelOrderController::class, 'store'])
     ->name('travelorder.store');
-    
+Route::get('/employee/application-leave', [ApplicationForLeaveController::class, 'index'])
+    ->name('application-leave');
+Route::post('/employee/application-leave', [ApplicationForLeaveController::class, 'store'])
+    ->name('application-leave.store');
+
 /*
 |--------------------------------------------------------------------------
 | Authenticated & Verified Routes
@@ -149,14 +147,9 @@ Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(functio
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-
-    Route::get('/travel-order', [TravelOrderController::class, 'index'])
-        ->name('travelorder');
-
-    Route::post('/employee/travel-order', [TravelOrderController::class, 'store'])
-        ->name('travelorder.store');
-
     Route::resource('position', PositionController::class);
+
+    Route::get('/slip-monitoring', [SlipMonitoringController::class, 'index'])->name('slip-monitoring.index');
 });
 
 

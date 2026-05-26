@@ -11,23 +11,15 @@ use Carbon\Carbon;
 
 class LocatorSlipController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         /** @var User|null $user */
         $user = Auth::user();
         $employee = $user?->employee()->with('station')->first();
 
-        $locator_slips = LocatorSlip::with('employee.station')
-            ->when($employee, function ($query) use ($employee) {
-                $query->where('employee_id', $employee->id);
-            })
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
-
         return Inertia::render('Employee/LocatorSlip/LocatorSlipPage', [
-            'locator_slips' => $locator_slips,
             'employee' => $employee,
+            'created_slip' => session('created_slip'),
             'success_message' => session('success_message'),
             'error_message' => session('error_message'),
         ]);
@@ -37,16 +29,7 @@ class LocatorSlipController extends Controller
     {
         /** @var User|null $user */
         $user = Auth::user();
-
-        if (!$user) {
-            return redirect()->route('login');
-        }
-
-        $employee = $user->employee;
-
-        if (!$employee) {
-            abort(404, 'Employee record not found for this user.');
-        }
+        $employee = $user?->employee;
 
         $validated = $request->validate([
             'employee_name' => 'required|string|max:255',
@@ -58,8 +41,8 @@ class LocatorSlipController extends Controller
             'travel_datetime' => 'required|date',
         ]);
 
-        LocatorSlip::create([
-            'employee_id' => $employee->id,
+        $locatorSlip = LocatorSlip::create([
+            'employee_id' => $employee?->id,
             'employee_name' => $validated['employee_name'],
             'position' => $validated['position'],
             'permanent_station' => $validated['permanent_station'],
@@ -71,6 +54,7 @@ class LocatorSlipController extends Controller
 
         return redirect()
             ->route('locator-slips')
-            ->with('success_message', 'Locator Slip created successfully.');
+            ->with('success_message', 'Locator Slip created successfully.')
+            ->with('created_slip', $locatorSlip->load('employee.station')->toArray());
     }
 }

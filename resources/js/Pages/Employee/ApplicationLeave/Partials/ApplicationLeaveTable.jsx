@@ -2,9 +2,19 @@
 
 import React, { useMemo, useState } from "react";
 import { router } from "@inertiajs/react";
+import { motion } from "framer-motion";
 import FloatingInput from "@/components/floating-input";
 import { Search } from "lucide-react";
-import TravelOrderPrintDialog from "./TravelOrderPrintDialog";
+import ApplicationLeavePrintDialog from "./ApplicationLeavePrintDialog";
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 18 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.45, ease: "easeOut" },
+    },
+};
 
 const formatDate = (value, options = {}) =>
     value
@@ -29,29 +39,32 @@ const getEmployeeName = (record) =>
 const getSearchText = (record) =>
     [
         getEmployeeName(record),
+        record.office_department,
         record.position,
-        record.permanent_station,
         record.employee?.position,
+        record.employee?.office?.name,
         record.employee?.station?.name,
-        record.purpose_of_travel,
-        record.host_of_activity,
+        record.type_of_leave,
+        record.type_of_leave_other,
         record.inclusive_dates,
-        record.destination,
-        record.fund_source,
     ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
 
 const getFilterSummary = (filters) => {
-    if (filters.date) return `No Travel Orders found for ${formatDate(filters.date)}.`;
+    if (filters.date) {
+        return `No Application for Leave records found for ${formatDate(filters.date)}.`;
+    }
     if (filters.month) {
-        return `No Travel Orders found for ${formatDate(`${filters.month}-01`, {
+        return `No Application for Leave records found for ${formatDate(`${filters.month}-01`, {
             day: undefined,
         })}.`;
     }
-    if (filters.search) return `No Travel Orders found for "${filters.search}".`;
-    return "No Travel Orders found.";
+    if (filters.search) {
+        return `No Application for Leave records found for "${filters.search}".`;
+    }
+    return "No Application for Leave records found.";
 };
 
 const getQuickRanges = () => {
@@ -74,20 +87,20 @@ const getQuickRanges = () => {
     };
 };
 
-const TravelOrderTable = ({
-    travelOrders = [],
-    pagination = null,
+const ApplicationLeaveTable = ({
+    applications = [],
     filters = {},
-    filterRoute = "travel-order",
+    leaveApplications = {},
+    filterRoute = "application-leave",
     filterParams = {},
 }) => {
-    const [selectedOrder, setSelectedOrder] = useState(null);
+    const [selectedApplication, setSelectedApplication] = useState(null);
     const [open, setOpen] = useState(false);
     const [searchInput, setSearchInput] = useState(filters.search || "");
     const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-    const handlePreview = (order) => {
-        setSelectedOrder(order);
+    const handlePreview = (application) => {
+        setSelectedApplication(application);
         setOpen(true);
     };
 
@@ -117,13 +130,19 @@ const TravelOrderTable = ({
 
         const seen = new Set();
 
-        return travelOrders
-            .filter((order) => getSearchText(order).includes(query))
-            .map((order) => ({
-                id: order.id,
-                value: getEmployeeName(order) || order.destination || "",
-                title: getEmployeeName(order) || "Unnamed employee",
-                subtitle: order.destination || order.purpose_of_travel || "",
+        return applications
+            .filter((application) => getSearchText(application).includes(query))
+            .map((application) => ({
+                id: application.id,
+                value:
+                    getEmployeeName(application) ||
+                    application.type_of_leave ||
+                    "",
+                title: getEmployeeName(application) || "Unnamed employee",
+                subtitle:
+                    application.type_of_leave ||
+                    application.office_department ||
+                    "",
             }))
             .filter((item) => {
                 const key = `${item.value}-${item.subtitle}`.toLowerCase();
@@ -132,13 +151,18 @@ const TravelOrderTable = ({
                 return true;
             })
             .slice(0, 6);
-    }, [travelOrders, searchInput]);
+    }, [applications, searchInput]);
 
     const quickRanges = getQuickRanges();
 
     return (
         <>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <motion.div
+                variants={itemVariants}
+                initial="hidden"
+                animate="visible"
+                className="mt-8 rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+            >
                 <div className="grid gap-3 xl:grid-cols-[minmax(240px,1fr)_auto_auto_auto] xl:items-end">
                     <form
                         className="relative"
@@ -149,9 +173,9 @@ const TravelOrderTable = ({
                         }}
                     >
                         <FloatingInput
-                            label="Search Travel Order"
+                            label="Search Application for Leave"
                             icon={Search}
-                            name="travel-order-search"
+                            name="application-leave-search"
                             value={searchInput}
                             onChange={(e) => setSearchInput(e.target.value)}
                             onFocus={() => setIsSearchFocused(true)}
@@ -174,7 +198,7 @@ const TravelOrderTable = ({
                             suggestions.length > 0 && (
                                 <div className="absolute left-0 top-full z-50 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
                                     <div className="border-b bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                        Travel orders
+                                        Leave applications
                                     </div>
 
                                     <div className="max-h-72 overflow-y-auto">
@@ -212,7 +236,7 @@ const TravelOrderTable = ({
 
                     <div>
                         <label className="text-sm font-semibold text-slate-700">
-                            Date
+                            Filing Date
                         </label>
                         <input
                             type="date"
@@ -301,7 +325,7 @@ const TravelOrderTable = ({
                     </div>
                 </div>
 
-            </div>
+            </motion.div>
 
             <div className="mt-6 overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
                 <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -311,16 +335,16 @@ const TravelOrderTable = ({
                                 Employee
                             </th>
                             <th className="px-6 py-3 text-left font-medium text-gray-700">
-                                Purpose
+                                Leave Type
                             </th>
                             <th className="px-6 py-3 text-left font-medium text-gray-700">
-                                Host
+                                Working Days
                             </th>
                             <th className="px-6 py-3 text-left font-medium text-gray-700">
-                                Destination
+                                Inclusive Dates
                             </th>
                             <th className="px-6 py-3 text-left font-medium text-gray-700">
-                                Travel Date
+                                Filing Date
                             </th>
                             <th className="px-6 py-3 text-left font-medium text-gray-700">
                                 Submitted Date
@@ -332,33 +356,35 @@ const TravelOrderTable = ({
                     </thead>
 
                     <tbody className="divide-y divide-gray-200">
-                        {travelOrders.length > 0 ? (
-                            travelOrders.map((order) => (
+                        {applications.length > 0 ? (
+                            applications.map((application) => (
                                 <tr
-                                    key={order.id}
+                                    key={application.id}
                                     className="transition hover:bg-gray-50"
                                 >
                                     <td className="px-6 py-3">
-                                        {getEmployeeName(order) || "-"}
+                                        {getEmployeeName(application) || "-"}
                                     </td>
                                     <td className="px-6 py-3">
-                                        {order.purpose_of_travel || "-"}
+                                        {application.type_of_leave || "-"}
                                     </td>
                                     <td className="px-6 py-3">
-                                        {order.host_of_activity || "-"}
+                                        {application.working_days || "-"}
                                     </td>
                                     <td className="px-6 py-3">
-                                        {order.destination || "-"}
+                                        {application.inclusive_dates || "-"}
                                     </td>
                                     <td className="px-6 py-3">
-                                        {formatDate(order.inclusive_dates)}
+                                        {formatDate(application.date_of_filing)}
                                     </td>
                                     <td className="px-6 py-3">
-                                        {formatDate(order.created_at)}
+                                        {formatDate(application.created_at)}
                                     </td>
                                     <td className="px-6 py-3 text-center">
                                         <button
-                                            onClick={() => handlePreview(order)}
+                                            onClick={() =>
+                                                handlePreview(application)
+                                            }
                                             className="rounded-lg bg-blue-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-blue-700"
                                         >
                                             Preview / PDF
@@ -379,9 +405,9 @@ const TravelOrderTable = ({
                     </tbody>
                 </table>
 
-                {pagination?.links && (
+                {leaveApplications.links && (
                     <div className="flex flex-wrap items-center justify-center gap-2 border-t border-slate-200 p-4">
-                        {pagination.links.map((link, index) => (
+                        {leaveApplications.links.map((link, index) => (
                             <button
                                 key={index}
                                 disabled={!link.url}
@@ -410,13 +436,13 @@ const TravelOrderTable = ({
                 )}
             </div>
 
-            <TravelOrderPrintDialog
+            <ApplicationLeavePrintDialog
                 open={open}
                 onClose={() => setOpen(false)}
-                order={selectedOrder}
+                application={selectedApplication}
             />
         </>
     );
 };
 
-export default TravelOrderTable;
+export default ApplicationLeaveTable;
