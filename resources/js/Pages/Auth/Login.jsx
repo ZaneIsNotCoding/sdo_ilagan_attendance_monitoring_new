@@ -38,12 +38,13 @@ const Login = ({ status, canResetPassword }) => {
                         {/* Title */}
                         <div>
                             <h1 className="text-3xl font-bold text-blue-700 leading-snug">
-                                TimeVault
+                                Project: TALA
                             </h1>
 
                             <p className="mt-2 text-sm text-gray-600 leading-relaxed max-w-xs mx-auto">
-                                Secured Attendance and Tardiness Data with
-                                Biometrics
+                                A Centralized Time and Attendance Logging System
+                                with Automated Tardiness Computation for the
+                                School Division Office
                             </p>
                         </div>
                     </div>

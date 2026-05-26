@@ -4,7 +4,8 @@ import React, { useMemo, useState } from "react";
 import { router } from "@inertiajs/react";
 import { motion } from "framer-motion";
 import FloatingInput from "@/components/floating-input";
-import { Search } from "lucide-react";
+import { Search, Trash2 } from "lucide-react";
+import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
 import ApplicationLeavePrintDialog from "./ApplicationLeavePrintDialog";
 
 const itemVariants = {
@@ -93,11 +94,14 @@ const ApplicationLeaveTable = ({
     leaveApplications = {},
     filterRoute = "application-leave",
     filterParams = {},
+    monitoringControls = false,
+    deleteType = "application-leave",
 }) => {
     const [selectedApplication, setSelectedApplication] = useState(null);
     const [open, setOpen] = useState(false);
     const [searchInput, setSearchInput] = useState(filters.search || "");
     const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const [selectedIds, setSelectedIds] = useState([]);
 
     const handlePreview = (application) => {
         setSelectedApplication(application);
@@ -154,6 +158,19 @@ const ApplicationLeaveTable = ({
     }, [applications, searchInput]);
 
     const quickRanges = getQuickRanges();
+    const pageStart = leaveApplications.from || 1;
+    const allSelected =
+        applications.length > 0 &&
+        applications.every((application) =>
+            selectedIds.includes(application.id),
+        );
+    const toggleSelected = (id) => {
+        setSelectedIds((current) =>
+            current.includes(id)
+                ? current.filter((selectedId) => selectedId !== id)
+                : [...current, id],
+        );
+    };
 
     return (
         <>
@@ -328,9 +345,77 @@ const ApplicationLeaveTable = ({
             </motion.div>
 
             <div className="mt-6 overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+                {monitoringControls && (
+                    <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 text-sm text-slate-600">
+                        <span>
+                            {selectedIds.length} selected on this page
+                        </span>
+                        <div className="flex items-center gap-3">
+                            {selectedIds.length > 0 && (
+                                <>
+                                    <ConfirmPasswordDialog
+                                        trigger={
+                                            <button
+                                                type="button"
+                                                className="inline-flex items-center gap-1 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700"
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                                Delete selected
+                                            </button>
+                                        }
+                                        title="Delete Selected Leave Applications"
+                                        description="This will permanently remove all selected leave application records."
+                                        action={route(
+                                            "slip-monitoring.destroy-many",
+                                            deleteType,
+                                        )}
+                                        method="delete"
+                                        data={{ ids: selectedIds }}
+                                        itemLabel="Selected Records"
+                                        itemName={`${selectedIds.length} leave application record(s)`}
+                                        confirmText="Delete Selected"
+                                        processingText="Deleting..."
+                                        onSuccess={() => setSelectedIds([])}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedIds([])}
+                                        className="font-semibold text-blue-700 hover:text-blue-800"
+                                    >
+                                        Clear selection
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
                 <table className="min-w-full divide-y divide-gray-200 text-sm">
                     <thead className="bg-gray-50">
                         <tr>
+                            {monitoringControls && (
+                                <>
+                                    <th className="w-12 px-4 py-3 text-center font-medium text-gray-700">
+                                        <input
+                                            type="checkbox"
+                                            checked={allSelected}
+                                            onChange={(e) =>
+                                                setSelectedIds(
+                                                    e.target.checked
+                                                        ? applications.map(
+                                                              (application) =>
+                                                                  application.id,
+                                                          )
+                                                        : [],
+                                                )
+                                            }
+                                            className="rounded border-slate-300 text-blue-700 focus:ring-blue-600"
+                                        />
+                                    </th>
+                                    <th className="w-16 px-4 py-3 text-left font-medium text-gray-700">
+                                        No.
+                                    </th>
+                                </>
+                            )}
                             <th className="px-6 py-3 text-left font-medium text-gray-700">
                                 Employee
                             </th>
@@ -357,11 +442,32 @@ const ApplicationLeaveTable = ({
 
                     <tbody className="divide-y divide-gray-200">
                         {applications.length > 0 ? (
-                            applications.map((application) => (
+                            applications.map((application, index) => (
                                 <tr
                                     key={application.id}
                                     className="transition hover:bg-gray-50"
                                 >
+                                    {monitoringControls && (
+                                        <>
+                                            <td className="px-4 py-3 text-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedIds.includes(
+                                                        application.id,
+                                                    )}
+                                                    onChange={() =>
+                                                        toggleSelected(
+                                                            application.id,
+                                                        )
+                                                    }
+                                                    className="rounded border-slate-300 text-blue-700 focus:ring-blue-600"
+                                                />
+                                            </td>
+                                            <td className="px-4 py-3 font-semibold text-slate-600">
+                                                {pageStart + index}
+                                            </td>
+                                        </>
+                                    )}
                                     <td className="px-6 py-3">
                                         {getEmployeeName(application) || "-"}
                                     </td>
@@ -380,7 +486,8 @@ const ApplicationLeaveTable = ({
                                     <td className="px-6 py-3">
                                         {formatDate(application.created_at)}
                                     </td>
-                                    <td className="px-6 py-3 text-center">
+                                    <td className="px-6 py-3">
+                                        <div className="flex flex-wrap justify-center gap-2">
                                         <button
                                             onClick={() =>
                                                 handlePreview(application)
@@ -389,13 +496,52 @@ const ApplicationLeaveTable = ({
                                         >
                                             Preview / PDF
                                         </button>
+                                        {monitoringControls && (
+                                            <ConfirmPasswordDialog
+                                                trigger={
+                                                    <button
+                                                        type="button"
+                                                        className="inline-flex items-center gap-1 rounded-lg bg-red-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-red-700"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                        Delete
+                                                    </button>
+                                                }
+                                                title="Delete Leave Application"
+                                                description="This will permanently remove this leave application record."
+                                                action={route(
+                                                    "slip-monitoring.destroy",
+                                                    [deleteType, application.id],
+                                                )}
+                                                method="delete"
+                                                itemLabel="Leave Application"
+                                                itemName={
+                                                    getEmployeeName(
+                                                        application,
+                                                    ) ||
+                                                    `Record #${application.id}`
+                                                }
+                                                confirmText="Delete Application"
+                                                processingText="Deleting..."
+                                                onSuccess={() =>
+                                                    setSelectedIds((current) =>
+                                                        current.filter(
+                                                            (id) =>
+                                                                id !==
+                                                                application.id,
+                                                        ),
+                                                    )
+                                                }
+                                            />
+                                        )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
                                 <td
-                                    colSpan={7}
+                                    colSpan={monitoringControls ? 9 : 7}
                                     className="px-6 py-6 text-center text-gray-500"
                                 >
                                     {getFilterSummary(filters)}

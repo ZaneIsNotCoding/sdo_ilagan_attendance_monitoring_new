@@ -3,6 +3,7 @@ import React from "react";
 const TravelOrderReport = React.forwardRef(
     (
         {
+            paperSize = "legal",
             name = "",
             position = "",
             station = "",
@@ -11,15 +12,57 @@ const TravelOrderReport = React.forwardRef(
             dates = "",
             destination = "",
             fund = "",
+            recommendingOfficerName = "CHERRY R. RAMIRO, PhD, CESO VI",
+            recommendingOfficerTitle = "Assistant Schools Division Superintendent",
+            approvingOfficerName = "EDUARDO C. ESCORPISO JR., EdD, CESO V",
+            approvingOfficerTitle = "Schools Division Superintendent",
         },
         ref,
     ) => {
+        const paperSizes = {
+            legal: { width: 816, height: 1344 },
+            a4: { width: 794, height: 1123 },
+        };
+        const selectedPaper = paperSizes[paperSize] || paperSizes.legal;
+        const tableCell = {
+            border: "1px solid black",
+            padding: "6px 8px",
+            verticalAlign: "top",
+        };
+        const labelCell = {
+            ...tableCell,
+            width: "180px",
+            fontWeight: "bold",
+        };
+        const signatureLine = {
+            display: "flex",
+            justifyContent: "space-between",
+            gap: "24px",
+            alignItems: "flex-end",
+        };
+        const signatureBlock = {
+            flex: 1,
+            textAlign: "center",
+            minHeight: "86px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "flex-end",
+        };
+        const signatureName = {
+            fontWeight: "bold",
+            textDecoration: "underline",
+        };
+        const dateBlock = {
+            width: "150px",
+            textAlign: "center",
+        };
+
         return (
             <div
                 ref={ref}
                 style={{
-                    width: "794px",
-                    minHeight: "1123px", // keep for print, remove if UI only
+                    width: `${selectedPaper.width}px`,
+                    minHeight: `${selectedPaper.height}px`,
                     backgroundColor: "#fff",
                     color: "#000",
                     fontFamily: '"Times New Roman", serif',
@@ -130,91 +173,120 @@ const TravelOrderReport = React.forwardRef(
                                 ["Fund Source", fund],
                             ].map(([label, value], i) => (
                                 <tr key={i}>
-                                    <td
+                                    <td style={labelCell}>{label}</td>
+                                    <td style={tableCell}>{value}</td>
+                                </tr>
+                            ))}
+                            <tr>
+                                <td
+                                    colSpan="2"
+                                    style={{
+                                        ...tableCell,
+                                        padding: "8px 12px",
+                                    }}
+                                >
+                                    <div
                                         style={{
-                                            width: "180px",
-                                            border: "1px solid black",
-                                            padding: "6px 8px",
+                                            marginBottom: "8px",
+                                            fontSize: "11px",
+                                            lineHeight: 1.3,
+                                        }}
+                                    >
+                                        <i>
+                                            I hereby attest that the information
+                                            in this form and in the supporting
+                                            documents attached hereto are true
+                                            and correct.
+                                        </i>
+                                    </div>
+                                    <div style={signatureLine}>
+                                        <div style={signatureBlock}>
+                                            <div style={signatureName}>
+                                                {name}
+                                            </div>
+                                            <div>
+                                                Name and Signature of Requesting
+                                                Employee
+                                            </div>
+                                        </div>
+                                        <div style={dateBlock}>
+                                            ___________________
+                                            <br />
+                                            Date
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td
+                                    colSpan="2"
+                                    style={{
+                                        ...tableCell,
+                                        padding: "8px 12px",
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            marginBottom: "8px",
+                                            fontSize: "11px",
+                                            lineHeight: 1.3,
+                                        }}
+                                    >
+                                        <i>
+                                            This is to certify that the trip of
+                                            the requesting employee satisfies all
+                                            the minimum conditions for the
+                                            authorized official travel and that
+                                            alternatives to travel are
+                                            insufficient for purpose stated
+                                            herein.
+                                        </i>
+                                    </div>
+                                    <div style={signatureLine}>
+                                        <div style={signatureBlock}>
+                                            <div style={signatureName}>
+                                                {recommendingOfficerName}
+                                            </div>
+                                            <div>{recommendingOfficerTitle}</div>
+                                        </div>
+                                        <div style={dateBlock}>
+                                            ___________________
+                                            <br />
+                                            Date
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td
+                                    colSpan="2"
+                                    style={{
+                                        ...tableCell,
+                                        padding: "8px 12px",
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            marginBottom: "4px",
+                                            fontSize: "11px",
                                             fontWeight: "bold",
                                         }}
                                     >
-                                        {label}
-                                    </td>
-                                    <td
-                                        style={{
-                                            border: "1px solid black",
-                                            padding: "6px 8px",
-                                        }}
-                                    >
-                                        {value}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-
-                    {/* CERTIFICATION */}
-                    <div style={{ marginTop: "10px", fontSize: "11px" }}>
-                        <i>
-                            I hereby attest that the information in this form
-                            and in the supporting documents attached hereto are
-                            true and correct.
-                        </i>
-                    </div>
-
-                    {/* SIGNATURES */}
-                    <table style={{ width: "100%", marginTop: "15px" }}>
-                        <tbody>
-                            <tr>
-                                <td>
-                                    <b>{name}</b>
-                                    <br />
-                                    Name and Signature of Requesting Employee
-                                </td>
-                                <td style={{ textAlign: "center" }}>
-                                    ___________________
-                                    <br />
-                                    Date
-                                </td>
-                            </tr>
-
-                            <tr>
-                                <td style={{ paddingTop: "20px" }}>
-                                    <b>CHERRY R. RAMIRO, PhD, CESO VI</b>
-                                    <br />
-                                    Assistant Schools Division Superintendent
-                                </td>
-                                <td style={{ textAlign: "center" }}>
-                                    ___________________
-                                    <br />
-                                    Date
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    {/* APPROVED */}
-                    <div
-                        style={{
-                            marginTop: "15px",
-                            fontWeight: "bold",
-                        }}
-                    >
-                        APPROVED:
-                    </div>
-
-                    <table style={{ width: "100%", marginTop: "8px" }}>
-                        <tbody>
-                            <tr>
-                                <td>
-                                    <b>EDUARDO C. ESCORPISO JR., EdD, CESO V</b>
-                                    <br />
-                                    Schools Division Superintendent
-                                </td>
-                                <td style={{ textAlign: "center" }}>
-                                    ___________________
-                                    <br />
-                                    Date
+                                        APPROVED:
+                                    </div>
+                                    <div style={signatureLine}>
+                                        <div style={signatureBlock}>
+                                            <div style={signatureName}>
+                                                {approvingOfficerName}
+                                            </div>
+                                            <div>{approvingOfficerTitle}</div>
+                                        </div>
+                                        <div style={dateBlock}>
+                                            ___________________
+                                            <br />
+                                            Date
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>

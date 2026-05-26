@@ -11,17 +11,38 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/Components/ui/button";
-import { Printer } from "lucide-react";
+import { Briefcase, Printer, User } from "lucide-react";
 import TravelAuthorityReport from "@/Pages/DocumentsFormats/TravelOrderReport";
+import FloatingInput from "@/components/floating-input";
+
+const paperSizeOptions = {
+    legal: { label: "Legal", width: 816, height: 1344, previewScale: 0.66 },
+    a4: { label: "A4", width: 794, height: 1123, previewScale: 0.72 },
+};
 
 const TravelOrderPrintDialog = ({ open, onClose, order }) => {
     const previewRef = useRef(null);
     const pdfRef = useRef(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [paperSize, setPaperSize] = useState("legal");
+    const [signatories, setSignatories] = useState({
+        recommendingOfficerName: "CHERRY R. RAMIRO, PhD, CESO VI",
+        recommendingOfficerTitle: "Assistant Schools Division Superintendent",
+        approvingOfficerName: "EDUARDO C. ESCORPISO JR., EdD, CESO V",
+        approvingOfficerTitle: "Schools Division Superintendent",
+    });
+
+    const updateSignatory = (field, value) => {
+        setSignatories((current) => ({
+            ...current,
+            [field]: value,
+        }));
+    };
 
     const handleDownloadPDF = async () => {
         if (!pdfRef.current || !order) return;
 
+        const selectedPaper = paperSizeOptions[paperSize];
         setIsGenerating(true);
 
         await new Promise((resolve) => setTimeout(resolve, 150));
@@ -43,7 +64,7 @@ const TravelOrderPrintDialog = ({ open, onClose, order }) => {
                 },
                 jsPDF: {
                     unit: "px",
-                    format: [794, 1123],
+                    format: [selectedPaper.width, selectedPaper.height],
                     orientation: "portrait",
                 },
             })
@@ -59,6 +80,7 @@ const TravelOrderPrintDialog = ({ open, onClose, order }) => {
     const toCaps = (value) => String(value || "").toUpperCase();
 
     const reportProps = {
+        paperSize,
         name: toCaps(
             order.employee_name ||
                 order.employee?.full_name ||
@@ -79,20 +101,98 @@ const TravelOrderPrintDialog = ({ open, onClose, order }) => {
         ),
         destination: toCaps(order.destination),
         fund: toCaps(order.fund_source),
+        ...signatories,
     };
+    const selectedPaper = paperSizeOptions[paperSize];
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-hidden p-4">
-                <DialogHeader className="pb-2">
+            <DialogContent className="flex max-h-[90vh] w-[95vw] max-w-4xl flex-col overflow-hidden p-4">
+                <DialogHeader className="shrink-0 pb-2">
                     <DialogTitle>Travel Authority Preview</DialogTitle>
                 </DialogHeader>
 
+                <div className="grid shrink-0 gap-3 rounded-md border bg-white p-3 md:grid-cols-2">
+                    <label className="flex h-12 items-center gap-2 rounded-md border px-3 text-sm text-gray-700">
+                        <span className="shrink-0 font-medium">Paper</span>
+                        <select
+                            value={paperSize}
+                            onChange={(event) => setPaperSize(event.target.value)}
+                            className="h-9 flex-1 rounded-md border border-gray-300 bg-white px-2 text-sm outline-none focus:border-blue-500"
+                        >
+                            {Object.entries(paperSizeOptions).map(
+                                ([value, option]) => (
+                                    <option key={value} value={value}>
+                                        {option.label}
+                                    </option>
+                                ),
+                            )}
+                        </select>
+                    </label>
+                    <FloatingInput
+                        label="Recommending Officer Name"
+                        icon={User}
+                        name="recommending_officer_name"
+                        value={signatories.recommendingOfficerName}
+                        onChange={(event) =>
+                            updateSignatory(
+                                "recommendingOfficerName",
+                                event.target.value,
+                            )
+                        }
+                    />
+                    <FloatingInput
+                        label="Recommending Officer Position"
+                        icon={Briefcase}
+                        name="recommending_officer_title"
+                        value={signatories.recommendingOfficerTitle}
+                        onChange={(event) =>
+                            updateSignatory(
+                                "recommendingOfficerTitle",
+                                event.target.value,
+                            )
+                        }
+                    />
+                    <FloatingInput
+                        label="Approving Officer Name"
+                        icon={User}
+                        name="approving_officer_name"
+                        value={signatories.approvingOfficerName}
+                        onChange={(event) =>
+                            updateSignatory(
+                                "approvingOfficerName",
+                                event.target.value,
+                            )
+                        }
+                    />
+                    <FloatingInput
+                        label="Approving Officer Position"
+                        icon={Briefcase}
+                        name="approving_officer_title"
+                        value={signatories.approvingOfficerTitle}
+                        onChange={(event) =>
+                            updateSignatory(
+                                "approvingOfficerTitle",
+                                event.target.value,
+                            )
+                        }
+                    />
+                </div>
+
                 {/* Preview */}
-                <div className="max-h-[65vh] overflow-auto rounded-md border bg-gray-100 p-3">
+                <div className="mt-3 min-h-0 flex-1 overflow-auto rounded-md border bg-gray-100 p-3">
                     <div className="flex justify-center">
-                        <div className="origin-top scale-[0.72] sm:scale-[0.82]">
-                            <div className="w-[794px] bg-white shadow">
+                        <div
+                            className="origin-top"
+                            style={{
+                                transform: `scale(${selectedPaper.previewScale})`,
+                                transformOrigin: "top center",
+                            }}
+                        >
+                            <div
+                                className="bg-white shadow"
+                                style={{ width: `${selectedPaper.width}px` }}
+                            >
                                 <TravelAuthorityReport
                                     ref={previewRef}
                                     {...reportProps}
@@ -102,8 +202,9 @@ const TravelOrderPrintDialog = ({ open, onClose, order }) => {
                     </div>
                 </div>
 
-                <DialogFooter className="mt-4 flex justify-end gap-2">
+                <DialogFooter className="mt-4 shrink-0 border-t border-gray-200 bg-white pt-3 sm:justify-end">
                     <Button
+                        type="button"
                         variant="outline"
                         onClick={onClose}
                         disabled={isGenerating}
@@ -112,6 +213,7 @@ const TravelOrderPrintDialog = ({ open, onClose, order }) => {
                     </Button>
 
                     <Button
+                        type="button"
                         variant="blue"
                         onClick={handleDownloadPDF}
                         disabled={isGenerating}
@@ -123,7 +225,10 @@ const TravelOrderPrintDialog = ({ open, onClose, order }) => {
 
                 {/* Hidden PDF */}
                 <div className="fixed -left-[10000px] top-0 z-[-1]">
-                    <div className="w-[794px] bg-white">
+                    <div
+                        className="bg-white"
+                        style={{ width: `${selectedPaper.width}px` }}
+                    >
                         <TravelAuthorityReport ref={pdfRef} {...reportProps} />
                     </div>
                 </div>

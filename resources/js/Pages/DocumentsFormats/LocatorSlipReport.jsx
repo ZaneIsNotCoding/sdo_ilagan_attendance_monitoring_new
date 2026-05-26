@@ -487,6 +487,7 @@ const LocatorSlipReport = React.forwardRef(
                                         display: "flex",
                                         alignItems: "center",
                                         gap: "3px",
+                                        lineHeight: "1",
                                     }}
                                 >
                                     <img
@@ -494,10 +495,9 @@ const LocatorSlipReport = React.forwardRef(
                                         style={{
                                             height: "12px",
                                             width: "12px",
-                                            verticalAlign: "middle",
-                                            display: "inline-block",
-                                            position: "relative",
-                                            top: "7px",
+                                            display: "block",
+                                            flexShrink: 0,
+                                            objectFit: "contain",
                                         }}
                                         alt="Facebook"
                                     />
@@ -509,6 +509,7 @@ const LocatorSlipReport = React.forwardRef(
                                         display: "flex",
                                         alignItems: "center",
                                         gap: "3px",
+                                        lineHeight: "1",
                                     }}
                                 >
                                     <img
@@ -516,10 +517,9 @@ const LocatorSlipReport = React.forwardRef(
                                         style={{
                                             height: "12px",
                                             width: "12px",
-                                            verticalAlign: "middle",
-                                            display: "inline-block",
-                                            position: "relative",
-                                            top: "7px",
+                                            display: "block",
+                                            flexShrink: 0,
+                                            objectFit: "contain",
                                         }}
                                         alt="Email"
                                     />
@@ -531,6 +531,7 @@ const LocatorSlipReport = React.forwardRef(
                                         display: "flex",
                                         alignItems: "center",
                                         gap: "3px",
+                                        lineHeight: "1",
                                     }}
                                 >
                                     <img
@@ -538,10 +539,9 @@ const LocatorSlipReport = React.forwardRef(
                                         style={{
                                             height: "12px",
                                             width: "12px",
-                                            verticalAlign: "middle",
-                                            display: "inline-block",
-                                            position: "relative",
-                                            top: "7px",
+                                            display: "block",
+                                            flexShrink: 0,
+                                            objectFit: "contain",
                                         }}
                                         alt="Website"
                                     />

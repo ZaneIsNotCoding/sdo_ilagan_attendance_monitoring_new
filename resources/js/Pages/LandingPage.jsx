@@ -77,7 +77,7 @@ const movingText = [
 export default function LandingPage() {
     return (
         <>
-            <Head title="TimeVault" />
+            <Head title="Project: TALA" />
 
             <main className="min-h-screen bg-slate-50 text-slate-950">
                 <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
@@ -89,10 +89,12 @@ export default function LandingPage() {
                             <ApplicationLogo className="h-12 w-auto" />
                             <div className="leading-tight">
                                 <p className="text-lg font-bold text-blue-700">
-                                    TimeVault
+                                    Project: TALA
                                 </p>
                                 <p className="text-xs font-medium text-slate-500">
-                                    SDO Ilagan Attendance Monitoring
+                                    A Centralized Time and Attendance Logging
+                                    System with Automated Tardiness Computation
+                                    for the School Division Office
                                 </p>
                             </div>
                         </Link>
@@ -152,18 +154,16 @@ export default function LandingPage() {
                             variants={itemVariants}
                             className="max-w-3xl text-4xl font-black leading-tight text-slate-950 sm:text-5xl lg:text-6xl"
                         >
-                            TimeVault
+                            Project: TALA
                         </motion.h1>
 
                         <motion.p
                             variants={itemVariants}
                             className="mt-6 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg"
                         >
-                            TimeVault streamlines attendance monitoring,
-                            fingerprint-based logging, employee tracking,
-                            locator slip processing, and official travel
-                            management for SDO Ilagan through a faster, more
-                            secure, and fully modernized workflow.
+                            A Centralized Time and Attendance Logging System
+                            with Automated Tardiness Computation for the School
+                            Division Office
                         </motion.p>
 
                         <motion.div
@@ -230,16 +230,16 @@ export default function LandingPage() {
 
                     <motion.div
                         variants={itemVariants}
-                        className="relative min-h-[520px] overflow-hidden rounded-lg border border-slate-200 bg-slate-900 shadow-xl"
+                        className="relative min-h-[520px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl"
                     >
                         <img
-                            src="/sdo-pic.jpg"
-                            alt="SDO Ilagan office"
-                            className="absolute inset-0 h-full w-full object-cover"
+                            src="img/project-tala-stacked.png"
+                            alt="Project Tala Stacked Preview"
+                            className="absolute inset-0 h-full w-full object-contain p-8 sm:p-10"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-slate-950/10" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent" />
 
-                        <div className="absolute inset-x-0 top-0 p-6 sm:p-8">
+                        <div className="absolute inset-x-0 top-0 z-10 p-6 sm:p-8">
                             <motion.div
                                 animate={{ y: [0, -5, 0] }}
                                 transition={{
@@ -302,7 +302,7 @@ export default function LandingPage() {
                             </motion.div>
                         </div>
 
-                        <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
+                        <div className="absolute inset-x-0 bottom-0 z-10 p-6 sm:p-8">
                             <div className="mb-5 inline-flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold text-white backdrop-blur">
                                 <BarChart3 className="h-4 w-4" />
                                 Workforce overview

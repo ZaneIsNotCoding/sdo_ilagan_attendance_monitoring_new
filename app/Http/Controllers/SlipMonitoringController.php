@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ValidatesPassword;
 use App\Models\ApplicationForLeave;
 use App\Models\LocatorSlip;
 use App\Models\TravelOrder;
@@ -11,6 +12,8 @@ use Inertia\Inertia;
 
 class SlipMonitoringController extends Controller
 {
+    use ValidatesPassword;
+
     public function index(Request $request)
     {
         $selectedType = $this->resolveType($request);
@@ -196,6 +199,52 @@ class SlipMonitoringController extends Controller
             ->orWhereHas('station', function ($stationQuery) use ($search) {
                 $stationQuery->where('name', 'like', "%{$search}%");
             });
+    }
+
+    public function destroy(Request $request, string $type, int $id)
+    {
+        $this->ensureValidPassword($request);
+
+        $model = match ($type) {
+            'locator-slip' => LocatorSlip::class,
+            'travel-order' => TravelOrder::class,
+            'application-leave' => ApplicationForLeave::class,
+            default => null,
+        };
+
+        abort_if($model === null, 404);
+
+        $model::query()->findOrFail($id)->delete();
+
+        return back()->with('success', 'Slip record deleted successfully.');
+    }
+
+    public function destroyMany(Request $request, string $type)
+    {
+        $this->ensureValidPassword($request);
+
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+        ]);
+
+        $model = match ($type) {
+            'locator-slip' => LocatorSlip::class,
+            'travel-order' => TravelOrder::class,
+            'application-leave' => ApplicationForLeave::class,
+            default => null,
+        };
+
+        abort_if($model === null, 404);
+
+        $deletedCount = $model::query()
+            ->whereIn('id', $validated['ids'])
+            ->delete();
+
+        return back()->with(
+            'success',
+            "{$deletedCount} slip record(s) deleted successfully.",
+        );
     }
 
 }

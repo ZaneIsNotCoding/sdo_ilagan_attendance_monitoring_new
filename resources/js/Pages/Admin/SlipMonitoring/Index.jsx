@@ -108,6 +108,8 @@ export default function Index({
                         locator_slips={locator_slips}
                         filterRoute="slip-monitoring.index"
                         filterParams={{ type: selectedType }}
+                        monitoringControls
+                        deleteType="locator-slip"
                     />
                 )}
 
@@ -118,6 +120,8 @@ export default function Index({
                         filters={filters}
                         filterRoute="slip-monitoring.index"
                         filterParams={{ type: selectedType }}
+                        monitoringControls
+                        deleteType="travel-order"
                     />
                 )}
 
@@ -129,6 +133,8 @@ export default function Index({
                             leaveApplications={leave_applications}
                             filterRoute="slip-monitoring.index"
                             filterParams={{ type: selectedType }}
+                            monitoringControls
+                            deleteType="application-leave"
                         />
                     )}
             </section>

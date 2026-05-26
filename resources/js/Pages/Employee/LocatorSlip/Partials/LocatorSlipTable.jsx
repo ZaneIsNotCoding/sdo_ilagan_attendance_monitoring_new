@@ -4,7 +4,8 @@ import React, { useMemo, useState } from "react";
 import { router } from "@inertiajs/react";
 import { motion } from "framer-motion";
 import FloatingInput from "@/components/floating-input";
-import { Search } from "lucide-react";
+import { Search, Trash2 } from "lucide-react";
+import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
 import LocatorSlipPrintDialog from "./LocatorSlipPrintDialog";
 
 const itemVariants = {
@@ -89,11 +90,14 @@ const LocatorSlipTable = ({
     locator_slips = {},
     filterRoute = "locator-slips",
     filterParams = {},
+    monitoringControls = false,
+    deleteType = "locator-slip",
 }) => {
     const [selectedSlip, setSelectedSlip] = useState(null);
     const [open, setOpen] = useState(false);
     const [searchInput, setSearchInput] = useState(filters.search || "");
     const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const [selectedIds, setSelectedIds] = useState([]);
 
     const handlePreview = (slip) => {
         setSelectedSlip(slip);
@@ -144,6 +148,16 @@ const LocatorSlipTable = ({
     }, [slips, searchInput]);
 
     const quickRanges = getQuickRanges();
+    const pageStart = locator_slips.from || 1;
+    const allSelected =
+        slips.length > 0 && slips.every((slip) => selectedIds.includes(slip.id));
+    const toggleSelected = (id) => {
+        setSelectedIds((current) =>
+            current.includes(id)
+                ? current.filter((selectedId) => selectedId !== id)
+                : [...current, id],
+        );
+    };
 
     return (
         <>
@@ -318,9 +332,76 @@ const LocatorSlipTable = ({
             </motion.div>
 
             <div className="mt-6 overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+                {monitoringControls && (
+                    <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 text-sm text-slate-600">
+                        <span>
+                            {selectedIds.length} selected on this page
+                        </span>
+                        <div className="flex items-center gap-3">
+                            {selectedIds.length > 0 && (
+                                <>
+                                    <ConfirmPasswordDialog
+                                        trigger={
+                                            <button
+                                                type="button"
+                                                className="inline-flex items-center gap-1 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700"
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                                Delete selected
+                                            </button>
+                                        }
+                                        title="Delete Selected Locator Slips"
+                                        description="This will permanently remove all selected locator slip records."
+                                        action={route(
+                                            "slip-monitoring.destroy-many",
+                                            deleteType,
+                                        )}
+                                        method="delete"
+                                        data={{ ids: selectedIds }}
+                                        itemLabel="Selected Records"
+                                        itemName={`${selectedIds.length} locator slip record(s)`}
+                                        confirmText="Delete Selected"
+                                        processingText="Deleting..."
+                                        onSuccess={() => setSelectedIds([])}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedIds([])}
+                                        className="font-semibold text-blue-700 hover:text-blue-800"
+                                    >
+                                        Clear selection
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
                 <table className="min-w-full divide-y divide-gray-200 text-sm">
                     <thead className="bg-gray-50">
                         <tr>
+                            {monitoringControls && (
+                                <>
+                                    <th className="w-12 px-4 py-3 text-center font-medium text-gray-700">
+                                        <input
+                                            type="checkbox"
+                                            checked={allSelected}
+                                            onChange={(e) =>
+                                                setSelectedIds(
+                                                    e.target.checked
+                                                        ? slips.map(
+                                                              (slip) => slip.id,
+                                                          )
+                                                        : [],
+                                                )
+                                            }
+                                            className="rounded border-slate-300 text-blue-700 focus:ring-blue-600"
+                                        />
+                                    </th>
+                                    <th className="w-16 px-4 py-3 text-left font-medium text-gray-700">
+                                        No.
+                                    </th>
+                                </>
+                            )}
                             <th className="px-6 py-3 text-left font-medium text-gray-700">
                                 Employee
                             </th>
@@ -344,11 +425,30 @@ const LocatorSlipTable = ({
 
                     <tbody className="divide-y divide-gray-200">
                         {slips.length > 0 ? (
-                            slips.map((slip) => (
+                            slips.map((slip, index) => (
                                 <tr
                                     key={slip.id}
                                     className="transition hover:bg-gray-50"
                                 >
+                                    {monitoringControls && (
+                                        <>
+                                            <td className="px-4 py-3 text-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedIds.includes(
+                                                        slip.id,
+                                                    )}
+                                                    onChange={() =>
+                                                        toggleSelected(slip.id)
+                                                    }
+                                                    className="rounded border-slate-300 text-blue-700 focus:ring-blue-600"
+                                                />
+                                            </td>
+                                            <td className="px-4 py-3 font-semibold text-slate-600">
+                                                {pageStart + index}
+                                            </td>
+                                        </>
+                                    )}
                                     <td className="px-6 py-3">
                                         {getEmployeeName(slip) || "-"}
                                     </td>
@@ -376,20 +476,57 @@ const LocatorSlipTable = ({
                                     <td className="px-6 py-3">
                                         {formatDate(slip.created_at)}
                                     </td>
-                                    <td className="px-6 py-3 text-center">
+                                    <td className="px-6 py-3">
+                                        <div className="flex flex-wrap justify-center gap-2">
                                         <button
                                             onClick={() => handlePreview(slip)}
                                             className="rounded-lg bg-blue-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-blue-700"
                                         >
                                             Preview / PDF
                                         </button>
+                                        {monitoringControls && (
+                                            <ConfirmPasswordDialog
+                                                trigger={
+                                                    <button
+                                                        type="button"
+                                                        className="inline-flex items-center gap-1 rounded-lg bg-red-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-red-700"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                        Delete
+                                                    </button>
+                                                }
+                                                title="Delete Locator Slip"
+                                                description="This will permanently remove this locator slip record."
+                                                action={route(
+                                                    "slip-monitoring.destroy",
+                                                    [deleteType, slip.id],
+                                                )}
+                                                method="delete"
+                                                itemLabel="Locator Slip"
+                                                itemName={
+                                                    getEmployeeName(slip) ||
+                                                    `Record #${slip.id}`
+                                                }
+                                                confirmText="Delete Slip"
+                                                processingText="Deleting..."
+                                                onSuccess={() =>
+                                                    setSelectedIds((current) =>
+                                                        current.filter(
+                                                            (id) =>
+                                                                id !== slip.id,
+                                                        ),
+                                                    )
+                                                }
+                                            />
+                                        )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
                                 <td
-                                    colSpan={6}
+                                    colSpan={monitoringControls ? 8 : 6}
                                     className="px-6 py-6 text-center text-gray-500"
                                 >
                                     {getFilterSummary(filters, "locator slips")}

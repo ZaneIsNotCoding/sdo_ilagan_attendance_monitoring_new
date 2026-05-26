@@ -141,6 +141,8 @@ Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(functio
     Route::resource('position', PositionController::class);
 
     Route::get('/slip-monitoring', [SlipMonitoringController::class, 'index'])->name('slip-monitoring.index');
+    Route::delete('/slip-monitoring/{type}/bulk-delete', [SlipMonitoringController::class, 'destroyMany'])->name('slip-monitoring.destroy-many');
+    Route::delete('/slip-monitoring/{type}/{id}', [SlipMonitoringController::class, 'destroy'])->name('slip-monitoring.destroy');
 });
 
 
