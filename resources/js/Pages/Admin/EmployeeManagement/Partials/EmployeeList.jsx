@@ -1,5 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
+import React from "react";
 import {
     CustomDropdownCheckbox,
     CustomDropdownCheckboxObject,
@@ -8,13 +7,12 @@ import {
     Table,
     TableBody,
     TableCell,
-    TableCaption,
     TableHead,
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { SquarePen, Search, User, Loader2 } from "lucide-react";
+import { AlertTriangle, SquarePen, Search, Clock3 } from "lucide-react";
 import FloatingInput from "@/components/floating-input";
 import {
     HoverCard,
@@ -22,7 +20,7 @@ import {
     HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Badge } from "@/components/ui/badge";
-import { BadgeCheckIcon, AlertCircleIcon, Building2 } from "lucide-react";
+import { BadgeCheckIcon, Building2 } from "lucide-react";
 
 import {
     Pagination,
@@ -33,13 +31,11 @@ import {
     PaginationNext,
 } from "@/components/ui/pagination";
 import EmployeeAvatar from "@/Components/EmployeeAvatar";
-
-const formatEmployeeSearchName = (emp) =>
-    [emp.first_name, emp.middle_name, emp.last_name]
-        .filter(Boolean)
-        .join(" ")
-        .replace(/\s+/g, " ")
-        .trim();
+import { SuggestionSkeletonList } from "@/Components/Skeletons";
+import useEmployeeListControls, {
+    formatEmployeeSearchName,
+    formatWorkSchedule,
+} from "../hooks/useEmployeeListControls";
 
 const EmployeeList = ({
     employees = [],
@@ -58,106 +54,26 @@ const EmployeeList = ({
     setStatusFilter,
     applyFilters,
 }) => {
-    const [showSuggestions, setShowSuggestions] = useState(false);
-    const [suggestionMatches, setSuggestionMatches] = useState([]);
-    const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-    const searchBoxRef = useRef(null);
-    const suggestionRequestRef = useRef(0);
-    const officeItems = useMemo(
-        () => [{ id: "all", name: "All Offices" }, ...offices],
-        [offices],
-    );
-
-    const currentPage = pagination?.current_page || 1;
-    const totalPages = pagination?.last_page || 1;
     const paginatedEmployees = filteredEmployees;
-    const pageNumbers = useMemo(() => {
-        if (totalPages <= 7) {
-            return Array.from({ length: totalPages }, (_, i) => i + 1);
-        }
-
-        const pages = [1];
-        const start = Math.max(2, currentPage - 1);
-        const end = Math.min(totalPages - 1, currentPage + 1);
-
-        if (start > 2) {
-            pages.push("start-ellipsis");
-        }
-
-        for (let page = start; page <= end; page += 1) {
-            pages.push(page);
-        }
-
-        if (end < totalPages - 1) {
-            pages.push("end-ellipsis");
-        }
-
-        pages.push(totalPages);
-
-        return pages;
-    }, [currentPage, totalPages]);
-
-    const handlePageChange = (page) => {
-        if (page < 1 || page > totalPages) return;
-        applyFilters({ pageValue: page });
-    };
-
-    useEffect(() => {
-        const query = (searchInput || "").trim();
-
-        if (!query) {
-            setSuggestionMatches([]);
-            setSuggestionsLoading(false);
-            return;
-        }
-
-        setSuggestionsLoading(true);
-        const requestId = suggestionRequestRef.current + 1;
-        suggestionRequestRef.current = requestId;
-
-        const timeout = setTimeout(() => {
-            axios
-                .get(route("employees.suggestions"), {
-                    params: { search: query },
-                })
-                .then((response) => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionMatches(response.data || []);
-                })
-                .catch(() => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionMatches([]);
-                })
-                .finally(() => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionsLoading(false);
-                });
-        }, 250);
-
-        return () => {
-            clearTimeout(timeout);
-        };
-    }, [searchInput]);
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (
-                searchBoxRef.current &&
-                !searchBoxRef.current.contains(event.target)
-            ) {
-                setShowSuggestions(false);
-            }
-        };
-
-        document.addEventListener("mousedown", handleClickOutside);
-
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, []);
+    const {
+        currentPage,
+        handlePageChange,
+        officeItems,
+        pageNumbers,
+        searchBoxRef,
+        selectSuggestion,
+        setShowSuggestions,
+        showSuggestions,
+        suggestionMatches,
+        suggestionsLoading,
+        totalPages,
+    } = useEmployeeListControls({
+        applyFilters,
+        offices,
+        pagination,
+        searchInput,
+        setSearchInput,
+    });
 
     return (
         <div className="rounded-2xl p-4 mt-4 border border-blue-100 shadow-lg">
@@ -175,7 +91,7 @@ const EmployeeList = ({
                     <div className="flex items-start gap-4 ">
                         <div ref={searchBoxRef} className="relative w-full">
                             <FloatingInput
-                                label="Search Employee"
+                                label="Employee Name"
                                 icon={Search}
                                 name="search"
                                 value={searchInput}
@@ -201,35 +117,18 @@ const EmployeeList = ({
 
                                     <div className="max-h-72 overflow-y-auto">
                                         {suggestionsLoading ? (
-                                            <div className="flex items-center gap-3 px-3 py-4 text-sm text-slate-500">
-                                                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                </span>
-                                                <div>
-                                                    <div className="font-medium text-slate-700">
-                                                        Searching employees...
-                                                    </div>
-                                                    <div className="text-xs text-slate-400">
-                                                        Checking names and IDs
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <SuggestionSkeletonList />
                                         ) : suggestionMatches.length > 0 ? (
                                             suggestionMatches.map((emp) => (
                                                 <button
                                                     key={emp.id}
                                                     type="button"
-                                                    onMouseDown={() => {
-                                                        setSearchInput(
-                                                            emp.label,
-                                                        );
-                                                        applySearch(
-                                                            `${emp.id} ${emp.label}`,
-                                                        );
-                                                        setShowSuggestions(
-                                                            false,
-                                                        );
-                                                    }}
+                                                    onMouseDown={() =>
+                                                        selectSuggestion(
+                                                            emp,
+                                                            applySearch,
+                                                        )
+                                                    }
                                                     className="flex w-full items-start justify-between gap-3 px-3 py-2 text-left text-sm transition hover:bg-blue-50"
                                                 >
                                                     <div className="min-w-0">
@@ -307,7 +206,7 @@ const EmployeeList = ({
                                 Office
                             </TableHead>
                             <TableHead className="text-white text-left w-[15%]">
-                                Work Type
+                                Work Schedule
                             </TableHead>
                             <TableHead className="text-white text-left px-10 w-[10%]">
                                 Actions
@@ -317,104 +216,157 @@ const EmployeeList = ({
 
                     <TableBody>
                         {paginatedEmployees.length > 0 ? (
-                            paginatedEmployees.map((emp) => (
-                                <TableRow
-                                    key={emp.id}
-                                    className="h-[64px] hover:bg-blue-50 transition"
-                                >
-                                    <TableCell className="p-3">
-                                        <div className="flex gap-3 min-w-0">
-                                            {/* Avatar */}
-                                            <EmployeeAvatar
-                                                employee={emp}
-                                                name={formatEmployeeSearchName(
-                                                    emp,
-                                                )}
-                                            />
+                        paginatedEmployees.map((emp) => {
+                            const hasWorkSchedule = Boolean(
+                                emp.work_schedule,
+                            );
 
-                                            {/* Name + badge */}
-                                            <div className="flex items-center gap-2 min-w-0">
-                                                <span className="font-medium truncate max-w-[150px]">
-                                                    {formatEmployeeSearchName(
+                            return (
+                                    <TableRow
+                                        key={emp.id}
+                                        className="h-[64px] hover:bg-blue-50 transition"
+                                    >
+                                        <TableCell className="p-3">
+                                            <div className="flex gap-3 min-w-0">
+                                                {/* Avatar */}
+                                                <EmployeeAvatar
+                                                    employee={emp}
+                                                    name={formatEmployeeSearchName(
                                                         emp,
                                                     )}
-                                                </span>
+                                                />
 
-                                                <HoverCard>
-                                                    <HoverCardTrigger asChild>
-                                                        <div className="cursor-pointer min-w-[28px] flex justify-center">
+                                                {/* Name + badge */}
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                    <span className="font-medium truncate max-w-[150px]">
+                                                        {formatEmployeeSearchName(
+                                                            emp,
+                                                        )}
+                                                    </span>
+
+                                                    <HoverCard openDelay={150}>
+                                                        <HoverCardTrigger
+                                                            asChild
+                                                        >
+                                                            <div className="cursor-pointer min-w-[28px] flex justify-center">
+                                                                {isRegistered(
+                                                                    emp.id,
+                                                                ) ? (
+                                                                    <Badge className="bg-blue-100 text-blue-700 border border-blue-300 flex items-center gap-1">
+                                                                        <BadgeCheckIcon className="w-3.5 h-3.5" />
+                                                                    </Badge>
+                                                                ) : (
+                                                                    <span
+                                                                        aria-label="Employee is not registered"
+                                                                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-amber-300 bg-amber-100 text-amber-700 shadow-[0_0_10px_rgba(245,158,11,0.45)]"
+                                                                    >
+                                                                        <AlertTriangle className="h-4 w-4 animate-bell-ring" />
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </HoverCardTrigger>
+
+                                                        <HoverCardContent
+                                                            side="right"
+                                                            align="center"
+                                                            className="w-fit rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 shadow-md"
+                                                        >
                                                             {isRegistered(
                                                                 emp.id,
                                                             ) ? (
-                                                                <Badge className="bg-blue-100 text-blue-700 border border-blue-300 flex items-center gap-1">
-                                                                    <BadgeCheckIcon className="w-3.5 h-3.5" />
-                                                                </Badge>
+                                                                <span className="font-medium text-blue-600">
+                                                                    Employee is
+                                                                    registered
+                                                                </span>
                                                             ) : (
-                                                                <Badge className="bg-yellow-100 text-yellow-700 border border-yellow-300 flex items-center gap-1">
-                                                                    <AlertCircleIcon className="w-3.5 h-3.5" />
-                                                                </Badge>
+                                                                <span className="font-medium text-orange-600">
+                                                                    Employee is
+                                                                    not
+                                                                    registered
+                                                                </span>
                                                             )}
+                                                        </HoverCardContent>
+                                                    </HoverCard>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+
+                                        {/* POSITION */}
+                                        <TableCell className="p-3 text-gray-700 truncate">
+                                            {emp.position || "-"}
+                                        </TableCell>
+
+                                        {/* OFFICE */}
+                                        <TableCell className="p-3">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <div className="w-7 h-7 min-w-[28px] flex items-center justify-center rounded-full bg-gray-300">
+                                                    <Building2 className="w-4 h-4 text-blue-600" />
+                                                </div>
+
+                                                <span className="truncate">
+                                                    <span className="block truncate">
+                                                        {emp.office?.name ||
+                                                            "-"}
+                                                    </span>
+                                                    <span className="block truncate text-xs text-gray-500">
+                                                        {[
+                                                            emp.office?.division
+                                                                ?.code,
+                                                            emp.office?.division
+                                                                ?.name,
+                                                        ]
+                                                            .filter(Boolean)
+                                                            .join(" - ") || "-"}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </TableCell>
+
+                                        {/* WORK SCHEDULE */}
+                                        <TableCell className="p-3">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                {hasWorkSchedule ? (
+                                                    <Clock3 className="h-5 w-5 shrink-0 text-blue-600 mt-0.5" />
+                                                ) : null}
+
+                                                <div className="min-w-0">
+                                                    {hasWorkSchedule ? (
+                                                        <div className="truncate font-medium text-gray-800">
+                                                            {emp.work_type ||
+                                                                "-"}
                                                         </div>
-                                                    </HoverCardTrigger>
+                                                    ) : (
+                                                        <div className="w-fit rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                                                            Missing work
+                                                            schedule
+                                                        </div>
+                                                    )}
 
-                                                    <HoverCardContent className="text-xs px-3 py-2 rounded-lg shadow-md border border-gray-200 bg-white w-fit">
-                                                        {isRegistered(
-                                                            emp.id,
-                                                        ) ? (
-                                                            <span className="flex items-center gap-1 text-blue-600 font-medium">
-                                                                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                                                                Employee is
-                                                                registered
-                                                            </span>
-                                                        ) : (
-                                                            <span className="flex items-center gap-1 text-orange-600 font-medium">
-                                                                <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-                                                                Employee is not
-                                                                registered
-                                                            </span>
-                                                        )}
-                                                    </HoverCardContent>
-                                                </HoverCard>
+                                                    {hasWorkSchedule ? (
+                                                        <div className="truncate text-xs text-gray-500">
+                                                            {formatWorkSchedule(
+                                                                emp.work_schedule,
+                                                            ) || "-"}
+                                                        </div>
+                                                    ) : null}
+                                                </div>
                                             </div>
-                                        </div>
-                                    </TableCell>
-
-                                    {/* POSITION */}
-                                    <TableCell className="p-3 text-gray-700 truncate">
-                                        {emp.position || "-"}
-                                    </TableCell>
-
-                                    {/* OFFICE */}
-                                    <TableCell className="p-3">
-                                        <div className="flex items-center gap-2 min-w-0">
-                                            <div className="w-7 h-7 min-w-[28px] flex items-center justify-center rounded-full bg-gray-300">
-                                                <Building2 className="w-4 h-4 text-blue-600" />
-                                            </div>
-
-                                            <span className="truncate">
-                                                {emp.office?.name || "-"}
-                                            </span>
-                                        </div>
-                                    </TableCell>
-
-                                    {/* WORK TYPE */}
-                                    <TableCell className="p-3 text-gray-700 truncate">
-                                        {emp.work_type || "-"}
-                                    </TableCell>
-
-                                    {/* ACTIONS */}
-                                    <TableCell className="p-3 text-center">
-                                        <Button
-                                            size="sm"
-                                            className="min-w-[90px] bg-white text-blue-600 border border-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center gap-1"
-                                            onClick={() => handleEdit(emp)}
-                                        >
-                                            <SquarePen className="h-4 w-4" />
-                                            Edit
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))
+                                        </TableCell>
+                                        {/* ACTIONS */}
+                                        <TableCell className="p-3 text-center">
+                                            <Button
+                                                size="sm"
+                                                className="min-w-[90px] bg-white text-blue-600 border border-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center gap-1"
+                                                onClick={() => handleEdit(emp)}
+                                                title="Edit Employee"
+                                            >
+                                                <SquarePen className="h-4 w-4" />
+                                                Edit
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })
                         ) : (
                             <TableRow>
                                 <TableCell

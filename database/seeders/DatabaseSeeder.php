@@ -7,6 +7,7 @@ use App\Models\Administrator\Employee;
 use App\Models\Administrator\Office;
 use App\Models\Administrator\Station;
 use App\Models\Administrator\StationAdmin;
+use App\Models\Administrator\WorkSchedule;
 use App\Models\Division;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -24,6 +25,8 @@ class DatabaseSeeder extends Seeder
             StationAssignmentSeeder::class,
             DivisionSeeder::class,
             OfficeSeeder::class,
+            WorkTypeSeeder::class,
+            WorkScheduleSeeder::class,
         ]);
 
         Role::firstOrCreate(['name' => 'sdo_admin']);
@@ -33,6 +36,7 @@ class DatabaseSeeder extends Seeder
         $divisions = Division::all();
         $offices = Office::all();
         $stations = Station::all();
+        $defaultWorkScheduleId = WorkSchedule::orderBy('id')->value('id');
 
         foreach ($stations as $station) {
             if ($station->id == 1) {
@@ -43,7 +47,7 @@ class DatabaseSeeder extends Seeder
                     'last_name' => fake()->lastName(),
                     'position' =>  'Administrative Officer IV',
                     'office_id' => $offices->where('name', 'Administrative Unit')->first()?->id,
-                    'work_type' => 'Full',
+                    'work_schedule_id' => $defaultWorkScheduleId,
                 ]);
 
                 $adminUser = User::create([
@@ -69,8 +73,6 @@ class DatabaseSeeder extends Seeder
                 ])
                 ->create();
         }
-        $this->call([
-            MonthlySeeder::class,
-        ]);
+        $this->call(MonthlySeeder::class);
     }
 }

@@ -1,6 +1,4 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { router } from "@inertiajs/react";
+import React from "react";
 import {
     Table,
     TableBody,
@@ -24,144 +22,34 @@ import { Doughnut } from "react-chartjs-2";
 import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
 import EditStationModal from "./EditStationModal";
 import AddStationModal from "./AddStationModal";
+import useStationList from "../hooks/useStationList";
+import { getStationHighlightKey } from "../utils";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
-
-const getStationHighlightKey = (station) => {
-    if (!station) return null;
-
-    return `${station.source || "station"}:${
-        station.source === "sdo" ? station.record_id || station.id : station.id
-    }`;
-};
 
 const StationList = ({
     stations = {},
     stationStats = {},
     stationLimit = 5,
+    addStationModal = false,
     editStationModal = null,
     deleteStationModal = null,
     onAssignNow,
 }) => {
-    const [chartReady, setChartReady] = useState(false);
-    const [openAddStationModal, setOpenAddStationModal] = useState(false);
-    const [stationRowsData, setStationRowsData] = useState(stations);
-
-    useEffect(() => {
-        setStationRowsData(stations);
-    }, [stations]);
-
-    const paginatedStations = stationRowsData?.data || [];
-    const activePage = stationRowsData?.current_page || 1;
-    const totalPages = stationRowsData?.last_page || 1;
-
-    const handlePageChange = (page) => {
-        if (page < 1 || page > totalPages) return;
-
-        const params = new URLSearchParams(window.location.search);
-        params.set("station_page", page);
-        params.set("station_limit", stationLimit);
-
-        axios
-            .get(route("stations.list"), {
-                params: Object.fromEntries(params),
-            })
-            .then((response) => {
-                setStationRowsData(response.data.stations);
-
-                const nextParams = new URLSearchParams(window.location.search);
-                nextParams.set(
-                    "station_page",
-                    response.data.stationPage || page,
-                );
-                nextParams.set(
-                    "station_limit",
-                    response.data.stationLimit || stationLimit,
-                );
-
-                window.history.replaceState(
-                    {},
-                    "",
-                    `${route("stationmanagement")}?${nextParams.toString()}`,
-                );
-            })
-            .catch((error) => {
-                console.error("Failed to load station rows:", error);
-            });
-    };
-
-    const openStationModal = (modal, station) => {
-        const params = new URLSearchParams(window.location.search);
-
-        params.delete("admin_id");
-        params.set("modal", modal);
-        params.set(
-            "station_id",
-            station.source === "sdo" ? station.station_id : station.id,
-        );
-        params.set(
-            "station_role",
-            station.source === "sdo" ? station.role : "school_admin",
-        );
-        params.set("station_source", station.source || "station");
-
-        router.get(route("stationmanagement"), Object.fromEntries(params), {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        });
-    };
-
-    const closeStationModal = () => {
-        const params = new URLSearchParams(window.location.search);
-
-        params.delete("modal");
-        params.delete("admin_id");
-        params.delete("station_id");
-        params.delete("station_role");
-        params.delete("station_source");
-
-        router.get(route("stationmanagement"), Object.fromEntries(params), {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        });
-    };
-
-    const getPagination = () => {
-        const pages = [];
-
-        if (totalPages <= 4) {
-            for (let i = 1; i <= totalPages; i++) {
-                pages.push(i);
-            }
-        } else {
-            pages.push(1);
-
-            if (activePage > 2) {
-                pages.push("...");
-            }
-
-            const start = Math.max(2, activePage - 1);
-            const end = Math.min(totalPages - 1, activePage + 1);
-
-            for (let i = start; i <= end; i++) {
-                pages.push(i);
-            }
-
-            if (activePage < totalPages - 1) {
-                pages.push("...");
-            }
-
-            pages.push(totalPages);
-        }
-
-        return pages;
-    };
-
-    const totalEntries = stationRowsData?.total || 0;
-    const startIndex = stationRowsData?.from || 0;
-    const endIndex = stationRowsData?.to || 0;
+    const {
+        activePage,
+        chartReady,
+        closeStationModal,
+        endIndex,
+        handlePageChange,
+        openAddStationModal,
+        openStationModal,
+        paginatedStations,
+        paginationItems,
+        startIndex,
+        totalEntries,
+        totalPages,
+    } = useStationList({ stations, stationLimit });
 
     const assignedCount = stationStats.assigned || 0;
     const missingCount = stationStats.missing || 0;
@@ -199,11 +87,6 @@ const StationList = ({
         },
     };
 
-    useEffect(() => {
-        const timer = setTimeout(() => setChartReady(true), 200);
-        return () => clearTimeout(timer);
-    }, []);
-
     return (
         <div className="flex gap-5">
             <div className="w-[60%] rounded-xl p-4 border-2 shadow-lg">
@@ -216,7 +99,7 @@ const StationList = ({
                     </div>
 
                     <Button
-                        onClick={() => setOpenAddStationModal(true)}
+                        onClick={openAddStationModal}
                         className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
                         + Add Station
@@ -280,6 +163,7 @@ const StationList = ({
                                                             )
                                                         }
                                                         className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 text-blue-100 hover:bg-blue-800 hover:text-white transition"
+                                                        title="Edit Station"
                                                     >
                                                         <SquarePen className="w-4 h-4" />
                                                     </Button>
@@ -292,6 +176,7 @@ const StationList = ({
                                                             )
                                                         }
                                                         className="w-8 h-8 flex items-center justify-center rounded-full bg-red-200 text-red-600 hover:bg-red-600 hover:text-white transition"
+                                                        title="Delete Station"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </Button>
@@ -329,7 +214,7 @@ const StationList = ({
                                 />
 
                                 <PaginationContent>
-                                    {getPagination().map((item, index) => (
+                                    {paginationItems.map((item, index) => (
                                         <PaginationItem key={index}>
                                             {item === "..." ? (
                                                 <span className="px-2 text-gray-400">
@@ -409,8 +294,10 @@ const StationList = ({
             />
 
             <AddStationModal
-                open={openAddStationModal}
-                setOpen={setOpenAddStationModal}
+                open={addStationModal}
+                setOpen={(nextOpen) => {
+                    if (!nextOpen) closeStationModal();
+                }}
             />
 
             <div className="w-[40%] flex flex-col gap-4">

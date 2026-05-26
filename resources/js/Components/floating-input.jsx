@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { useState } from "react";
 
 export default function FloatingInput({
     label,
@@ -14,9 +15,9 @@ export default function FloatingInput({
     disabled = false,
     inputClassName = "",
 }) {
-    const labelOffsetClasses = Icon
-        ? "left-8 peer-placeholder-shown:left-8 peer-focus:left-8"
-        : "left-3 peer-placeholder-shown:left-3 peer-focus:left-3";
+    const [isFocused, setIsFocused] = useState(false);
+    const isFloated = isFocused || Boolean(value);
+    const labelOffsetClasses = Icon ? "left-8" : "left-3";
 
     return (
         <div className="relative w-full">
@@ -30,8 +31,14 @@ export default function FloatingInput({
                     value={value}
                     onChange={onChange}
                     onKeyDown={onKeyDown}
-                    onFocus={onFocus}
-                    onBlur={onBlur}
+                    onFocus={(event) => {
+                        setIsFocused(true);
+                        onFocus?.(event);
+                    }}
+                    onBlur={(event) => {
+                        setIsFocused(false);
+                        onBlur?.(event);
+                    }}
                     readOnly={readOnly}
                     disabled={disabled}
                     placeholder=" "
@@ -43,13 +50,11 @@ export default function FloatingInput({
                     className={`absolute transition-all pointer-events-none
                         ${labelOffsetClasses}
                         ${
-                            value
-                                ? "-top-2 text-[11px] font-medium text-blue-600"
+                            isFloated
+                                ? "-top-2 translate-y-0 text-[11px] font-medium text-blue-600"
                                 : "top-1/2 -translate-y-1/2 text-sm text-slate-400"
                         }
-                        peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2
-                        peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-[11px] peer-focus:font-medium peer-focus:text-blue-600
-                        bg-slate-50 px-1 peer-focus:bg-white`}
+                        bg-slate-50 px-1 ${isFocused ? "bg-white" : ""}`}
                 >
                     {label}
                 </label>

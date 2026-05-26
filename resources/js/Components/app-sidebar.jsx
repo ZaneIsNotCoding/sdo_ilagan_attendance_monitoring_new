@@ -408,33 +408,6 @@ export function AppSidebar({ active, user, ...props }) {
                                             </Link>
                                         </SidebarMenuSubButton>
                                     </SidebarMenuSubItem>
-
-                                    <SidebarMenuSubItem>
-                                        <SidebarMenuSubButton
-                                            asChild
-                                            isActive={url.startsWith(
-                                                "/employeeleavecard",
-                                            )}
-                                        >
-                                            <Link
-                                                href={route(
-                                                    "employeeleavecard",
-                                                )}
-                                                className="flex items-center gap-2 text-xs text-white hover:bg-blue-900 hover:text-blue-100"
-                                            >
-                                                <CalendarClock
-                                                    className={`h-4 w-4 ${
-                                                        url.startsWith(
-                                                            "/employeeleavecard",
-                                                        )
-                                                            ? "!text-black"
-                                                            : "!text-white"
-                                                    }`}
-                                                />
-                                                Employee Leave Card
-                                            </Link>
-                                        </SidebarMenuSubButton>
-                                    </SidebarMenuSubItem>
                                 </SidebarMenuSub>
                             )}
                         </SidebarMenuItem>

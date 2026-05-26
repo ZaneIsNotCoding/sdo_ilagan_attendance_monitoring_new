@@ -1,125 +1,255 @@
-import React, { useEffect, useState } from "react";
-import { router } from "@inertiajs/react";
-import { Head } from "@inertiajs/react";
+import React, { useState } from "react";
+import { Head, router } from "@inertiajs/react";
+import { toast } from "sonner";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { CalendarClock } from "lucide-react";
 
-import EmployeeTable from "./Partials/EmployeeTable";
-import PrintDialog from "./Partials/PrintDialog"; // <-- import dialog
+import EmployeeList from "./Partials/EmployeeList";
+import PrintDialog from "./Partials/PrintDialog";
+import DepartmentPrintDialog from "./Partials/DepartmentPrintDialog";
+import EmployeePreviewDtr from "./Partials/EmployeePreviewDtr";
+import RecomputeDtrDialog from "./Partials/RecomputeDtrDialog";
+import WorkScheduleSettings from "./Partials/WorkScheduleSettings/WorkScheduleSettings";
+import useDailyTimeRecordFilters from "./hooks/useDailyTimeRecordFilters";
+import useDailyTimeRecordModals from "./hooks/useDailyTimeRecordModals";
+import usePreservedPageScroll from "./hooks/usePreservedPageScroll";
+import { extractTimeRecordEmployees, resolveCurrentDateParts } from "./utils";
 
-const formatSearchDisplay = (value) =>
-    String(value || "")
-        .replace(/^\d+\s+/, "")
-        .trim();
+const recomputeScrollKey = "dtr-recompute-scroll-top";
 
 const Daily_Time_Record = ({
     time_record,
     offices = [],
     search = "",
     office = "all",
+    month,
+    year,
     limit = 10,
+    previewDtrModal = null,
+    printDtrModal = null,
+    departmentPrintModal = null,
+    workTypes = [],
+    workSchedules = [],
+    addWorkTypeModal = false,
+    addWorkScheduleModal = false,
+    editWorkTypeModal = null,
+    editWorkScheduleModal = null,
+    deleteWorkTypeModal = null,
+    deleteWorkScheduleModal = null,
 }) => {
-    const employees = Array.isArray(time_record?.data)
-        ? time_record.data
-        : Array.isArray(time_record)
-          ? time_record
-          : [];
-    const [searchInput, setSearchInput] = useState(formatSearchDisplay(search));
-    const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
-    const [selectedOffice, setSelectedOffice] = useState(office || "all");
-    const [selectedEmployees, setSelectedEmployees] = useState({});
-    const [dialogOpen, setDialogOpen] = useState(false); // dialog state
+    const { currentMonth, currentYear } = resolveCurrentDateParts({
+        month,
+        year,
+    });
+    const employees = extractTimeRecordEmployees(time_record);
+    const {
+        applyFilters,
+        searchInput,
+        selectedMonth,
+        selectedOffice,
+        selectedYear,
+        setSearchInput,
+        setSelectedMonth,
+        setSelectedOffice,
+        setSelectedYear,
+    } = useDailyTimeRecordFilters({
+        currentMonth,
+        currentYear,
+        limit,
+        office,
+        offices,
+        search,
+    });
+    const {
+        closeDepartmentPrintDialog,
+        closePreviewDtr,
+        closePrintDialog,
+        departmentDialogOpen,
+        dialogOpen,
+        handlePreviewEmployee,
+        initialPrintEmployeeData,
+        openDepartmentPrintDialog,
+        openPrintDialog,
+        printEmployees,
+        selectedEmployees,
+        setSelectedEmployees,
+    } = useDailyTimeRecordModals({
+        departmentPrintModal,
+        printDtrModal,
+    });
+    const { rememberPageScroll, restorePageScroll } = usePreservedPageScroll({
+        storageKey: recomputeScrollKey,
+    });
+    const [recomputeEmployee, setRecomputeEmployee] = useState(null);
 
-    useEffect(() => {
-        setSearchInput(formatSearchDisplay(search));
-        const matchedOffice = offices.find((item) => item.name === office);
+    const handleUndoRecompute = (undo) => {
+        if (!undo?.token || !undo?.employee_id) return;
 
-        setSelectedOffice(office === "all" ? "all" : matchedOffice?.id || "all");
-    }, [search, office, offices]);
+        rememberPageScroll();
 
-    const applyFilters = ({
-        searchValue = searchInput,
-        officeValue = selectedOffice,
-        pageValue,
-        limitValue = limit,
-    } = {}) => {
-        const query = {
-            limit: limitValue,
+        router.post(
+            route("dailytimerecord.recompute.undo", undo.employee_id),
+            {
+                token: undo.token,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => {
+                    toast.success("Daily time record recompute undone.", {
+                        duration: 3000,
+                    });
+                },
+                onFinish: restorePageScroll,
+            },
+        );
+    };
+
+    const showRecomputeUndoToast = (undo) => {
+        const toastId = `dtr-recompute-${undo.token}`;
+        let secondsLeft = 8;
+        let timer;
+
+        const showToast = () => {
+            toast.success("Daily time record recomputed.", {
+                id: toastId,
+                description: `Undo available for ${secondsLeft}s.`,
+                duration: secondsLeft * 1000,
+                action: {
+                    label: "Undo",
+                    onClick: () => {
+                        clearInterval(timer);
+                        toast.dismiss(toastId);
+                        handleUndoRecompute(undo);
+                    },
+                },
+            });
         };
 
-        if (searchValue && searchValue.trim()) {
-            query.search = searchValue.trim();
-        }
+        timer = setInterval(() => {
+            secondsLeft -= 1;
 
-        const matchedOffice = offices.find(
-            (item) => Number(item.id) === Number(officeValue),
-        );
+            if (secondsLeft <= 0) {
+                clearInterval(timer);
+                return;
+            }
 
-        if (matchedOffice) {
-            query.office = matchedOffice.name;
-        }
+            showToast();
+        }, 1000);
 
-        if (pageValue && pageValue > 1) {
-            query.page = pageValue;
-        }
-
-        router.get(route("dailytimerecord"), query, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        });
+        showToast();
     };
 
-    const handleSelectEmployee = (employee) => {
-        router.visit(
-            `/dailytimerecord/${
-                employee.id
-            }-${employee.first_name.toLowerCase()}`,
-            { preserveState: true, preserveScroll: true },
-        );
+    const openRecomputeDialog = (employee) => {
+        setRecomputeEmployee(employee);
     };
 
-    const selectedList = employees.filter((emp) => selectedEmployees[emp.id]);
+    const closeRecomputeDialog = () => {
+        setRecomputeEmployee(null);
+    };
+
+    const handleRecomputeEmployee = ({ from, to }) => {
+        if (!recomputeEmployee) return;
+
+        rememberPageScroll();
+
+        router.post(
+            route("dailytimerecord.recompute", recomputeEmployee.id),
+            {
+                from,
+                to,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: (page) => {
+                    const undo = page.props.flash?.recomputeUndo;
+
+                    if (!undo) return;
+
+                    showRecomputeUndoToast(undo);
+                    closeRecomputeDialog();
+                },
+                onFinish: restorePageScroll,
+            },
+        );
+    };
 
     return (
         <AuthenticatedLayout
             header={
                 <div className="flex items-center gap-5">
-                    <CalendarClock className="w-5 h-5 text-blue-600" />
+                    <CalendarClock className="h-5 w-5 text-blue-600" />
                     <span>Daily Time Record Management</span>
                 </div>
             }
         >
             <Head title="AMS" />
             <main>
-                {!selectedEmployeeId && (
-                    <>
-                        <EmployeeTable
-                            employees={employees}
-                            pagination={time_record}
-                            onSelect={handleSelectEmployee}
-                            selectedEmployees={selectedEmployees}
-                            setSelectedEmployees={setSelectedEmployees}
-                            search={searchInput}
-                            setSearch={setSearchInput}
-                            offices={offices}
-                            selectedOffice={selectedOffice}
-                            setSelectedOffice={setSelectedOffice}
-                            applyFilters={applyFilters}
-                            selectedCount={selectedList.length}
-                            onPrintSelected={() => setDialogOpen(true)}
-                        />
+                <WorkScheduleSettings
+                    workTypes={workTypes}
+                    workSchedules={workSchedules}
+                    addWorkTypeModal={addWorkTypeModal}
+                    addWorkScheduleModal={addWorkScheduleModal}
+                    editWorkTypeModal={editWorkTypeModal}
+                    editWorkScheduleModal={editWorkScheduleModal}
+                    deleteWorkTypeModal={deleteWorkTypeModal}
+                    deleteWorkScheduleModal={deleteWorkScheduleModal}
+                />
 
-                        <PrintDialog
-                            open={dialogOpen}
-                            onClose={() => setDialogOpen(false)}
-                            selectedEmployees={selectedList}
-                            attendances={selectedList.flatMap(
-                                (emp) => emp.attendances || [],
-                            )}
-                        />
-                    </>
-                )}
+                <EmployeeList
+                    employees={employees}
+                    pagination={time_record}
+                    selectedEmployees={selectedEmployees}
+                    setSelectedEmployees={setSelectedEmployees}
+                    search={searchInput}
+                    setSearch={setSearchInput}
+                    offices={offices}
+                    selectedOffice={selectedOffice}
+                    setSelectedOffice={setSelectedOffice}
+                    selectedMonth={selectedMonth}
+                    setSelectedMonth={setSelectedMonth}
+                    selectedYear={selectedYear}
+                    setSelectedYear={setSelectedYear}
+                    applyFilters={applyFilters}
+                    onPreviewEmployee={handlePreviewEmployee}
+                    onPrintEmployee={(employee) => openPrintDialog([employee])}
+                    onPrintDepartment={openDepartmentPrintDialog}
+                    onRecomputeEmployee={openRecomputeDialog}
+                />
+
+                <RecomputeDtrDialog
+                    employee={recomputeEmployee}
+                    onClose={closeRecomputeDialog}
+                    onSubmit={handleRecomputeEmployee}
+                    selectedMonth={selectedMonth}
+                    selectedYear={selectedYear}
+                />
+
+                <PrintDialog
+                    open={dialogOpen}
+                    onClose={closePrintDialog}
+                    selectedEmployees={printEmployees}
+                    initialEmployeeData={initialPrintEmployeeData}
+                    selectedMonth={selectedMonth}
+                    selectedYear={selectedYear}
+                />
+
+                <DepartmentPrintDialog
+                    open={departmentDialogOpen}
+                    onClose={closeDepartmentPrintDialog}
+                    initialDepartmentName={departmentPrintModal?.name || ""}
+                    selectedMonth={selectedMonth}
+                    selectedYear={selectedYear}
+                />
+
+                <EmployeePreviewDtr
+                    open={!!previewDtrModal}
+                    onClose={closePreviewDtr}
+                    previewDtrModal={previewDtrModal}
+                    selectedMonth={selectedMonth}
+                    selectedYear={selectedYear}
+                />
             </main>
         </AuthenticatedLayout>
     );

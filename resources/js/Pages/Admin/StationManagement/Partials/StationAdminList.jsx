@@ -1,6 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
-import { router } from "@inertiajs/react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import {
     Pagination,
@@ -18,20 +16,15 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Trash2, LandPlot, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Trash2, LandPlot, CheckCircle2, XCircle } from "lucide-react";
 import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
 import AssignStationAdminModal from "./AssignStationAdminModal";
 import FloatingInput from "@/components/floating-input";
 import { Search } from "lucide-react";
 import EmployeeAvatar from "@/Components/EmployeeAvatar";
-
-const getStationHighlightKey = (station) => {
-    if (!station) return null;
-
-    return `${station.source || "station"}:${
-        station.source === "sdo" ? station.record_id || station.id : station.id
-    }`;
-};
+import { SuggestionSkeletonList } from "@/Components/Skeletons";
+import useStationAdminList from "../hooks/useStationAdminList";
+import { getStationHighlightKey } from "../utils";
 
 const StationAdminList = ({
     stationRows = {},
@@ -42,304 +35,37 @@ const StationAdminList = ({
     highlightedStationId = null,
     highlightRequestKey = 0,
 }) => {
-    const [animatedStationId, setAnimatedStationId] = useState(null);
-    const [stationRowsData, setStationRowsData] = useState(stationRows);
-    const [searchTerm, setSearchTerm] = useState(search || "");
-    const [suggestionMatches, setSuggestionMatches] = useState([]);
-    const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-    const [showSuggestions, setShowSuggestions] = useState(false);
-    const animationTimeoutRef = useRef(null);
-    const suggestionRequestRef = useRef(0);
-    const searchBoxRef = useRef(null);
-
-    useEffect(() => {
-        setSearchTerm(search || "");
-    }, [search]);
-
-    useEffect(() => {
-        setStationRowsData(stationRows);
-    }, [stationRows]);
-
-    const visibleStationRows = stationRowsData?.data || [];
-    const activePage = stationRowsData?.current_page || 1;
-    const totalPages = stationRowsData?.last_page || 1;
-    const totalEntries = stationRowsData?.total || 0;
-    const startIndex = stationRowsData?.from || 0;
-    const endIndex = stationRowsData?.to || 0;
-    const pageNumbers = useMemo(() => {
-        if (totalPages <= 7) {
-            return Array.from({ length: totalPages }, (_, index) => index + 1);
-        }
-
-        const pages = [1];
-        const start = Math.max(2, activePage - 1);
-        const end = Math.min(totalPages - 1, activePage + 2);
-
-        if (start > 2) {
-            pages.push("start-ellipsis");
-        }
-
-        for (let page = start; page <= end; page += 1) {
-            pages.push(page);
-        }
-
-        if (end < totalPages - 1) {
-            pages.push("end-ellipsis");
-        }
-
-        if (!pages.includes(totalPages)) {
-            pages.push(totalPages);
-        }
-
-        return pages;
-    }, [activePage, totalPages]);
-
-    useEffect(() => {
-        const query = searchTerm.trim();
-
-        if (!query) {
-            setSuggestionMatches([]);
-            setSuggestionsLoading(false);
-            return;
-        }
-
-        setSuggestionsLoading(true);
-        const requestId = suggestionRequestRef.current + 1;
-        suggestionRequestRef.current = requestId;
-
-        const timeout = setTimeout(() => {
-            axios
-                .get(route("stations.suggestions"), {
-                    params: { search: query },
-                })
-                .then((response) => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionMatches(
-                        (response.data || []).map((station) => ({
-                            id: `${station.source || "station"}:${
-                                station.record_id || station.id
-                            }`,
-                            label: station.name,
-                            meta: station.code ? `${station.code}` : "No code",
-                            search: station.name,
-                        })),
-                    );
-                })
-                .catch(() => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionMatches([]);
-                })
-                .finally(() => {
-                    if (suggestionRequestRef.current !== requestId) return;
-
-                    setSuggestionsLoading(false);
-                });
-        }, 250);
-
-        return () => {
-            clearTimeout(timeout);
-        };
-    }, [searchTerm]);
-
-    const highlightedStationIndex = useMemo(
-        () =>
-            visibleStationRows.findIndex(
-                (row) =>
-                    String(getStationHighlightKey(row.station)) ===
-                    String(highlightedStationId),
-            ),
-        [highlightedStationId, visibleStationRows],
-    );
-
-    useEffect(() => {
-        if (highlightedStationId == null || highlightedStationIndex < 0) {
-            return;
-        }
-
-        setAnimatedStationId(highlightedStationId);
-
-        if (animationTimeoutRef.current) {
-            clearTimeout(animationTimeoutRef.current);
-        }
-
-        animationTimeoutRef.current = setTimeout(() => {
-            setAnimatedStationId(null);
-        }, 2200);
-    }, [highlightedStationId, highlightedStationIndex, highlightRequestKey]);
-
-    useEffect(() => {
-        return () => {
-            if (animationTimeoutRef.current) {
-                clearTimeout(animationTimeoutRef.current);
-            }
-        };
-    }, []);
-
-    const paginatedRows = visibleStationRows;
-
-    const openAssignModal = (station) => {
-        const params = new URLSearchParams(window.location.search);
-
-        params.delete("admin_id");
-        params.set("modal", "station-admin");
-        params.set(
-            "station_id",
-            station.source === "sdo" ? station.station_id : station.id,
-        );
-        params.set(
-            "station_role",
-            station.source === "sdo" ? station.role : "school_admin",
-        );
-        params.set("station_source", station.source || "station");
-
-        router.get(route("stationmanagement"), Object.fromEntries(params), {
-            preserveScroll: true,
-            preserveState: true,
-            replace: true,
-        });
-    };
-
-    const closeAssignModal = () => {
-        const params = new URLSearchParams(window.location.search);
-
-        params.delete("modal");
-        params.delete("admin_id");
-        params.delete("station_id");
-        params.delete("station_role");
-        params.delete("station_source");
-
-        router.get(route("stationmanagement"), Object.fromEntries(params), {
-            preserveScroll: true,
-            preserveState: true,
-            replace: true,
-        });
-    };
-
-    const openRemoveAdminModal = (admin) => {
-        const params = new URLSearchParams(window.location.search);
-
-        params.delete("station_id");
-        params.delete("station_role");
-        params.delete("station_source");
-        params.set("modal", "remove-station-admin");
-        params.set("admin_id", admin.id);
-
-        router.get(route("stationmanagement"), Object.fromEntries(params), {
-            preserveScroll: true,
-            preserveState: true,
-            replace: true,
-        });
-    };
-
-    const closeRemoveAdminModal = () => {
-        const params = new URLSearchParams(window.location.search);
-
-        params.delete("modal");
-        params.delete("admin_id");
-        params.delete("station_id");
-        params.delete("station_role");
-        params.delete("station_source");
-
-        router.get(route("stationmanagement"), Object.fromEntries(params), {
-            preserveScroll: true,
-            preserveState: true,
-            replace: true,
-        });
-    };
-
-    const loadAdminRows = (overrides = {}) => {
-        const params = new URLSearchParams(window.location.search);
-
-        params.set("admin_page", overrides.admin_page || activePage);
-        params.set("admin_limit", overrides.admin_limit || adminLimit);
-
-        if (Object.prototype.hasOwnProperty.call(overrides, "search")) {
-            if (overrides.search && overrides.search.trim()) {
-                params.set("search", overrides.search.trim());
-            } else {
-                params.delete("search");
-            }
-        } else if (searchTerm.trim()) {
-            params.set("search", searchTerm.trim());
-        }
-
-        axios
-            .get(route("stationadmin.list"), {
-                params: Object.fromEntries(params),
-            })
-            .then((response) => {
-                setStationRowsData(response.data.stationAdminRows);
-                setSearchTerm(response.data.search || "");
-
-                const nextParams = new URLSearchParams(window.location.search);
-                nextParams.set("admin_page", response.data.adminPage || 1);
-                nextParams.set(
-                    "admin_limit",
-                    response.data.adminLimit || adminLimit,
-                );
-
-                if (response.data.search) {
-                    nextParams.set("search", response.data.search);
-                } else {
-                    nextParams.delete("search");
-                }
-
-                window.history.replaceState(
-                    {},
-                    "",
-                    `${route("stationmanagement")}?${nextParams.toString()}`,
-                );
-            })
-            .catch((error) => {
-                console.error("Failed to load station admin rows:", error);
-            });
-    };
-
-    const handlePageChange = (page) => {
-        if (page < 1 || page > totalPages) return;
-
-        loadAdminRows({ admin_page: page });
-    };
-
-    const getFullName = (emp) => {
-        if (!emp) return "-";
-        return `${emp.first_name || ""} ${emp.middle_name || ""} ${emp.last_name || ""}`
-            .replace(/\s+/g, " ")
-            .trim();
-    };
-
-    const submitSearch = (value) => {
-        loadAdminRows({
-            admin_page: 1,
-            search: value?.trim() || "",
-        });
-    };
-
-    const selectSuggestion = (suggestion) => {
-        const nextValue = suggestion.search || suggestion.label || "";
-        setSearchTerm(nextValue);
-        setShowSuggestions(false);
-        submitSearch(nextValue);
-    };
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (
-                searchBoxRef.current &&
-                !searchBoxRef.current.contains(event.target)
-            ) {
-                setShowSuggestions(false);
-            }
-        };
-
-        document.addEventListener("mousedown", handleClickOutside);
-
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, []);
+    const {
+        activePage,
+        animatedStationId,
+        closeAssignModal,
+        closeRemoveAdminModal,
+        endIndex,
+        getFullName,
+        handlePageChange,
+        openAssignModal,
+        openRemoveAdminModal,
+        pageNumbers,
+        paginatedRows,
+        searchBoxRef,
+        searchTerm,
+        selectSuggestion,
+        setSearchTerm,
+        setShowSuggestions,
+        showSuggestions,
+        startIndex,
+        submitSearch,
+        suggestionMatches,
+        suggestionsLoading,
+        totalEntries,
+        totalPages,
+    } = useStationAdminList({
+        adminLimit,
+        highlightedStationId,
+        highlightRequestKey,
+        search,
+        stationRows,
+    });
 
     return (
         <div className="rounded-xl">
@@ -389,19 +115,7 @@ const StationAdminList = ({
 
                             <div className="max-h-72 overflow-y-auto">
                                 {suggestionsLoading ? (
-                                    <div className="flex items-center gap-3 px-3 py-4 text-sm text-slate-500">
-                                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        </span>
-                                        <div>
-                                            <div className="font-medium text-slate-700">
-                                                Searching stations...
-                                            </div>
-                                            <div className="text-xs text-slate-400">
-                                                Checking names and codes
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <SuggestionSkeletonList />
                                 ) : suggestionMatches.length > 0 ? (
                                     suggestionMatches.map((suggestion) => (
                                         <button
@@ -566,6 +280,7 @@ const StationAdminList = ({
                                                         )
                                                     }
                                                     className="bg-red-100 text-red-600 hover:bg-red-500 hover:text-white rounded-full"
+                                                    title="Remove Station Admin"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
@@ -580,6 +295,7 @@ const StationAdminList = ({
                                                     onClick={() =>
                                                         openAssignModal(station)
                                                     }
+                                                    title="Assign Station Admin"
                                                 >
                                                     Assign
                                                 </Button>

@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from "react";
-import { router } from "@inertiajs/react";
+import React from "react";
 import {
     Dialog,
     DialogContent,
@@ -10,29 +9,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Building2, Sparkles } from "lucide-react";
 import { CustomDropdownCheckboxObject } from "@/components/dropdown-menu-main";
+import useAddOfficeForm from "../hooks/useAddOfficeForm";
 
 const AddOfficeModal = ({ open, setOpen, divisions = [] }) => {
-    const [divisionId, setDivisionId] = useState("");
-    const [name, setName] = useState("");
-    const selectedDivision = divisions.find(
-        (division) => String(division.id) === String(divisionId),
-    );
-
-    useEffect(() => {
-        if (open) {
-            setDivisionId("");
-            setName("");
-        }
-    }, [open]);
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        router.post(
-            route("office.storeOffice"),
-            { division_id: divisionId, name },
-            { onSuccess: () => setOpen(false) },
-        );
-    };
+    const {
+        divisionId,
+        handleSubmit,
+        name,
+        selectedDivision,
+        setDivisionId,
+        setName,
+    } = useAddOfficeForm({ divisions, open, setOpen });
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>

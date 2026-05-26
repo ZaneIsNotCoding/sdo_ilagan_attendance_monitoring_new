@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
     Dialog,
     DialogContent,
@@ -10,36 +10,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
 import { LandPlot, Save, ShieldCheck } from "lucide-react";
+import useEditStationForm from "../hooks/useEditStationForm";
 
 const EditStationModal = ({ open, setOpen, station }) => {
-    const [code, setCode] = useState("");
-    const [name, setName] = useState("");
-    const [openConfirm, setOpenConfirm] = useState(false);
-    const isSdoAssignment = station?.source === "sdo";
-    const action = isSdoAssignment
-        ? station?.record_id
-            ? route("stationassignments.update", station.record_id)
-            : ""
-        : station?.id
-          ? route("stations.update", station.id)
-          : "";
-
-    useEffect(() => {
-        if (station) {
-            setCode(station.code || "");
-            setName(station.name || "");
-        }
-    }, [station]);
-
-    useEffect(() => {
-        if (!open) setOpenConfirm(false);
-    }, [open]);
-
-    const canSubmit =
-        Boolean(isSdoAssignment ? station?.record_id : station?.id) &&
-        name.trim().length > 0 &&
-        (code.trim() !== (station?.code || "").trim() ||
-            name.trim() !== (station?.name || "").trim());
+    const {
+        action,
+        canSubmit,
+        code,
+        handleSuccess,
+        isSdoAssignment,
+        name,
+        openConfirm,
+        setCode,
+        setName,
+        setOpenConfirm,
+    } = useEditStationForm({ open, setOpen, station });
 
     return (
         <>
@@ -142,10 +127,7 @@ const EditStationModal = ({ open, setOpen, station }) => {
                 }
                 processingText="Updating..."
                 note="The record will be saved immediately after password confirmation."
-                onSuccess={() => {
-                    setOpenConfirm(false);
-                    setOpen(false);
-                }}
+                onSuccess={handleSuccess}
                 onError={() => setOpenConfirm(true)}
                 open={openConfirm}
                 onOpenChange={setOpenConfirm}

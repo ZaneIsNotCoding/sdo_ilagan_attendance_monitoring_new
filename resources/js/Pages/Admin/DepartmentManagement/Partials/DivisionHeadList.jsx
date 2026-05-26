@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { router } from "@inertiajs/react";
+import React from "react";
 import {
     Table,
     TableBody,
@@ -21,8 +20,7 @@ import { Building2, CheckCircle2, Trash2 } from "lucide-react";
 import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
 import AddDivisionHeadForm from "./AddDivisionHeadForm";
 import EmployeeAvatar from "@/Components/EmployeeAvatar";
-
-const ITEMS_PER_PAGE = 10;
+import useDivisionHeadList from "../hooks/useDivisionHeadList";
 
 const DivisionHeadList = ({
     division_heads = [],
@@ -33,120 +31,24 @@ const DivisionHeadList = ({
     highlightedDivisionId = null,
     highlightRequestKey = 0,
 }) => {
-    const [currentPage, setCurrentPage] = useState(1);
-    const [animatedDivisionId, setAnimatedDivisionId] = useState(null);
-    const animationTimeoutRef = useRef(null);
-
-    const visibleDivisionRows = useMemo(
-        () =>
-            divisions.map((division) => {
-                const head =
-                    division_heads.find(
-                        (h) => h.division_id === division.id,
-                    ) || null;
-                return { division, head };
-            }),
-        [division_heads, divisions],
-    );
-
-    const highlightedDivisionIndex = useMemo(
-        () =>
-            visibleDivisionRows.findIndex(
-                (row) => row.division.id === highlightedDivisionId,
-            ),
-        [visibleDivisionRows, highlightedDivisionId],
-    );
-
-    const totalPages =
-        Math.ceil(visibleDivisionRows.length / ITEMS_PER_PAGE) || 1;
-    const paginatedRows = visibleDivisionRows.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE,
-    );
-
-    const startIndex =
-        visibleDivisionRows.length === 0
-            ? 0
-            : (currentPage - 1) * ITEMS_PER_PAGE + 1;
-    const endIndex = Math.min(
-        currentPage * ITEMS_PER_PAGE,
-        visibleDivisionRows.length,
-    );
-
-    const getFullName = (emp) =>
-        !emp
-            ? "-"
-            : `${emp.first_name || ""} ${emp.middle_name || ""} ${emp.last_name || ""}`.replace(
-                  /\s+/g,
-                  " ",
-              );
-
-    useEffect(() => {
-        if (highlightedDivisionId == null || highlightedDivisionIndex < 0)
-            return;
-
-        setCurrentPage(
-            Math.floor(highlightedDivisionIndex / ITEMS_PER_PAGE) + 1,
-        );
-        setAnimatedDivisionId(highlightedDivisionId);
-
-        if (animationTimeoutRef.current)
-            clearTimeout(animationTimeoutRef.current);
-
-        animationTimeoutRef.current = setTimeout(() => {
-            setAnimatedDivisionId(null);
-        }, 2200);
-    }, [highlightedDivisionId, highlightedDivisionIndex, highlightRequestKey]);
-
-    useEffect(
-        () => () => {
-            if (animationTimeoutRef.current)
-                clearTimeout(animationTimeoutRef.current);
-        },
-        [],
-    );
-
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [divisions]);
-
-    const openDepartmentModal = (modal, params = {}) => {
-        const query = new URLSearchParams(window.location.search);
-
-        query.delete("head_id");
-        query.delete("division_id");
-        query.delete("division_name");
-        query.delete("office_id");
-        query.set("modal", modal);
-
-        Object.entries(params).forEach(([key, value]) => {
-            if (value !== undefined && value !== null && value !== "") {
-                query.set(key, value);
-            }
-        });
-
-        router.get(route("departmentmanagement"), Object.fromEntries(query), {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        });
-    };
-
-    const closeDepartmentModal = () => {
-        const query = new URLSearchParams(window.location.search);
-
-        query.delete("modal");
-        query.delete("head_id");
-        query.delete("division_id");
-        query.delete("division_name");
-        query.delete("office_id");
-
-        router.get(route("departmentmanagement"), Object.fromEntries(query), {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        });
-    };
+    const {
+        animatedDivisionId,
+        closeDepartmentModal,
+        currentPage,
+        endIndex,
+        getFullName,
+        openDepartmentModal,
+        paginatedRows,
+        setCurrentPage,
+        startIndex,
+        totalPages,
+        visibleDivisionRows,
+    } = useDivisionHeadList({
+        division_heads,
+        divisions,
+        highlightedDivisionId,
+        highlightRequestKey,
+    });
 
     return (
         <div className="rounded-xl">
@@ -237,19 +139,21 @@ const DivisionHeadList = ({
                                         <TableCell className="p-3 text-gray-700 truncate">
                                             {emp?.position || "-"}
                                         </TableCell>
-
                                         <TableCell className="p-3">
-                                            <div className="flex items-center gap-2 min-w-0">
-                                                <div className="flex h-7 w-7 min-w-[28px] items-center justify-center rounded-full bg-gray-300">
-                                                    <Building2 className="h-4 w-4 text-blue-600" />
+                                            <div className="flex items-start gap-2 min-w-0">
+                                                <div className="w-7 h-7 min-w-[28px] flex items-center justify-center rounded-full bg-gray-300">
+                                                    <Building2 className="w-4 h-4 text-blue-600" />
                                                 </div>
 
-                                                <span className="truncate px-3 py-1 text-sm rounded">
-                                                    {row.division.code}
-                                                </span>
-                                            </div>
-                                            <div className="mt-1 text-xs text-gray-500">
-                                                {row.division.name}
+                                                <div className="min-w-0">
+                                                    <div className="truncate font-medium">
+                                                        {row.division.code}
+                                                    </div>
+
+                                                    <div className="truncate text-xs text-gray-500">
+                                                        {row.division.name}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </TableCell>
 
@@ -296,6 +200,7 @@ const DivisionHeadList = ({
                                                         )
                                                     }
                                                     className="rounded-full bg-red-100 text-red-600 hover:bg-red-500 hover:text-white"
+                                                    title="Delete Division Head"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
@@ -312,8 +217,7 @@ const DivisionHeadList = ({
                                                             "assign-division-head",
                                                             {
                                                                 division_name:
-                                                                    row
-                                                                        .division
+                                                                    row.division
                                                                         .name,
                                                             },
                                                         );
@@ -321,6 +225,7 @@ const DivisionHeadList = ({
                                                             row.division.id,
                                                         );
                                                     }}
+                                                    title="Assign Division Head"
                                                 >
                                                     Assign
                                                 </Button>

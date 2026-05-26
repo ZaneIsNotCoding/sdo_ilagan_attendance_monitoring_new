@@ -1,6 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
-import { router } from "@inertiajs/react";
+import React from "react";
 import {
     Dialog,
     DialogContent,
@@ -10,15 +8,11 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import FloatingInput from "@/components/floating-input";
-import {
-    Building2,
-    Check,
-    Loader2,
-    Search,
-    ShieldCheck,
-    Users,
-} from "lucide-react";
+import { Building2, Check, Search, ShieldCheck, Users } from "lucide-react";
 import EmployeeAvatar from "@/Components/EmployeeAvatar";
+import { SelectableEmployeeSkeletonList } from "@/Components/Skeletons";
+import useAssignHeadForm from "../hooks/useAssignHeadForm";
+import { getFullName } from "../utils";
 
 const AddOfficeHeadForm = ({
     open,
@@ -26,86 +20,28 @@ const AddOfficeHeadForm = ({
     offices = [],
     preselectedOffice = null,
 }) => {
-    const [officeId, setOfficeId] = useState("");
-    const [employeeId, setEmployeeId] = useState("");
-    const [employees, setEmployees] = useState([]);
-    const [employeeTotal, setEmployeeTotal] = useState(0);
-    const [search, setSearch] = useState("");
-    const [loading, setLoading] = useState(false);
-    const requestRef = useRef(0);
-
-    useEffect(() => {
-        if (open) {
-            setOfficeId(preselectedOffice || "");
-            setEmployeeId("");
-            setSearch("");
-        }
-    }, [open, preselectedOffice]);
-
-    const selectedOffice = useMemo(
-        () => offices.find((office) => String(office.id) === String(officeId)),
-        [offices, officeId],
-    );
-
-    const selectedEmployee = useMemo(
-        () => employees.find((emp) => String(emp.id) === String(employeeId)),
-        [employees, employeeId],
-    );
-
-    useEffect(() => {
-        if (!open || !officeId) {
-            setEmployees([]);
-            setEmployeeTotal(0);
-            setLoading(false);
-            return;
-        }
-
-        const requestId = requestRef.current + 1;
-        requestRef.current = requestId;
-        setLoading(true);
-
-        const timeout = setTimeout(() => {
-            axios
-                .get(route("department.employees"), {
-                    params: {
-                        office_id: officeId,
-                        search: search.trim(),
-                    },
-                })
-                .then((response) => {
-                    if (requestRef.current !== requestId) return;
-
-                    setEmployees(response.data?.data || []);
-                    setEmployeeTotal(response.data?.total || 0);
-                })
-                .catch(() => {
-                    if (requestRef.current !== requestId) return;
-
-                    setEmployees([]);
-                    setEmployeeTotal(0);
-                })
-                .finally(() => {
-                    if (requestRef.current !== requestId) return;
-
-                    setLoading(false);
-                });
-        }, 250);
-
-        return () => clearTimeout(timeout);
-    }, [open, officeId, search]);
-
-    const canSubmit = Boolean(employeeId && officeId);
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!canSubmit) return;
-
-        router.post(
-            route("departmenthead.storeHead"),
-            { employee_id: employeeId, office_id: officeId },
-            { onSuccess: () => setOpen(false) },
-        );
-    };
+    const {
+        canSubmit,
+        employeeId,
+        employees,
+        employeeTotal,
+        handleSubmit,
+        loading,
+        search,
+        selectedEmployee,
+        selectedTarget: selectedOffice,
+        setEmployeeId,
+        setSearch,
+    } = useAssignHeadForm({
+        collection: offices,
+        idKey: "id",
+        open,
+        preselectedId: preselectedOffice,
+        requestParam: "office_id",
+        setOpen,
+        storePayloadKey: "office_id",
+        storeRoute: "departmenthead.storeHead",
+    });
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -174,16 +110,10 @@ const AddOfficeHeadForm = ({
 
                         <div className="h-[12rem] space-y-2 overflow-y-auto p-2">
                             {loading ? (
-                                <div className="flex h-full items-center justify-center gap-2 text-sm text-slate-500">
-                                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                                    Loading employees...
-                                </div>
+                                <SelectableEmployeeSkeletonList />
                             ) : employees.length > 0 ? (
                                 employees.map((emp) => {
-                                    const fullName =
-                                        `${emp.first_name || ""} ${emp.middle_name || ""} ${emp.last_name || ""}`
-                                            .replace(/\s+/g, " ")
-                                            .trim();
+                                    const fullName = getFullName(emp);
                                     const isSelected =
                                         String(employeeId) === String(emp.id);
 

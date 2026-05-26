@@ -2,229 +2,62 @@
 
 namespace App\Http\Controllers\Administrator;
 
-use App\Http\Controllers\Concerns\HandleModalConcerns\DepartmentModals;
 use App\Http\Controllers\Concerns\ValidatesPassword;
 use App\Http\Controllers\Controller;
-use App\Models\Administrator\Employee;
-use App\Models\Administrator\DivisionHead;
-use App\Models\Administrator\Office;
-use App\Models\Division;
+use App\Data\Administrator\DepartmentManagementListFilter\DepartmentEmployeeCandidateFilter;
+use App\Http\Requests\Administrator\DepartmentManagement\DepartmentEmployeeCandidateRequest;
+use App\Http\Requests\Administrator\DepartmentManagement\StoreDivisionHeadRequest;
+use App\Http\Requests\Administrator\DepartmentManagement\StoreDivisionRequest;
+use App\Http\Requests\Administrator\DepartmentManagement\StoreOfficeHeadRequest;
+use App\Http\Requests\Administrator\DepartmentManagement\StoreOfficeRequest;
+use App\Http\Requests\Administrator\DepartmentManagement\UpdateDivisionRequest;
+use App\Http\Requests\Administrator\DepartmentManagement\UpdateOfficeRequest;
+use App\Services\Administrator\DepartmentManagementService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class DepartmentManagementController extends Controller
 {
-    use DepartmentModals;
     use ValidatesPassword;
 
-    public function index()
+    public function __construct(
+        private readonly DepartmentManagementService $departments,
+    ) {}
+
+    public function index(Request $request)
     {
-        $officeSearch = trim((string) request('office_search', request('search', '')));
-        $divisionSearch = trim((string) request('division_search', ''));
-
-        $allOfficeHeads = DivisionHead::with([
-            'employee:id,first_name,middle_name,last_name,profile_img,position,office_id,work_type',
-            'employee.office:id,name,division_id',
-            'employee.office.division:id,code,name',
-            'division:id,code,name',
-        ])->where('type', 'unit_head');
-
-        $officeHeads = (clone $allOfficeHeads)->latest()->get();
-
-        $filteredOfficeHeads = (clone $allOfficeHeads);
-
-        if ($officeSearch !== '') {
-            $filteredOfficeHeads->where(function ($query) use ($officeSearch) {
-                $query->whereHas('division', function ($divisionQuery) use ($officeSearch) {
-                    $divisionQuery->where('code', 'like', "%{$officeSearch}%")
-                        ->orWhere('name', 'like', "%{$officeSearch}%");
-                })->orWhereHas('employee.office', function ($officeQuery) use ($officeSearch) {
-                    $officeQuery->where('name', 'like', "%{$officeSearch}%");
-                })->orWhereHas('employee', function ($employeeQuery) use ($officeSearch) {
-                    $employeeQuery->where('first_name', 'like', "%{$officeSearch}%")
-                        ->orWhere('middle_name', 'like', "%{$officeSearch}%")
-                        ->orWhere('last_name', 'like', "%{$officeSearch}%")
-                        ->orWhereRaw(
-                            "CONCAT_WS(' ', first_name, middle_name, last_name) LIKE ?",
-                            ["%{$officeSearch}%"],
-                        );
-                });
-            });
-        }
-
-        $filteredOfficeHeads = $filteredOfficeHeads->latest()->get();
-
-        $allDivisionHeads = DivisionHead::with([
-            'employee:id,first_name,middle_name,last_name,profile_img,position,office_id,work_type',
-            'employee.office:id,name,division_id',
-            'employee.office.division:id,code,name',
-            'division:id,code,name',
-        ])->where('type', 'division_head');
-
-        $divisionHeads = (clone $allDivisionHeads)->latest()->get();
-
-        $filteredDivisionHeads = (clone $allDivisionHeads);
-
-        if ($divisionSearch !== '') {
-            $filteredDivisionHeads->where(function ($query) use ($divisionSearch) {
-                $query->whereHas('division', function ($divisionQuery) use ($divisionSearch) {
-                    $divisionQuery->where('code', 'like', "%{$divisionSearch}%")
-                        ->orWhere('name', 'like', "%{$divisionSearch}%");
-                })->orWhereHas('employee.office', function ($officeQuery) use ($divisionSearch) {
-                    $officeQuery->where('name', 'like', "%{$divisionSearch}%")
-                        ->orWhereHas('division', function ($divisionQuery) use ($divisionSearch) {
-                            $divisionQuery->where('code', 'like', "%{$divisionSearch}%")
-                                ->orWhere('name', 'like', "%{$divisionSearch}%");
-                        });
-                })->orWhereHas('employee', function ($employeeQuery) use ($divisionSearch) {
-                    $employeeQuery->where('first_name', 'like', "%{$divisionSearch}%")
-                        ->orWhere('middle_name', 'like', "%{$divisionSearch}%")
-                        ->orWhere('last_name', 'like', "%{$divisionSearch}%")
-                        ->orWhereRaw(
-                            "CONCAT_WS(' ', first_name, middle_name, last_name) LIKE ?",
-                            ["%{$divisionSearch}%"],
-                        );
-                });
-            });
-        }
-
-        $filteredDivisionHeads = $filteredDivisionHeads->latest()->get();
-
-        $divisions = Division::select('id', 'code', 'name')
-            ->orderBy('code')
-            ->get();
-
-        $offices = Office::with('division:id,code,name')
-            ->select('id', 'division_id', 'name')
-            ->orderBy('name')
-            ->get();
-
-        return Inertia::render('Admin/DepartmentManagement/DepartmentManagement', [
-            'office_heads' => $officeHeads,
-            'filtered_office_heads' => $filteredOfficeHeads,
-            'division_heads' => $divisionHeads,
-            'filtered_division_heads' => $filteredDivisionHeads,
-            'divisions' => $divisions,
-            'offices' => $offices,
-            'office_search' => $officeSearch,
-            'division_search' => $divisionSearch,
-            'addDivisionModal' => $this->isDepartmentModal('add-division'),
-            'addOfficeModal' => $this->isDepartmentModal('add-office'),
-            'editOfficeModal' => $this->resolveOfficeModal('edit-office'),
-            'deleteOfficeModal' => $this->resolveOfficeModal('delete-office'),
-            'assignOfficeHeadModal' => $this->resolveAssignOfficeHeadModal(),
-            'assignDivisionHeadModal' => $this->resolveAssignDivisionHeadModal(),
-            'deleteOfficeHeadModal' => $this->resolveOfficeHeadModal('delete-office-head'),
-            'deleteDivisionHeadModal' => $this->resolveDivisionHeadModal('delete-division-head'),
-        ]);
+        return Inertia::render(
+            'Admin/DepartmentManagement/DepartmentManagement',
+            $this->departments->pageData($request),
+        );
     }
 
-    public function employeeCandidates(Request $request): JsonResponse
+    public function employeeCandidates(DepartmentEmployeeCandidateRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'search' => ['nullable', 'string', 'max:255'],
-            'office_id' => ['nullable', 'integer', 'exists:offices,id'],
-            'division_id' => ['nullable', 'integer', 'exists:divisions,id'],
-        ]);
-
-        $search = trim((string) ($validated['search'] ?? ''));
-
-        $employeesQuery = Employee::with('office:id,name,division_id')
-            ->select(
-                'id',
-                'first_name',
-                'middle_name',
-                'last_name',
-                'profile_img',
-                'work_type',
-                'position',
-                'office_id',
-                'station_id',
-            )
-            ->when(isset($validated['office_id']), function ($query) use ($validated) {
-                $query->where('office_id', $validated['office_id']);
-            })
-            ->when(isset($validated['division_id']), function ($query) use ($validated) {
-                $query->whereHas('office', function ($query) use ($validated) {
-                    $query->where('division_id', $validated['division_id']);
-                });
-            })
-            ->when($search !== '', function ($query) use ($search) {
-                $query->where(function ($query) use ($search) {
-                    $query->where('id', $search)
-                        ->orWhere('first_name', 'like', "%{$search}%")
-                        ->orWhere('middle_name', 'like', "%{$search}%")
-                        ->orWhere('last_name', 'like', "%{$search}%")
-                        ->orWhere('position', 'like', "%{$search}%")
-                        ->orWhereRaw(
-                            "CONCAT_WS(' ', first_name, middle_name, last_name) LIKE ?",
-                            ["%{$search}%"],
-                        );
-                });
-            })
-            ->orderBy('last_name')
-            ->orderBy('first_name');
-
-        $total = (clone $employeesQuery)->count();
-        $employees = $employeesQuery->limit(10)->get();
-
-        return response()->json([
-            'data' => $employees,
-            'total' => $total,
-        ]);
+        return response()->json(
+            $this->departments->employeeCandidates(
+                DepartmentEmployeeCandidateFilter::fromArray($request->validated()),
+            ),
+        );
     }
 
-    public function storeHead(Request $request)
+    public function storeHead(StoreOfficeHeadRequest $request)
     {
-        $validated = $request->validate([
-            'employee_id' => 'required|exists:employees,id',
-            'office_id' => 'required|exists:offices,id',
-        ]);
-
-        $office = Office::findOrFail($validated['office_id']);
-        $employee = Employee::with('office')->findOrFail($validated['employee_id']);
-
-        if ((string) $employee->office_id !== (string) $office->id) {
+        try {
+            $this->departments->storeOfficeHead($request->validated());
+        } catch (\InvalidArgumentException $exception) {
             return back()->withErrors([
-                'office_id' => 'The selected employee must belong to the selected office.',
+                'office_id' => $exception->getMessage(),
             ]);
         }
-
-        DivisionHead::updateOrCreate(
-            [
-                'office_id' => $office->id,
-                'type' => 'unit_head',
-            ],
-            [
-                'division_id' => $office->division_id,
-                'employee_id' => $employee->id,
-            ],
-);
 
         return back()->with('success', 'Office head added successfully!');
     }
 
-    public function storeDivisionHead(Request $request)
+    public function storeDivisionHead(StoreDivisionHeadRequest $request)
     {
-        $validated = $request->validate([
-            'division_id' => 'required|exists:divisions,id',
-            'employee_id' => 'required|exists:employees,id',
-        ]);
-
-        $employee = Employee::with('office')->findOrFail($validated['employee_id']);
-
-        DivisionHead::updateOrCreate(
-            [
-                'division_id' => $validated['division_id'],
-                'type' => 'division_head',
-            ],
-            [
-                'employee_id' => $validated['employee_id'],
-                'office_id' => null,
-            ],
-        );
+        $this->departments->storeDivisionHead($request->validated());
 
         return back()->with('success', 'Division head added successfully!');
     }
@@ -232,9 +65,7 @@ class DepartmentManagementController extends Controller
     public function destroy(Request $request, $id)
     {
         $this->ensureValidPassword($request);
-
-        $record = DivisionHead::findOrFail($id);
-        $record->delete();
+        $this->departments->deleteHead((int) $id);
 
         return back()->with('success', 'Deleted successfully.');
     }
@@ -242,101 +73,23 @@ class DepartmentManagementController extends Controller
     public function destroyDivisionHead(Request $request, $id)
     {
         $this->ensureValidPassword($request);
-
-        $record = DivisionHead::where('type', 'division_head')->findOrFail($id);
-        $record->delete();
+        $this->departments->deleteDivisionHead((int) $id);
 
         return back()->with('success', 'Division head deleted successfully.');
     }
 
-    public function storeDepartment(Request $request)
+    public function storeDepartment(StoreDivisionRequest $request)
     {
-        $validated = $request->validate([
-            'code' => 'required|string|max:50|unique:divisions,code',
-            'name' => 'required|string|max:255|unique:divisions,name',
-        ]);
-
-        Division::create([
-            'code' => $validated['code'],
-            'name' => $validated['name'],
-        ]);
+        $this->departments->storeDivision($request->validated());
 
         return back()->with('success', 'Division created successfully!');
     }
 
-    public function storeOffice(Request $request)
-    {
-        $validated = $request->validate([
-            'division_id' => 'required|exists:divisions,id',
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('offices', 'name')->where(function ($query) use ($request) {
-                    return $query->where('division_id', $request->division_id);
-                }),
-            ],
-        ]);
-
-        Office::create([
-            'division_id' => $validated['division_id'],
-            'name' => $validated['name'],
-        ]);
-
-        return back()->with('success', 'Office created successfully!');
-    }
-
-    public function updateOffice(Request $request, $id)
+    public function updateDepartment(UpdateDivisionRequest $request, $id)
     {
         $this->ensureValidPassword($request);
 
-        $validated = $request->validate([
-            'division_id' => 'required|exists:divisions,id',
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('offices', 'name')
-                    ->where(function ($query) use ($request) {
-                        return $query->where('division_id', $request->division_id);
-                    })
-                    ->ignore($id),
-            ],
-        ]);
-
-        $office = Office::findOrFail($id);
-        $office->update([
-            'division_id' => $validated['division_id'],
-            'name' => $validated['name'],
-        ]);
-
-        return back()->with('success', 'Office updated successfully!');
-    }
-
-    public function destroyOffice(Request $request, $id)
-    {
-        $this->ensureValidPassword($request);
-
-        $office = Office::findOrFail($id);
-        $office->delete();
-
-        return back()->with('success', 'Office deleted successfully!');
-    }
-
-    public function updateDepartment(Request $request, $id)
-    {
-        $this->ensureValidPassword($request);
-
-        $validated = $request->validate([
-            'code' => 'required|string|max:50|unique:divisions,code,' . $id,
-            'name' => 'required|string|max:255|unique:divisions,name,' . $id,
-        ]);
-
-        $division = Division::findOrFail($id);
-        $division->update([
-            'code' => $validated['code'],
-            'name' => $validated['name'],
-        ]);
+        $this->departments->updateDivision((int) $id, $request->validated());
 
         return back()->with('success', 'Division updated successfully!');
     }
@@ -344,10 +97,32 @@ class DepartmentManagementController extends Controller
     public function destroyDepartment(Request $request, $id)
     {
         $this->ensureValidPassword($request);
-
-        $division = Division::findOrFail($id);
-        $division->delete();
+        $this->departments->deleteDivision((int) $id);
 
         return back()->with('success', 'Division deleted successfully');
+    }
+
+    public function storeOffice(StoreOfficeRequest $request)
+    {
+        $this->departments->storeOffice($request->validated());
+
+        return back()->with('success', 'Office created successfully!');
+    }
+
+    public function updateOffice(UpdateOfficeRequest $request, $id)
+    {
+        $this->ensureValidPassword($request);
+
+        $this->departments->updateOffice((int) $id, $request->validated());
+
+        return back()->with('success', 'Office updated successfully!');
+    }
+
+    public function destroyOffice(Request $request, $id)
+    {
+        $this->ensureValidPassword($request);
+        $this->departments->deleteOffice((int) $id);
+
+        return back()->with('success', 'Office deleted successfully!');
     }
 }

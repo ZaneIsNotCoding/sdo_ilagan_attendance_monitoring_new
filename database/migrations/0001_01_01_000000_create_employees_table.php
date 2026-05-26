@@ -19,7 +19,7 @@
                 $table->string('profile_img')->nullable();
                 $table->string('position');
                 $table->foreignId('office_id')->nullable()->constrained('offices')->nullOnDelete();
-                $table->string('work_type');
+                $table->foreignId('work_schedule_id')->nullable()->constrained('work_schedules')->nullOnDelete();
                 $table->boolean('active_status')->default(true);
                 $table->foreignId('station_id')->constrained('stations')->cascadeOnUpdate()->restrictOnDelete();
 

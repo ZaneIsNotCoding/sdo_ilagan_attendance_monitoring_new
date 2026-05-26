@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React from "react";
 import {
     Dialog,
     DialogContent,
@@ -28,12 +28,12 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
+import useEmployeeEditForm from "../hooks/useEmployeeEditForm";
 import {
     CustomDropdownCheckbox,
     CustomDropdownCheckboxObject,
+    CustomDropdownWorkSchedule,
 } from "@/components/dropdown-menu-main";
-
-const workTypeChoices = ["Full", "Fixed", "Work From Home"];
 
 const EmployeeEditDialog = ({
     editForm,
@@ -42,131 +42,39 @@ const EmployeeEditDialog = ({
     setEditOpen,
     offices = [],
     stations = [],
+    workSchedules = [],
     userStationId,
 }) => {
-    const fileInputRef = useRef(null);
-    const [previewUrl, setPreviewUrl] = useState(null);
-    const safeForm = editForm || {};
-    const canEditOffice = Number(userStationId) === 1;
-
-    const isHead =
-        safeForm?.is_unit_head ||
-        safeForm?.is_division_head ||
-        safeForm?.is_department_head;
-
-    const selectedStation = useMemo(
-        () =>
-            stations?.find(
-                (station) => Number(station.id) === Number(safeForm.station_id),
-            ),
-        [stations, safeForm.station_id],
-    );
-
-    const selectedOffice = useMemo(
-        () =>
-            offices?.find(
-                (office) => Number(office.id) === Number(safeForm.office_id),
-            ),
-        [offices, safeForm.office_id],
-    );
-
-    const currentImageUrl =
-        typeof safeForm.profile_img === "string" && safeForm.profile_img
-            ? `/storage/${safeForm.profile_img}`
-            : null;
-
-    const displayImage = previewUrl || currentImageUrl;
-    const initials =
-        `${safeForm.first_name?.[0] || ""}${safeForm.last_name?.[0] || ""}`.toUpperCase();
-
-    useEffect(() => {
-        if (!editOpen) {
-            setPreviewUrl(null);
-            if (fileInputRef.current) {
-                fileInputRef.current.value = "";
-            }
-        }
-    }, [editOpen]);
-
-    useEffect(() => {
-        return () => {
-            if (previewUrl?.startsWith("blob:")) {
-                URL.revokeObjectURL(previewUrl);
-            }
-        };
-    }, [previewUrl]);
-
-    const updateForm = (key, value) => {
-        setEditForm((prev) => ({
-            ...(prev || {}),
-            [key]: value,
-        }));
-    };
-
-    const handleNameChange = (key, value) => {
-        const regex = /^[A-Za-z\s-]*$/;
-        if (!regex.test(value)) return;
-
-        updateForm(key, value);
-    };
-
-    const handleProfileImageChange = (event) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        if (previewUrl?.startsWith("blob:")) {
-            URL.revokeObjectURL(previewUrl);
-        }
-
-        updateForm("profile_img", file);
-        setPreviewUrl(URL.createObjectURL(file));
-    };
-
-    const clearNewProfileImage = () => {
-        if (previewUrl?.startsWith("blob:")) {
-            URL.revokeObjectURL(previewUrl);
-        }
-
-        setPreviewUrl(null);
-        updateForm("profile_img", safeForm.original_profile_img || "");
-
-        if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-        }
-    };
-
-    const buildUpdatePayload = () => {
-        const payload = { ...safeForm };
-
-        delete payload.full_name;
-        delete payload.office;
-        delete payload.original_profile_img;
-        delete payload.is_department_head;
-        delete payload.is_division_head;
-        delete payload.is_unit_head;
-        delete payload.is_school_admin;
-        delete payload.department;
-
-        if (!(payload.profile_img instanceof File)) {
-            delete payload.profile_img;
-        }
-
-        return payload;
-    };
+    const {
+        buildUpdatePayload,
+        canEditOffice,
+        clearNewProfileImage,
+        displayImage,
+        fileInputRef,
+        handleNameChange,
+        handleProfileImageChange,
+        initials,
+        isHead,
+        previewUrl,
+        safeForm,
+        scheduleItems,
+        selectedOffice,
+        selectedStation,
+        selectedWorkSchedule,
+        updateForm,
+    } = useEmployeeEditForm({
+        editForm,
+        editOpen,
+        offices,
+        setEditForm,
+        stations,
+        userStationId,
+        workSchedules,
+    });
 
     const handleOpenChange = (nextOpen) => {
         setEditOpen(nextOpen);
     };
-
-    useEffect(() => {
-        if (
-            editOpen &&
-            safeForm.profile_img &&
-            !safeForm.original_profile_img
-        ) {
-            updateForm("original_profile_img", safeForm.profile_img);
-        }
-    }, [editOpen, safeForm.profile_img, safeForm.original_profile_img]);
 
     return (
         <Dialog open={editOpen} onOpenChange={handleOpenChange}>
@@ -435,20 +343,34 @@ const EmployeeEditDialog = ({
 
                                     <div className="relative w-full">
                                         <FloatingInput
-                                            label="Work Type"
+                                            label="Work Schedule"
                                             icon={Briefcase}
-                                            value={safeForm.work_type || ""}
+                                            value={
+                                                [
+                                                    selectedWorkSchedule
+                                                        ?.work_type?.name,
+                                                    selectedWorkSchedule?.name ||
+                                                        safeForm.work_schedule
+                                                            ?.name,
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(" - ") || ""
+                                            }
+                                            inputClassName="truncate pr-12"
                                             readOnly
                                         />
 
                                         <div className="absolute right-2 top-0 flex h-full items-center">
-                                            <CustomDropdownCheckbox
-                                                label="Select Work Type"
-                                                items={workTypeChoices}
-                                                selected={safeForm.work_type}
+                                            <CustomDropdownWorkSchedule
+                                                label="Select Work Schedule"
+                                                items={scheduleItems}
+                                                selected={
+                                                    safeForm.work_schedule_id ||
+                                                    ""
+                                                }
                                                 onChange={(value) =>
                                                     updateForm(
-                                                        "work_type",
+                                                        "work_schedule_id",
                                                         value,
                                                     )
                                                 }

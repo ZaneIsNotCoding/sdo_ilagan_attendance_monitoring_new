@@ -13,7 +13,7 @@ class MonthlySeeder extends Seeder
 {
     public function run(): void
     {
-        $employees = Employee::where('id', '!=', 1)->get();
+        $employees = Employee::all();
 
         $start = now()->startOfMonth();
         $end = now()->endOfMonth();

@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from "react";
-import { router } from "@inertiajs/react";
+import React from "react";
 import {
     Dialog,
     DialogContent,
@@ -9,26 +8,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Building2, Sparkles } from "lucide-react";
+import useAddDivisionForm from "../hooks/useAddDivisionForm";
 
 const AddDivisionModal = ({ open, setOpen }) => {
-    const [code, setCode] = useState("");
-    const [name, setName] = useState("");
-
-    useEffect(() => {
-        if (open) {
-            setCode("");
-            setName("");
-        }
-    }, [open]);
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        router.post(
-            route("division.storeDivision"),
-            { code, name },
-            { onSuccess: () => setOpen(false) },
-        );
-    };
+    const { code, handleSubmit, name, setCode, setName } = useAddDivisionForm({
+        open,
+        setOpen,
+    });
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>

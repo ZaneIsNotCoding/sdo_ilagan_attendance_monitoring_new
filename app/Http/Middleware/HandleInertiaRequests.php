@@ -41,6 +41,7 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn () => $request->session()->pull('success'),
                 'error' => fn () => $request->session()->pull('error'),
+                'recomputeUndo' => fn () => $request->session()->pull('recomputeUndo'),
             ],
         ];
     }

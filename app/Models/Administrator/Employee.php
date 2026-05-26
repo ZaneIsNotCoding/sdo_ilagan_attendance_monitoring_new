@@ -9,6 +9,7 @@ use App\Models\HumanResource\VacationLeave;
 use App\Models\User;
 use Database\Factories\EmployeeFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class Employee extends Model
@@ -22,7 +23,7 @@ class Employee extends Model
         'profile_img',
         'position',
         'office_id',
-        'work_type',
+        'work_schedule_id',
         'active_status',
         'station_id',
         'civil_status',
@@ -36,6 +37,7 @@ class Employee extends Model
 
     protected $appends = [
         'full_name',
+        'work_type',
         'is_department_head',
         'is_school_admin',
         'is_unit_head',
@@ -48,6 +50,15 @@ class Employee extends Model
         return EmployeeFactory::new();
     }
 
+    public function scopeOrderByName(Builder $query): Builder
+    {
+        return $query
+            ->orderBy('first_name')
+            ->orderBy('middle_name')
+            ->orderBy('last_name')
+            ->orderBy('id');
+    }
+
     public function attendances()
     {
         return $this->hasMany(Attendance::class);
@@ -55,12 +66,25 @@ class Employee extends Model
 
     public function getFullNameAttribute()
     {
-        return "{$this->first_name} {$this->last_name}";
+        return preg_replace(
+            '/\s+/',
+            ' ',
+            trim("{$this->first_name} {$this->middle_name} {$this->last_name}"),
+        );
     }
 
     public function getDepartmentAttribute()
     {
         return $this->office?->name;
+    }
+
+    public function getWorkTypeAttribute()
+    {
+        $schedule = $this->relationLoaded('workSchedule')
+            ? $this->getRelation('workSchedule')
+            : $this->workSchedule()->with('workType')->first();
+
+        return $schedule?->workType?->name;
     }
 
     public function tardyConvertion()
@@ -91,6 +115,11 @@ class Employee extends Model
     public function office()
     {
         return $this->belongsTo(Office::class);
+    }
+
+    public function workSchedule()
+    {
+        return $this->belongsTo(WorkSchedule::class);
     }
 
     public function station()

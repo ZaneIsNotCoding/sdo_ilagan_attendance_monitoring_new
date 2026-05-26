@@ -12,7 +12,6 @@ use App\Http\Controllers\Administrator\{
 use App\Http\Controllers\HumanResource\{
     TardyConvertionController,
     ConvertedTardyRecordsController,
-    EmployeeLeaveCardController,
     VacationLeaveController,
     SickLeaveController,
 };
@@ -74,10 +73,22 @@ Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(functio
     Route::delete('/attendance/leave', [EmployeeLeaveController::class, 'destroy']);
 
     // Daily Time Records
-    Route::get('/dailytimerecord', [DailyTimeRecordController::class, 'index'])->name('dailytimerecord');
-    Route::get('/dailytimerecord/suggestions', [DailyTimeRecordController::class, 'suggestions'])->name('dailytimerecord.suggestions');
-    Route::get('/dailytimerecord/{employeeId}-{first_name}', [DailyTimeRecordController::class, 'show'])->name('dailytimerecord.show');
-    Route::get('/dailytimerecord/details/{employeeId}', [DailyTimeRecordController::class, 'details'])->name('dailytimerecord.details');
+    Route::controller(DailyTimeRecordController::class)
+        ->prefix('dailytimerecord')
+        ->group(function () {
+            Route::get('/', 'index')->name('dailytimerecord');
+            Route::get('/suggestions', 'suggestions')->name('dailytimerecord.suggestions');
+            Route::get('/offices', 'offices')->name('dailytimerecord.offices');
+            Route::get('/employees/{employeeId}/details', 'details')->name('dailytimerecord.details');
+            Route::post('/employees/{employeeId}/recompute', 'recompute')->name('dailytimerecord.recompute');
+            Route::post('/employees/{employeeId}/recompute/undo', 'undoRecompute')->name('dailytimerecord.recompute.undo');
+            Route::post('/work-types', 'storeWorkType')->name('dailytimerecord.worktypes.store');
+            Route::put('/work-types/{workType}', 'updateWorkType')->name('dailytimerecord.worktypes.update');
+            Route::delete('/work-types/{workType}', 'destroyWorkType')->name('dailytimerecord.worktypes.destroy');
+            Route::post('/work-schedules', 'storeWorkSchedule')->name('dailytimerecord.workschedules.store');
+            Route::put('/work-schedules/{workSchedule}', 'updateWorkSchedule')->name('dailytimerecord.workschedules.update');
+            Route::delete('/work-schedules/{workSchedule}', 'destroyWorkSchedule')->name('dailytimerecord.workschedules.destroy');
+        });
 
     // Admin Tardy Records
     Route::get('/tardysummary', [TardinessRecordController::class, 'index'])->name('tardysummary');
@@ -92,17 +103,9 @@ Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(functio
 
     //Employee Managements
     Route::get('/employeemanagement/suggestions', [EmployeeManagementController::class, 'suggestions'])->name('employees.suggestions');
-    Route::get('/employeemanagement/list', [EmployeeManagementController::class, 'list'])->name('employees.list');
     Route::get('/employeemanagement', [EmployeeManagementController::class, 'index'])->name('employeemanagement');
     Route::post('/employeestore', [EmployeeManagementController::class, 'store'])->name('employees.store');
     Route::put('/employeeedit/{id}', [EmployeeManagementController::class, 'update'])->name('employees.update');
-
-    //Leave Card
-    Route::get('/employeeleavecard', [EmployeeLeaveCardController::class, 'index'])->name('employeeleavecard');
-    Route::get('/employeeleavecard/{id}-{name}', [EmployeeLeaveCardController::class, 'show'])->name('employeeleavecard.show');
-    Route::put('/employeeleavecard/{id}', [EmployeeLeaveCardController::class, 'update'])->name('employeeleavecard.update');
-    Route::put('/vacationleaveupdate', [VacationLeaveController::class, 'update'])->name('vacation-leave.update');
-    Route::put('/sickleaveupdate', [SickLeaveController::class, 'update'])->name('sick-leave.update');
 
     // Department Management
     Route::get('/departmentmanagement', [DepartmentManagementController::class, 'index'])->name('departmentmanagement');
@@ -132,6 +135,12 @@ Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(functio
     Route::delete('/station-assignments/{stationAssignment}', [StationManagementController::class, 'destroyStationAssignment'])->name('stationassignments.destroy');
     Route::put('/stations/{station}', [StationManagementController::class, 'updateStation'])->name('stations.update');
     Route::delete('/stations/{station}', [StationManagementController::class, 'destroyStation'])->name('stations.destroy');
+
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/employee/locator-slip', [LocatorSlipController::class, 'index'])->name('locator-slips');
+        Route::post('/employee/locator-slip', [LocatorSlipController::class, 'store'])->name('locator-slips.store');
+    });
+
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

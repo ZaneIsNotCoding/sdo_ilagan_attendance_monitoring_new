@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import FloatingInput from "@/components/floating-input";
 import {
     UserPlus,
@@ -22,131 +22,36 @@ import {
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import {
-    CustomDropdownCheckbox,
     CustomDropdownCheckboxObject,
+    CustomDropdownWorkSchedule,
 } from "@/components/dropdown-menu-main";
-import { router } from "@inertiajs/react";
+import useEmployeeRegistrationForm from "../hooks/useEmployeeRegistrationForm";
 
-const work_type_choices = ["Full", "Fixed", "Work From Home"];
-
-const EmployeeRegistration = ({ userStationId, offices = [] }) => {
-    const fileInputRef = useRef(null);
-    const [previewUrl, setPreviewUrl] = useState(null);
-    const [form, setForm] = useState({
-        first_name: "",
-        middle_name: "",
-        last_name: "",
-        profile_img: null,
-        position: "",
-        office_id: "",
-        work_type: "",
-        station_id: "",
+const EmployeeRegistration = ({
+    userStationId,
+    offices = [],
+    workSchedules = [],
+}) => {
+    const {
+        clearProfileImage,
+        displayOffice,
+        displayWorkSchedule,
+        fileInputRef,
+        form,
+        handleAddEmployee,
+        handleFormChange,
+        handleProfileImageChange,
+        initials,
+        isDepartmentLocked,
+        isFormComplete,
+        previewUrl,
+        scheduleItems,
+        updateFormValue,
+    } = useEmployeeRegistrationForm({
+        offices,
+        userStationId,
+        workSchedules,
     });
-
-    const isDepartmentLocked = Number(userStationId) !== 1;
-
-    useEffect(() => {
-        setForm((prev) => ({
-            ...prev,
-            station_id: userStationId,
-        }));
-    }, [userStationId]);
-
-    useEffect(() => {
-        return () => {
-            if (previewUrl?.startsWith("blob:")) {
-                URL.revokeObjectURL(previewUrl);
-            }
-        };
-    }, [previewUrl]);
-
-    const handleFormChange = (e) => {
-        const { name, value } = e.target;
-
-        if (["first_name", "middle_name", "last_name"].includes(name)) {
-            const regex = /^[A-Za-z\s-]*$/;
-            if (!regex.test(value)) return;
-        }
-
-        setForm((prev) => ({ ...prev, [name]: value }));
-    };
-
-    const handleProfileImageChange = (e) => {
-        const file = e.target.files?.[0];
-
-        if (!file) return;
-
-        if (previewUrl?.startsWith("blob:")) {
-            URL.revokeObjectURL(previewUrl);
-        }
-
-        setForm((prev) => ({
-            ...prev,
-            profile_img: file,
-        }));
-
-        setPreviewUrl(URL.createObjectURL(file));
-    };
-
-    const clearProfileImage = () => {
-        if (previewUrl?.startsWith("blob:")) {
-            URL.revokeObjectURL(previewUrl);
-        }
-
-        setPreviewUrl(null);
-        setForm((prev) => ({ ...prev, profile_img: null }));
-
-        if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-        }
-    };
-
-    const handleAddEmployee = () => {
-        router.post(route("employees.store"), form, {
-            preserveScroll: true,
-            forceFormData: true,
-            onSuccess: () => {
-                if (previewUrl?.startsWith("blob:")) {
-                    URL.revokeObjectURL(previewUrl);
-                }
-
-                setPreviewUrl(null);
-                setForm({
-                    first_name: "",
-                    middle_name: "",
-                    last_name: "",
-                    profile_img: null,
-                    position: "",
-                    office_id: "",
-                    work_type: "",
-                    station_id: userStationId,
-                });
-
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = "";
-                }
-
-                router.reload({
-                    only: ["filteredEmployeesList"],
-                });
-            },
-        });
-    };
-
-    const isFormComplete =
-        form.first_name.trim() &&
-        form.middle_name.trim() &&
-        form.last_name.trim() &&
-        form.position.trim() &&
-        form.office_id &&
-        form.work_type &&
-        form.station_id;
-
-    const displayOffice =
-        offices?.find((office) => office.id === form.office_id)?.name || "";
-
-    const initials =
-        `${form.first_name?.[0] || ""}${form.last_name?.[0] || ""}`.toUpperCase();
 
     return (
         <div className="relative overflow-hidden rounded-2xl border border-blue-100 bg-white md:col-span-2">
@@ -307,12 +212,8 @@ const EmployeeRegistration = ({ userStationId, offices = [] }) => {
                                     <CustomDropdownCheckboxObject
                                         label="Select Office"
                                         items={offices}
-                                        onChange={(val) =>
-                                            setForm((prev) => ({
-                                                ...prev,
-                                                office_id: val,
-                                            }))
-                                        }
+                                        selected={form.office_id}
+                                        onChange={(val) => updateFormValue("office_id", val)}
                                         buttonVariant="white"
                                         iconOnly
                                         disabled={isDepartmentLocked}
@@ -322,23 +223,18 @@ const EmployeeRegistration = ({ userStationId, offices = [] }) => {
 
                             <div className="relative w-full md:col-span-2">
                                 <FloatingInput
-                                    label="Work Type"
+                                    label="Work Schedule"
                                     icon={Briefcase}
-                                    value={form.work_type || ""}
+                                    value={displayWorkSchedule}
                                     readOnly
                                     onChange={() => {}}
                                 />
                                 <div className="absolute right-2 top-0 flex h-full items-center">
-                                    <CustomDropdownCheckbox
-                                        label="Select Work Type"
-                                        items={work_type_choices}
-                                        selected={form.work_type}
-                                        onChange={(val) =>
-                                            setForm((prev) => ({
-                                                ...prev,
-                                                work_type: val,
-                                            }))
-                                        }
+                                    <CustomDropdownWorkSchedule
+                                        label="Select Work Schedule"
+                                        items={scheduleItems}
+                                        selected={form.work_schedule_id}
+                                        onChange={(val) => updateFormValue("work_schedule_id", val)}
                                         buttonVariant="white"
                                         iconOnly
                                     />
