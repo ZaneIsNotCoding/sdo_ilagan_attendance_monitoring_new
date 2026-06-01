@@ -206,13 +206,13 @@ const DTRReport = React.forwardRef(
                                                 fontWeight: "bold",
                                             }}
                                         >
-                                            {log.leave_type === "VL"
-                                                ? "Vacation Leave"
-                                                : log.leave_type === "SL"
-                                                ? "Sick Leave"
-                                                : log.leave_type === "OB"
-                                                ? "Official Business"
-                                                : log.leave_type}
+                                            {{
+                                                VL: "Vacation Leave",
+                                                SL: "Sick Leave",
+                                                OB: "Official Business",
+                                                LS: "Locator Slip",
+                                                TO: "Travel Order",
+                                            }[log.leave_type] || log.leave_type}
                                         </td>
                                     ) : (
                                         <>
@@ -315,4 +315,3 @@ const DTRReport = React.forwardRef(
 );
 
 export default DTRReport;
-

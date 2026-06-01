@@ -12,6 +12,9 @@ class TravelOrder extends Model
     use HasFactory;
     protected $fillable = [
         'employee_id',
+        'status',
+        'approved_by',
+        'approved_at',
         'employee_name',
         'position',
         'permanent_station',
@@ -20,6 +23,10 @@ class TravelOrder extends Model
         'inclusive_dates',
         'destination',
         'fund_source',
+    ];
+
+    protected $casts = [
+        'approved_at' => 'datetime',
     ];
 
     public function employee()

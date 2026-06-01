@@ -3,6 +3,7 @@
 namespace App\Models\Administrator;
 
 use App\Models\Biometric;
+use App\Models\EmployeeLeave;
 use App\Models\HumanResource\SickLeave;
 use App\Models\HumanResource\TardyConvertion;
 use App\Models\HumanResource\VacationLeave;
@@ -62,6 +63,11 @@ class Employee extends Model
     public function attendances()
     {
         return $this->hasMany(Attendance::class);
+    }
+
+    public function employeeLeaves()
+    {
+        return $this->hasMany(EmployeeLeave::class);
     }
 
     public function getFullNameAttribute()

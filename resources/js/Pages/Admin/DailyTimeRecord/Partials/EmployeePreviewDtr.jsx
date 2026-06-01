@@ -63,13 +63,13 @@ const PreviewDtrTable = ({
                                         className="px-2 py-1 text-center text-[11px] font-semibold text-orange-700"
                                         colSpan={4}
                                     >
-                                        {log.leave_type === "VL"
-                                            ? "Vacation Leave"
-                                            : log.leave_type === "SL"
-                                              ? "Sick Leave"
-                                              : log.leave_type === "OB"
-                                                ? "Official Business"
-                                                : log.leave_type}
+                                        {{
+                                            VL: "Vacation Leave",
+                                            SL: "Sick Leave",
+                                            OB: "Official Business",
+                                            LS: "Locator Slip",
+                                            TO: "Travel Order",
+                                        }[log.leave_type] || log.leave_type}
                                     </TableCell>
                                 ) : (
                                     <>
@@ -174,4 +174,3 @@ const EmployeePreviewDtr = ({
 };
 
 export default EmployeePreviewDtr;
-

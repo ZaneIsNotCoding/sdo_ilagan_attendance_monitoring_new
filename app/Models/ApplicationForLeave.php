@@ -14,6 +14,9 @@ class ApplicationForLeave extends Model
 
     protected $fillable = [
         'employee_id',
+        'status',
+        'approved_by',
+        'approved_at',
         'employee_name',
         'office_department',
         'date_of_filing',
@@ -36,6 +39,7 @@ class ApplicationForLeave extends Model
     protected $casts = [
         'date_of_filing' => 'date',
         'working_days' => 'decimal:2',
+        'approved_at' => 'datetime',
     ];
 
     public function employee()

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Administrator\Employee;
 use App\Models\TravelOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -44,6 +45,7 @@ class TravelOrderController extends Controller
         $employee = $user?->employee;
 
         $validated = $request->validate([
+            'employee_id' => 'required|exists:employees,id',
             'employee_name' => 'required|string|max:255',
             'position' => 'required|string|max:255',
             'permanent_station' => 'required|string|max:255',
@@ -54,9 +56,15 @@ class TravelOrderController extends Controller
             'fund_source' => 'nullable|string|max:255',
         ]);
 
+        $selectedEmployee = Employee::with('station')
+            ->findOrFail($employee?->id ?? $validated['employee_id']);
+
         $travelOrder = TravelOrder::create([
-            'employee_id' => $employee?->id,
-            ...$validated
+            ...$validated,
+            'employee_id' => $selectedEmployee->id,
+            'employee_name' => $selectedEmployee->full_name,
+            'position' => $selectedEmployee->position,
+            'permanent_station' => $selectedEmployee->station?->name ?? $validated['permanent_station'],
         ]);
 
         return redirect()

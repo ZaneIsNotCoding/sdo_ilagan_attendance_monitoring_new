@@ -20,6 +20,7 @@ use App\Http\Controllers\ApplicationForLeaveController;
 use App\Http\Controllers\EmployeeLeaveController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicEmployeeLookupController;
 use App\Http\Controllers\SlipMonitoringController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -42,6 +43,7 @@ Route::get('/attendance', [AttendanceController::class, 'index'])->name('attenda
 Route::get('/attendance-monitoring', [AttendanceMonitoringController::class, 'index'])->name('attendance-monitoring');
 Route::get('/attendance-monitoring/stations/suggestions', [AttendanceMonitoringController::class, 'stationSuggestions'])->name('attendance-monitoring.stations.suggestions');
 Route::get('/attendance-monitoring/employees/suggestions', [AttendanceMonitoringController::class, 'employeeSuggestions'])->name('attendance-monitoring.employees.suggestions');
+Route::get('/public/employees/search', PublicEmployeeLookupController::class)->name('public.employees.search');
 
 
 Route::get('/employee/locator-slip', [LocatorSlipController::class, 'index'])
@@ -150,6 +152,7 @@ Route::middleware(['auth', 'role:sdo_admin|sdo_hr|school_admin'])->group(functio
     Route::resource('position', PositionController::class);
 
     Route::get('/slip-monitoring', [SlipMonitoringController::class, 'index'])->name('slip-monitoring.index');
+    Route::patch('/slip-monitoring/{type}/{id}/status', [SlipMonitoringController::class, 'updateStatus'])->name('slip-monitoring.status');
     Route::delete('/slip-monitoring/{type}/bulk-delete', [SlipMonitoringController::class, 'destroyMany'])->name('slip-monitoring.destroy-many');
     Route::delete('/slip-monitoring/{type}/{id}', [SlipMonitoringController::class, 'destroy'])->name('slip-monitoring.destroy');
 });

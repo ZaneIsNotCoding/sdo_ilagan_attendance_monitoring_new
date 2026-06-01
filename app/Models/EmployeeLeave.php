@@ -16,6 +16,9 @@ class EmployeeLeave extends Model
         'employee_id',
         'date',
         'leave_type',
+        'source_type',
+        'source_id',
+        'remarks',
     ];
 
     /**

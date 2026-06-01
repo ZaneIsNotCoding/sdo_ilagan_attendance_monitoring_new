@@ -257,6 +257,7 @@ const PrintDialog = ({
                                         data.time_record,
                                         selectedMonth,
                                         selectedYear,
+                                        data.employee_leaves || [],
                                     )}
                                     monthlyTotals={data.monthly_totals}
                                     workSchedule={employee.work_schedule}
@@ -304,4 +305,3 @@ const PrintDialog = ({
 };
 
 export default PrintDialog;
-

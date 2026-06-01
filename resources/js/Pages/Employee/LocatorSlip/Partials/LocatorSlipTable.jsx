@@ -4,7 +4,7 @@ import React, { useMemo, useState } from "react";
 import { router } from "@inertiajs/react";
 import { motion } from "framer-motion";
 import FloatingInput from "@/components/floating-input";
-import { Search, Trash2 } from "lucide-react";
+import { CheckCircle, RotateCcw, Search, Trash2, XCircle } from "lucide-react";
 import ConfirmPasswordDialog from "@/Components/ConfirmPasswordDialog";
 import LocatorSlipPrintDialog from "./LocatorSlipPrintDialog";
 import { getRecordEmployeeName } from "@/lib/utils";
@@ -75,6 +75,69 @@ const getQuickRanges = () => {
         weekTo: toDateInput(today),
         month: toDateInput(today).slice(0, 7),
     };
+};
+
+const statusClasses = {
+    approved: "bg-emerald-100 text-emerald-700",
+    rejected: "bg-red-100 text-red-700",
+    cancelled: "bg-slate-100 text-slate-700",
+    pending: "bg-amber-100 text-amber-700",
+};
+
+const StatusBadge = ({ status = "pending" }) => (
+    <span
+        className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold capitalize ${
+            statusClasses[status] || statusClasses.pending
+        }`}
+    >
+        {status}
+    </span>
+);
+
+const StatusActions = ({ type, id, status }) => {
+    const updateStatus = (nextStatus) => {
+        router.patch(
+            route("slip-monitoring.status", [type, id]),
+            { status: nextStatus },
+            { preserveScroll: true },
+        );
+    };
+
+    return (
+        <>
+            {status !== "approved" && (
+                <button
+                    type="button"
+                    onClick={() => updateStatus("approved")}
+                    className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-emerald-700"
+                >
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    Approve
+                </button>
+            )}
+            {status === "approved" ? (
+                <button
+                    type="button"
+                    onClick={() => updateStatus("cancelled")}
+                    className="inline-flex items-center gap-1 rounded-lg bg-slate-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-slate-700"
+                >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Cancel
+                </button>
+            ) : (
+                status !== "rejected" && (
+                    <button
+                        type="button"
+                        onClick={() => updateStatus("rejected")}
+                        className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-amber-700"
+                    >
+                        <XCircle className="h-3.5 w-3.5" />
+                        Reject
+                    </button>
+                )
+            )}
+        </>
+    );
 };
 
 const LocatorSlipTable = ({
@@ -410,6 +473,9 @@ const LocatorSlipTable = ({
                             <th className="px-6 py-3 text-left font-medium text-gray-700">
                                 Submitted Date
                             </th>
+                            <th className="px-6 py-3 text-left font-medium text-gray-700">
+                                Status
+                            </th>
                             <th className="px-6 py-3 text-center font-medium text-gray-700">
                                 Actions
                             </th>
@@ -470,6 +536,9 @@ const LocatorSlipTable = ({
                                         {formatDate(slip.created_at)}
                                     </td>
                                     <td className="px-6 py-3">
+                                        <StatusBadge status={slip.status} />
+                                    </td>
+                                    <td className="px-6 py-3">
                                         <div className="flex flex-wrap justify-center gap-2">
                                         <button
                                             onClick={() => handlePreview(slip)}
@@ -478,6 +547,12 @@ const LocatorSlipTable = ({
                                             Preview / PDF
                                         </button>
                                         {monitoringControls && (
+                                            <>
+                                            <StatusActions
+                                                type={deleteType}
+                                                id={slip.id}
+                                                status={slip.status || "pending"}
+                                            />
                                             <ConfirmPasswordDialog
                                                 trigger={
                                                     <button
@@ -497,7 +572,7 @@ const LocatorSlipTable = ({
                                                 method="delete"
                                                 itemLabel="Locator Slip"
                                                 itemName={
-                                                    getEmployeeName(slip) ||
+                                                    getRecordEmployeeName(slip) ||
                                                     `Record #${slip.id}`
                                                 }
                                                 confirmText="Delete Slip"
@@ -511,6 +586,7 @@ const LocatorSlipTable = ({
                                                     )
                                                 }
                                             />
+                                            </>
                                         )}
                                         </div>
                                     </td>
@@ -519,7 +595,7 @@ const LocatorSlipTable = ({
                         ) : (
                             <tr>
                                 <td
-                                    colSpan={monitoringControls ? 8 : 6}
+                                    colSpan={monitoringControls ? 9 : 7}
                                     className="px-6 py-6 text-center text-gray-500"
                                 >
                                     {getFilterSummary(filters, "locator slips")}
@@ -570,4 +646,3 @@ const LocatorSlipTable = ({
 };
 
 export default LocatorSlipTable;
-

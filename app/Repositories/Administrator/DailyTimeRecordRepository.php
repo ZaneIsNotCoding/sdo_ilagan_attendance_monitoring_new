@@ -97,9 +97,14 @@ class DailyTimeRecordRepository
             ->when($filter->officeId !== 'all', function ($query) use ($filter) {
                 $query->where('office_id', (int) $filter->officeId);
             })
-            ->whereHas('attendances', function ($query) use ($filter) {
-                $query->whereYear('date', $filter->year)
-                    ->whereMonth('date', $filter->month);
+            ->where(function ($query) use ($filter) {
+                $query->whereHas('attendances', function ($attendanceQuery) use ($filter) {
+                    $attendanceQuery->whereYear('date', $filter->year)
+                        ->whereMonth('date', $filter->month);
+                })->orWhereHas('employeeLeaves', function ($leaveQuery) use ($filter) {
+                    $leaveQuery->whereYear('date', $filter->year)
+                        ->whereMonth('date', $filter->month);
+                });
             })
             ->when($filter->search !== '', function ($query) use ($filter) {
                 $query->where(function ($employeeQuery) use ($filter) {
@@ -291,18 +296,28 @@ class DailyTimeRecordRepository
             ->whereHas('employees', function ($query) use ($stationId, $month, $year) {
                 $query->where('station_id', $stationId)
                     ->where('active_status', 1)
-                    ->whereHas('attendances', function ($attendanceQuery) use ($month, $year) {
-                        $attendanceQuery->whereYear('date', $year)
-                            ->whereMonth('date', $month);
+                    ->where(function ($employeeQuery) use ($month, $year) {
+                        $employeeQuery->whereHas('attendances', function ($attendanceQuery) use ($month, $year) {
+                            $attendanceQuery->whereYear('date', $year)
+                                ->whereMonth('date', $month);
+                        })->orWhereHas('employeeLeaves', function ($leaveQuery) use ($month, $year) {
+                            $leaveQuery->whereYear('date', $year)
+                                ->whereMonth('date', $month);
+                        });
                     });
             })
             ->withCount([
                 'employees as employees_count' => function ($query) use ($stationId, $month, $year) {
                     $query->where('station_id', $stationId)
                         ->where('active_status', 1)
-                        ->whereHas('attendances', function ($attendanceQuery) use ($month, $year) {
-                            $attendanceQuery->whereYear('date', $year)
-                                ->whereMonth('date', $month);
+                        ->where(function ($employeeQuery) use ($month, $year) {
+                            $employeeQuery->whereHas('attendances', function ($attendanceQuery) use ($month, $year) {
+                                $attendanceQuery->whereYear('date', $year)
+                                    ->whereMonth('date', $month);
+                            })->orWhereHas('employeeLeaves', function ($leaveQuery) use ($month, $year) {
+                                $leaveQuery->whereYear('date', $year)
+                                    ->whereMonth('date', $month);
+                            });
                         });
                 },
             ])
@@ -346,9 +361,14 @@ class DailyTimeRecordRepository
             ->whereHas('office', function ($query) use ($officeName) {
                 $query->where('name', $officeName);
             })
-            ->whereHas('attendances', function ($query) use ($month, $year) {
-                $query->whereYear('date', $year)
-                    ->whereMonth('date', $month);
+            ->where(function ($query) use ($month, $year) {
+                $query->whereHas('attendances', function ($attendanceQuery) use ($month, $year) {
+                    $attendanceQuery->whereYear('date', $year)
+                        ->whereMonth('date', $month);
+                })->orWhereHas('employeeLeaves', function ($leaveQuery) use ($month, $year) {
+                    $leaveQuery->whereYear('date', $year)
+                        ->whereMonth('date', $month);
+                });
             })
             ->orderByName()
             ->paginate($perPage, ['*'], 'page', $page);

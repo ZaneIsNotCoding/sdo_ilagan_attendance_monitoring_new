@@ -53,7 +53,7 @@ export default function LocatorSlipPage({
                             className="inline-flex h-10 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-blue-700"
                         >
                             <ArrowLeft className="h-4 w-4" />
-                            TimeVault
+                            Project: TALA
                         </Link>
 
                         <Link
@@ -173,4 +173,3 @@ export default function LocatorSlipPage({
         </>
     );
 }
-

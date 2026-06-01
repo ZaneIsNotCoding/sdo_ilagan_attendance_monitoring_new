@@ -3,6 +3,7 @@
 import React from "react";
 import { useForm } from "@inertiajs/react";
 import FloatingInput from "@/components/floating-input";
+import PublicEmployeePicker from "../../Shared/PublicEmployeePicker";
 import {
     User,
     Briefcase,
@@ -21,15 +22,30 @@ export default function TravelAuthorityForm({ onClose, employee }) {
         employee?.station?.name || employee?.permanent_station || "";
 
     const { data, setData, post, processing, reset, errors } = useForm({
-        employee_name: "",
-        position: "",
-        permanent_station: "",
+        employee_id: employee?.id || "",
+        employee_name: employeeName,
+        position: employeePosition,
+        permanent_station: employeeStation,
         purpose_of_travel: "",
         host_of_activity: "",
         inclusive_dates: "",
         destination: "",
         fund_source: "",
     });
+
+    const clearSelectedEmployee = (name) => {
+        setData("employee_id", "");
+        setData("employee_name", name);
+        setData("position", "");
+        setData("permanent_station", "");
+    };
+
+    const selectEmployee = (selectedEmployee) => {
+        setData("employee_id", selectedEmployee.id);
+        setData("employee_name", selectedEmployee.full_name || "");
+        setData("position", selectedEmployee.position || "");
+        setData("permanent_station", selectedEmployee.station || "");
+    };
 
     const submit = (e) => {
         e.preventDefault();
@@ -56,6 +72,14 @@ export default function TravelAuthorityForm({ onClose, employee }) {
                 </div>
 
                 <form onSubmit={submit} className="space-y-5">
+                    <PublicEmployeePicker
+                        value={data.employee_name}
+                        selectedEmployeeId={data.employee_id}
+                        onSearchChange={clearSelectedEmployee}
+                        onSelect={selectEmployee}
+                        error={errors.employee_id}
+                    />
+
                     {/* Employee Info */}
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <FloatingInput
@@ -63,9 +87,8 @@ export default function TravelAuthorityForm({ onClose, employee }) {
                             icon={User}
                             name="employee_name"
                             value={data.employee_name}
-                            onChange={(e) =>
-                                setData("employee_name", e.target.value)
-                            }
+                            onChange={() => {}}
+                            readOnly
                         />
                         {errors.employee_name && (
                             <p className="text-sm text-red-500">
@@ -78,9 +101,8 @@ export default function TravelAuthorityForm({ onClose, employee }) {
                             icon={Briefcase}
                             name="position"
                             value={data.position}
-                            onChange={(e) =>
-                                setData("position", e.target.value)
-                            }
+                            onChange={() => {}}
+                            readOnly
                         />
                         {errors.position && (
                             <p className="text-sm text-red-500">
@@ -94,9 +116,8 @@ export default function TravelAuthorityForm({ onClose, employee }) {
                                 icon={Building2}
                                 name="permanent_station"
                                 value={data.permanent_station}
-                                onChange={(e) =>
-                                    setData("permanent_station", e.target.value)
-                                }
+                                onChange={() => {}}
+                                readOnly
                             />
                             {errors.permanent_station && (
                                 <p className="text-sm text-red-500">
@@ -197,4 +218,3 @@ export default function TravelAuthorityForm({ onClose, employee }) {
         </div>
     );
 }
-

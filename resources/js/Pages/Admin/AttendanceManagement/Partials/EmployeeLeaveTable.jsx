@@ -38,6 +38,8 @@ const EmployeeLeaveTable = ({ employees, selectedDate, syncLeave }) => {
         { label: "Sick Leave", value: "SL" },
         { label: "Official Business", value: "OB" },
         { label: "Vacation Leave", value: "VL" },
+        { label: "Locator Slip", value: "LS" },
+        { label: "Travel Order", value: "TO" },
     ];
 
     const handleLeaveChange = (empId, selectedLabel) => {
@@ -217,4 +219,3 @@ const EmployeeLeaveTable = ({ employees, selectedDate, syncLeave }) => {
 };
 
 export default EmployeeLeaveTable;
-

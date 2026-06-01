@@ -35,7 +35,7 @@ export const AttendanceTable = ({ dailyAttendance, session, search }) => {
     const filteredAttendance = dailyAttendance.filter((att) =>
         `${att.employee.first_name} ${att.employee.last_name}`
             .toLowerCase()
-            .includes(search.toLowerCase())
+            .includes(search.toLowerCase()),
     );
 
     // Sort by latest log (time_out if exists, else time_in)
@@ -57,7 +57,7 @@ export const AttendanceTable = ({ dailyAttendance, session, search }) => {
     const totalPages = Math.ceil(sortedAttendance.length / itemsPerPage);
     const paginatedAttendance = sortedAttendance.slice(
         (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
+        currentPage * itemsPerPage,
     );
 
     useEffect(() => setCurrentPage(1), [search, dailyAttendance, session]);
@@ -101,14 +101,14 @@ export const AttendanceTable = ({ dailyAttendance, session, search }) => {
                                         {formatTime12Hour(
                                             record?.[
                                                 `${session.toLowerCase()}_time_in`
-                                            ]
+                                            ],
                                         )}
                                     </TableCell>
                                     <TableCell className="text-center text-gray-700">
                                         {formatTime12Hour(
                                             record?.[
                                                 `${session.toLowerCase()}_time_out`
-                                            ]
+                                            ],
                                         )}
                                     </TableCell>
                                 </TableRow>
@@ -156,4 +156,3 @@ export const AttendanceTable = ({ dailyAttendance, session, search }) => {
         </div>
     );
 };
-

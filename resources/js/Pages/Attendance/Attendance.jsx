@@ -55,7 +55,9 @@ const Attendance = ({
         setScanStatus("scanning");
         setScanMessage("Place your fingerprint");
 
-        const eventSource = new EventSource(`${fingerprintServiceUrl}/bioLogin`);
+        const eventSource = new EventSource(
+            `${fingerprintServiceUrl}/bioLogin`,
+        );
         eventSourceRef.current = eventSource;
 
         eventSource.onmessage = (event) => {
@@ -591,5 +593,3 @@ const Attendance = ({
 };
 
 export default Attendance;
-
-

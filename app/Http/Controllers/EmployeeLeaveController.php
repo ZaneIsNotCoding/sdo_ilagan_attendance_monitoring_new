@@ -13,7 +13,7 @@ class EmployeeLeaveController extends Controller
         $request->validate([
             'employee_id' => 'required|exists:employees,id',
             'date' => 'required|date',
-            'leave_type' => 'required|in:SL,VL,OB',
+            'leave_type' => 'required|in:SL,VL,OB,LS,TO',
         ]);
 
         EmployeeLeave::updateOrCreate(

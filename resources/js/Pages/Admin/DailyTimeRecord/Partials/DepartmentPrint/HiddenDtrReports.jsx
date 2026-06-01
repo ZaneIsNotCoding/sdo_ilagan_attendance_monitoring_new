@@ -43,6 +43,7 @@ const HiddenDtrReports = ({
                         data.time_record,
                         selectedMonth,
                         selectedYear,
+                        data.employee_leaves || [],
                     )}
                     monthlyTotals={data.monthly_totals}
                     workSchedule={employee.work_schedule}
@@ -54,4 +55,3 @@ const HiddenDtrReports = ({
 );
 
 export default HiddenDtrReports;
-

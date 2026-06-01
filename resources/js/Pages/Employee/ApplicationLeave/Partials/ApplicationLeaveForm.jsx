@@ -12,6 +12,7 @@ import {
     User,
 } from "lucide-react";
 import FloatingInput from "@/components/floating-input";
+import PublicEmployeePicker from "../../Shared/PublicEmployeePicker";
 
 const leaveTypes = [
     "Vacation Leave",
@@ -40,6 +41,7 @@ export default function ApplicationLeaveForm({ onClose, employee }) {
         "";
 
     const { data, setData, post, processing, reset, errors } = useForm({
+        employee_id: employee?.id || "",
         employee_name: employeeName,
         office_department: employeeOffice,
         date_of_filing: new Date().toISOString().slice(0, 10),
@@ -58,6 +60,23 @@ export default function ApplicationLeaveForm({ onClose, employee }) {
         inclusive_dates: "",
         commutation: "not_requested",
     });
+
+    const clearSelectedEmployee = (name) => {
+        setData("employee_id", "");
+        setData("employee_name", name);
+        setData("office_department", "");
+        setData("position", "");
+    };
+
+    const selectEmployee = (selectedEmployee) => {
+        setData("employee_id", selectedEmployee.id);
+        setData("employee_name", selectedEmployee.full_name || "");
+        setData(
+            "office_department",
+            selectedEmployee.office || selectedEmployee.station || "",
+        );
+        setData("position", selectedEmployee.position || "");
+    };
 
     const submit = (e) => {
         e.preventDefault();
@@ -88,6 +107,14 @@ export default function ApplicationLeaveForm({ onClose, employee }) {
                 </div>
 
                 <form onSubmit={submit} className="space-y-6">
+                    <PublicEmployeePicker
+                        value={data.employee_name}
+                        selectedEmployeeId={data.employee_id}
+                        onSearchChange={clearSelectedEmployee}
+                        onSelect={selectEmployee}
+                        error={errors.employee_id}
+                    />
+
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div>
                             <FloatingInput
@@ -95,12 +122,8 @@ export default function ApplicationLeaveForm({ onClose, employee }) {
                                 icon={Building2}
                                 name="office_department"
                                 value={data.office_department}
-                                onChange={(e) =>
-                                    setData(
-                                        "office_department",
-                                        e.target.value,
-                                    )
-                                }
+                                onChange={() => {}}
+                                readOnly
                             />
                             {errorText("office_department")}
                         </div>
@@ -111,9 +134,8 @@ export default function ApplicationLeaveForm({ onClose, employee }) {
                                 icon={User}
                                 name="employee_name"
                                 value={data.employee_name}
-                                onChange={(e) =>
-                                    setData("employee_name", e.target.value)
-                                }
+                                onChange={() => {}}
+                                readOnly
                             />
                             {errorText("employee_name")}
                         </div>
@@ -138,9 +160,8 @@ export default function ApplicationLeaveForm({ onClose, employee }) {
                                 icon={Briefcase}
                                 name="position"
                                 value={data.position}
-                                onChange={(e) =>
-                                    setData("position", e.target.value)
-                                }
+                                onChange={() => {}}
+                                readOnly
                             />
                             {errorText("position")}
                         </div>
@@ -531,4 +552,3 @@ export default function ApplicationLeaveForm({ onClose, employee }) {
         </div>
     );
 }
-

@@ -48,7 +48,12 @@ export const signatoryKey = (signatory) =>
               signatory?.office,
           ].join("|");
 
-export const generateLogs = (timeRecord, selectedMonth, selectedYear) => {
+export const generateLogs = (
+    timeRecord,
+    selectedMonth,
+    selectedYear,
+    employeeLeaves = [],
+) => {
     const attendances = timeRecord.attendances || [];
     const month = String(selectedMonth).padStart(2, "0");
     const start = dayjs(`${selectedYear}-${month}-01`).startOf("month");
@@ -62,18 +67,29 @@ export const generateLogs = (timeRecord, selectedMonth, selectedYear) => {
     }
 
     return days.map((date) => {
+        const formattedDate = date.format("YYYY-MM-DD");
         const attendance = attendances.find((item) =>
             dayjs(item.date).isSame(date, "day"),
         );
+        const leave = employeeLeaves.find(
+            (item) => item.date === formattedDate,
+        );
 
         return {
-            date: date.format("YYYY-MM-DD"),
-            amIn: attendance?.am?.am_time_in || "-",
-            amOut: attendance?.am?.am_time_out || "-",
-            pmIn: attendance?.pm?.pm_time_in || "-",
-            pmOut: attendance?.pm?.pm_time_out || "-",
-            undertime: attendance?.tardiness_record?.converted_tardy || "-",
+            date: formattedDate,
+            amIn: leave ? leave.leave_type : attendance?.am?.am_time_in || "-",
+            amOut: leave
+                ? leave.leave_type
+                : attendance?.am?.am_time_out || "-",
+            pmIn: leave ? leave.leave_type : attendance?.pm?.pm_time_in || "-",
+            pmOut: leave
+                ? leave.leave_type
+                : attendance?.pm?.pm_time_out || "-",
+            undertime: leave
+                ? leave.leave_type
+                : attendance?.tardiness_record?.converted_tardy || "-",
+            isLeave: Boolean(leave),
+            leave_type: leave?.leave_type ?? null,
         };
     });
 };
-

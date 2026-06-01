@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Administrator\Employee;
 use App\Models\ApplicationForLeave;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -29,6 +30,7 @@ class ApplicationForLeaveController extends Controller
         $employee = $user?->employee;
 
         $validated = $request->validate([
+            'employee_id' => 'required|exists:employees,id',
             'employee_name' => 'required|string|max:255',
             'office_department' => 'required|string|max:255',
             'date_of_filing' => 'required|date',
@@ -48,9 +50,17 @@ class ApplicationForLeaveController extends Controller
             'commutation' => 'required|in:not_requested,requested',
         ]);
 
+        $selectedEmployee = Employee::with('station', 'office')
+            ->findOrFail($employee?->id ?? $validated['employee_id']);
+
         $application = ApplicationForLeave::create([
-            'employee_id' => $employee?->id,
             ...$validated,
+            'employee_id' => $selectedEmployee->id,
+            'employee_name' => $selectedEmployee->full_name,
+            'office_department' => $selectedEmployee->office?->name
+                ?? $selectedEmployee->station?->name
+                ?? $validated['office_department'],
+            'position' => $selectedEmployee->position,
         ]);
 
         return redirect()

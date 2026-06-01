@@ -54,7 +54,8 @@ export function AppSidebar({ active, user, ...props }) {
     const { url, props: pageProps } = usePage();
     const authUser = user || pageProps.auth?.user;
     const employee = authUser?.employee;
-    const employeeName = getEmployeeName(employee) || authUser?.email || "Administrator";
+    const employeeName =
+        getEmployeeName(employee) || authUser?.email || "Administrator";
     const stationName = employee?.station?.name || "No Station";
     const roleLabel = employee?.position || "Administrator";
 
@@ -75,7 +76,7 @@ export function AppSidebar({ active, user, ...props }) {
                                         </div>
                                         <div className="flex flex-col gap-0.5 leading-tight text-white">
                                             <span className="text-[14px] font-semibold tracking-tight">
-                                                TimeVault
+                                                Project: TALA
                                             </span>
                                             <span className="text-[9px] font-medium uppercase tracking-wide opacity-80 leading-[1rem]">
                                                 Securing Attendance and
@@ -457,4 +458,3 @@ export function AppSidebar({ active, user, ...props }) {
 }
 
 export default AppSidebar;
-
